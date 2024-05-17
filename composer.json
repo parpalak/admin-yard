@@ -1,0 +1,25 @@
+{
+    "name": "s2/adminyard",
+    "description": "Simple admin panel without heavy dependencies",
+    "type": "library",
+    "authors": [
+        {
+            "name": "Roman Parpalak",
+            "email": "roman@parpalak.com"
+        }
+    ],
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "S2\\AdminYard\\": "src/"
+        }
+    },
+    "require-dev": {
+        "codeception/codeception": "^5.1",
+        "symfony/error-handler": "^5.1"
+    },
+    "require": {
+        "symfony/http-foundation": "^7.0",
+        "ext-pdo": "*"
+    }
+}

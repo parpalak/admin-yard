@@ -1,0 +1,142 @@
+:root {
+    --font-sans-serif: system-ui, -apple-system, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+    --page-background: #fff;
+    --page-secondary-background: hsl(37, 52%, 95%);
+    --color-text: #222;
+    --color-error: #b0413e;
+
+    --color-danger: red;
+    --color-btn-primary: #00b648;
+    --color-btn-secondary: #9b9b9b;
+
+    --table-border: #e0e0e0;
+    --table-background: #fff;
+    --table-header: #e0e0e0;
+
+    --border: 1px solid #e0e0e0;
+    --background-error: var(--color-error);
+    --base-0: #fff;
+    --base-1: #f5f5f5;
+    --base-2: #e0e0e0;
+    --base-3: #ccc;
+    --base-4: #666;
+    --base-5: #444;
+    --base-6: #222;
+}
+
+body {
+    background: var(--page-secondary-background);
+    color: var(--color-text);
+    margin: 0;
+    padding: 0;
+    line-height: 1.375;
+}
+
+body, button {
+    font-family: var(--font-sans-serif);
+    font-size: 1rem;
+}
+
+table {
+    background: var(--table-background);
+    border-collapse: collapse;
+    line-height: 1.5;
+}
+
+td, th {
+    padding: 0 0.5em;
+    text-align: left;
+    border: 1px solid #ccc;
+}
+
+td.type-int {
+    text-align: right;
+}
+
+nav {
+    border-bottom: var(--border);
+    background: var(--page-secondary-background);
+    padding: 0.5em 1em;
+}
+
+nav ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    gap: 0.5em;
+}
+
+.list-action-link {
+    text-decoration: none;
+}
+
+.list-action-link span {
+    display: none;
+}
+
+.list-action-link:before {
+    display: inline-block;
+    padding: 0 2px;
+}
+
+.list-action-link-edit:before {
+    content: '✎';
+    transform: scaleX(-1);
+}
+
+.list-action-link-show:before {
+    content: '👁';
+}
+
+.list-action-link-delete:before {
+    color: var(--color-danger);
+    content: '✗';
+}
+
+article {
+    padding: 0 1em;
+}
+
+article.error {
+    color: var(--color-error);
+}
+
+p.error-message {
+    border: var(--border);
+    border-color: var(--background-error);
+    padding: 1em;
+    background: color-mix(in srgb, var(--background-error) 10%, var(--page-background) 90%);
+    color: color-mix(in srgb, var(--color-error) 50%, var(--color-text) 50%);
+}
+
+section {
+    margin: 1em 0;
+}
+
+.form-buttons {
+    border-top: var(--border);
+    padding: 1em 0 0;
+    margin: 1em 0;
+}
+
+.link-as-button, button {
+    --btn-color: var(--color-btn-secondary);
+    display: inline-block;
+    text-decoration: none;
+    border: 1px solid var(--btn-color);
+    padding: 0.25em 1em;
+    margin: 0;
+    line-height: 1.5;
+    border-radius: 0.25em;
+    background: color-mix(in srgb, var(--btn-color) 20%, var(--page-background) 80%);
+    color: color-mix(in srgb, var(--btn-color) 40%, var(--color-text) 60%);
+}
+
+.link-as-button.primary, button {
+    --btn-color: var(--color-btn-primary);
+}
+
+.link-as-button.danger {
+    --btn-color: var(--color-danger);
+}
