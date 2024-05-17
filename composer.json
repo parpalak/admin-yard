@@ -14,9 +14,16 @@
             "S2\\AdminYard\\": "src/"
         }
     },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    },
     "require-dev": {
         "codeception/codeception": "^5.1",
-        "symfony/error-handler": "^5.1"
+        "symfony/error-handler": "^5.1",
+        "codeception/module-asserts": "^3.0",
+        "symfony/dom-crawler": "^7.0"
     },
     "require": {
         "symfony/http-foundation": "^7.0",
