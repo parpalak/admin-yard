@@ -26,7 +26,7 @@ readonly class EntityController
     public function __construct(
         protected EntityConfig     $entityConfig,
         protected PdoDataProvider  $dataProvider,
-        protected ViewTransformer  $dataTransformer,
+        protected ViewTransformer  $viewTransformer,
         protected TemplateRenderer $templateRenderer,
         protected FormFactory      $formFactory,
     ) {
@@ -37,7 +37,7 @@ readonly class EntityController
         $data = $this->getEntityListFromRequest($request);
 
         $renderedRows = array_map(function (array $row) {
-            return $this->viewDataFromDbRow($row, FieldConfig::ACTION_LIST);
+            return $this->renderCellsForNormalizedRow($row, FieldConfig::ACTION_LIST);
         }, $data);
 
         return $this->templateRenderer->render(
@@ -61,11 +61,11 @@ readonly class EntityController
         $data = $this->dataProvider->getEntity(
             $this->entityConfig->getTableName(),
             $this->entityConfig->getFieldDataTypes(FieldConfig::ACTION_SHOW, true),
-            DatabaseHelper::getSqlExpressionsForManyToOne($this->entityConfig),
+            DatabaseHelper::getSqlExpressionsForAssociations($this->entityConfig),
             $primaryKey,
         );
 
-        $renderedRow = $this->viewDataFromDbRow($data, FieldConfig::ACTION_SHOW);
+        $renderedRow = $this->renderCellsForNormalizedRow($data, FieldConfig::ACTION_SHOW);
 
         return $this->templateRenderer->render(
             $this->entityConfig->getShowTemplate(),
@@ -201,43 +201,84 @@ readonly class EntityController
         return $this->dataProvider->getEntityList(
             $this->entityConfig->getTableName(),
             $this->entityConfig->getFieldDataTypes(FieldConfig::ACTION_LIST, true),
-            DatabaseHelper::getSqlExpressionsForManyToOne($this->entityConfig),
+            DatabaseHelper::getSqlExpressionsForAssociations($this->entityConfig),
             $this->entityConfig->getLimit(),
             $request->query->getInt('offset', 0)
         );
     }
 
-    protected function viewDataFromDbRow(array $row, string $actionForFieldRestriction): array
+    protected function renderCellsForNormalizedRow(array $row, string $actionForFieldRestriction): array
     {
         $idFieldNames = $this->entityConfig->getFieldNamesOfPrimaryKey();
         $idValues     = array_map(static fn(string $columnName) => $row['field_' . $columnName], $idFieldNames);
         $result       = ['primary_key' => array_combine($idFieldNames, $idValues)];
 
         foreach ($this->entityConfig->getFields($actionForFieldRestriction) as $field) {
-            $columnName                   = $field->getName();
+            $columnName = $field->getName();
+            $dataType   = $field->getDataType();
+            $cellValue  = $dataType === FieldConfig::DATA_TYPE_VIRTUAL ? null : $this->viewTransformer->viewFromNormalized($row['field_' . $columnName], $dataType);
+
+            // Additional attributes to build a link to an associated entity.
+            $additionalParams = $this->getLinkCellParamsForAssociations($field, $idValues, $row);
+            $cellParams       = [
+                'value' => $cellValue,
+                'type'  => $dataType,
+                ... $additionalParams,
+            ];
+
             $result['cells'][$columnName] = [
-                'value' => $this->dataTransformer->viewFromDb($row['field_' . $columnName], $field->getDataType()),
-                'type'  => $field->getDataType(),
-                // Additional attributes to build a link to an associated entity.
-                ... (static function (?EntityConfig $foreignEntity) use ($columnName, $row): array {
-                    if ($foreignEntity === null) {
-                        return [];
-                    }
-                    $fieldNamesOfPrimaryKey = $foreignEntity->getFieldNamesOfPrimaryKey();
-                    if (\count($fieldNamesOfPrimaryKey) === 0) {
-                        throw new \LogicException(sprintf('Entity "%s" has no primary key configured and it cannot be used in a many-to-one relationship.', $foreignEntity->getName()));
-                    }
-                    return [
-                        'foreign_entity' => $foreignEntity->getName(),
-                        // NOTE: think about how to handle primary keys with more than one field.
-                        //       For now, we just take the first field. It's ok for usual ID fields.
-                        'foreign_column' => $fieldNamesOfPrimaryKey[0],
-                        'label'          => $row['label_' . $columnName],
-                    ];
-                }) ($field->getForeignEntity())
+                'type'    => $additionalParams === [] ? $dataType : FieldConfig::DATA_TYPE_STRING, // string for int IDs converted to links
+                'content' => $this->templateRenderer->render($field->getViewTemplate(), $cellParams),
             ];
         }
 
         return $result;
+    }
+
+    protected function getLinkCellParamsForAssociations(FieldConfig $currentField, array $idValues, array $row): array
+    {
+        $foreignEntity = $currentField->getForeignEntity();
+        $columnName    = $currentField->getName();
+        if ($foreignEntity === null) {
+            return [];
+        }
+        if (!\array_key_exists('label_' . $columnName, $row)) {
+            throw new \LogicException(sprintf('Row data array for entity "%s" must have a "label_%s" key.', $this->entityConfig->getName(), $columnName));
+        }
+        if ($row['label_' . $columnName] === null) {
+            // Label is NULL so there will be no link
+            return [];
+        }
+        $labelContent = (string)$row['label_' . $columnName];
+
+        if ($currentField->getInverseFieldName() !== null) {
+            // One-To-Many, link to "children" entities
+            if (\count($idValues) === 0) {
+                throw new \LogicException(sprintf(
+                    'Entity "%s" has no primary key configured and it cannot be used in a one-to-many relationship.',
+                    $this->entityConfig->getName()
+                ));
+            }
+            return [
+                'foreign_entity' => $foreignEntity->getName(),
+                'inverse_column' => $currentField->getInverseFieldName(),
+                'inverse_id'     => $idValues[0],
+                'label'          => $labelContent,
+            ];
+        }
+
+        // Many-To-One, link to "parent" entity
+        $fieldNamesOfPrimaryKey = $foreignEntity->getFieldNamesOfPrimaryKey();
+        if (\count($fieldNamesOfPrimaryKey) === 0) {
+            throw new \LogicException(sprintf('Entity "%s" has no primary key configured and it cannot be used in a many-to-one relationship.', $foreignEntity->getName()));
+        }
+
+        return [
+            'foreign_entity'    => $foreignEntity->getName(),
+            // NOTE: think about how to handle primary keys with more than one field.
+            //       For now, we just take the first field. It's ok for usual ID fields.
+            'foreign_id_column' => $fieldNamesOfPrimaryKey[0],
+            'label'             => $labelContent,
+        ];
     }
 }

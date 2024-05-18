@@ -4,6 +4,7 @@
     --page-secondary-background: hsl(37, 52%, 95%);
     --color-text: #222;
     --color-error: #b0413e;
+    --color-muted: #999;
 
     --color-danger: red;
     --color-btn-primary: #00b648;
@@ -139,4 +140,10 @@ section {
 
 .link-as-button.danger {
     --btn-color: var(--color-danger);
+}
+
+.null {
+    color: var(--color-muted);
+    font-variant-caps: all-small-caps;
+    font-size: 0.75em;
 }

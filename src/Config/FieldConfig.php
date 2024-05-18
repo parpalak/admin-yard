@@ -21,6 +21,7 @@ class FieldConfig
     public const  DATA_TYPE_DATE      = 'date';
     public const  DATA_TYPE_TIMESTAMP = 'timestamp';
     public const  DATA_TYPE_UNIXTIME  = 'unixtime';
+    public const  DATA_TYPE_VIRTUAL   = 'virtual'; // Not stored in database. NOTE: maybe this solution doesn't smell good
     private const ALLOWED_DATA_TYPES  = [
         self::DATA_TYPE_STRING,
         self::DATA_TYPE_INT,
@@ -29,6 +30,7 @@ class FieldConfig
         self::DATA_TYPE_DATE,
         self::DATA_TYPE_TIMESTAMP,
         self::DATA_TYPE_UNIXTIME,
+        self::DATA_TYPE_VIRTUAL,
     ];
 
     public const ACTION_LIST   = 'list';
@@ -52,6 +54,8 @@ class FieldConfig
 
     private ?EntityConfig $foreignEntity = null;
     private ?string $titleSqlExpression = null;
+    private ?string $inverseFieldName = null;
+    private string $viewTemplate = __DIR__ . '/../../templates/view_cell.php';
 
     public function __construct(string $name)
     {
@@ -122,7 +126,7 @@ class FieldConfig
 
     public function getLabel(): ?string
     {
-        return $this->label ?? $this->name;
+        return $this->label ?? mb_convert_case($this->name, MB_CASE_TITLE, 'UTF-8');
     }
 
     public function getDataType(): string
@@ -168,6 +172,15 @@ class FieldConfig
         return $this;
     }
 
+    public function oneToMany(EntityConfig $foreignEntity, string $titleSqlExpression, string $inverseFieldName): static
+    {
+        $this->foreignEntity      = $foreignEntity;
+        $this->titleSqlExpression = $titleSqlExpression;
+        $this->inverseFieldName   = $inverseFieldName;
+
+        return $this;
+    }
+
     public function getForeignEntity(): ?EntityConfig
     {
         return $this->foreignEntity;
@@ -176,5 +189,15 @@ class FieldConfig
     public function getTitleSqlExpression(): ?string
     {
         return $this->titleSqlExpression;
+    }
+
+    public function getInverseFieldName(): ?string
+    {
+        return $this->inverseFieldName;
+    }
+
+    public function getViewTemplate(): string
+    {
+        return $this->viewTemplate;
     }
 }

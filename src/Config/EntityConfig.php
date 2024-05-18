@@ -105,10 +105,21 @@ class EntityConfig
      */
     public function getFieldDataTypes(string $action, bool $includePrimaryKey = false): array
     {
-        $relatedFields = array_filter($this->fields, static function (FieldConfig $field) use ($includePrimaryKey, $action) {
-            return $field->getUseOnActions() === null || \in_array($action, $field->getUseOnActions(), true) || ($field->isPrimaryKey() && $includePrimaryKey);
-        });
-        return array_map(static fn(FieldConfig $field) => $field->getDataType(), $relatedFields);
+        $dataTypes = [];
+
+        foreach ($this->fields as $fieldName => $field) {
+            if ($field->getDataType() === FieldConfig::DATA_TYPE_VIRTUAL) {
+                continue;
+            }
+
+            if ($includePrimaryKey && $field->isPrimaryKey()) {
+                $dataTypes[$fieldName] = $field->getDataType();
+            } elseif ($field->getUseOnActions() === null || \in_array($action, $field->getUseOnActions(), true)) {
+                $dataTypes[$fieldName] = $field->getDataType();
+            }
+        }
+
+        return $dataTypes;
     }
 
     /**

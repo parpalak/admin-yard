@@ -16,16 +16,8 @@ declare(strict_types=1);
         <?php foreach ($row['cells'] as $fieldName => $cell): ?>
             <tr>
                 <td class="field-name"><?= htmlspecialchars($header[$fieldName], ENT_QUOTES, 'UTF-8') ?></td>
-                <td class="type-<?= isset($cell['foreign_entity']) ? 'string' : $cell['type'] ?> field-<?= $entityName ?>-<?= $fieldName ?>">
-                    <?php if (isset($cell['foreign_entity'])): ?>
-                        <a href="?<?= http_build_query([
-                            'entity'                => $cell['foreign_entity'],
-                            'action'                => 'show',
-                            $cell['foreign_column'] => $cell['value']
-                        ]) ?>"><?= htmlspecialchars($cell['label'], ENT_QUOTES, 'UTF-8') ?></a>
-                    <?php else: ?>
-                        <?= htmlspecialchars($cell['value'], ENT_QUOTES, 'UTF-8') ?>
-                    <?php endif; ?>
+                <td class="type-<?= $cell['type'] ?> field-<?= $entityName ?>-<?= $fieldName ?>">
+                    <?= $cell['content'] ?>
                 </td>
             </tr>
         <?php endforeach; ?>

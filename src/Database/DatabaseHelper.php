@@ -14,15 +14,23 @@ use S2\AdminYard\Config\FieldConfig;
 
 class DatabaseHelper
 {
-    public static function getSqlExpressionsForManyToOne(EntityConfig $entityConfig): array
+    public static function getSqlExpressionsForAssociations(EntityConfig $entityConfig): array
     {
         // TODO: not all fields may be required for displaying
-        return array_map(static fn(FieldConfig $field) => sprintf(
-            '(SELECT %s FROM %s WHERE %s = entity.%s)',
-            $field->getTitleSqlExpression(),
-            $field->getForeignEntity()->getTableName(),
-            $field->getForeignEntity()->getFieldNamesOfPrimaryKey()[0],
-            $field->getName()
-        ), $entityConfig->getFieldsWithForeignEntities());
+        return array_map(static fn(FieldConfig $field) => $field->getInverseFieldName() !== null
+            ? sprintf( // One-To-Many, aggregated info about "children"
+                '(SELECT %s FROM %s WHERE %s = entity.%s)',
+                $field->getTitleSqlExpression(),
+                $field->getForeignEntity()->getTableName(),
+                $field->getInverseFieldName(),
+                $entityConfig->getFieldNamesOfPrimaryKey()[0]
+            )
+            : sprintf( // Many-To-One, info about "parent"
+                '(SELECT %s FROM %s WHERE %s = entity.%s)',
+                $field->getTitleSqlExpression(),
+                $field->getForeignEntity()->getTableName(),
+                $field->getForeignEntity()->getFieldNamesOfPrimaryKey()[0],
+                $field->getName()
+            ), $entityConfig->getFieldsWithForeignEntities());
     }
 }

@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace S2\AdminYard\Form;
 
 use S2\AdminYard\Config\EntityConfig;
+use S2\AdminYard\Config\FieldConfig;
 use S2\AdminYard\Database\PdoDataProvider;
 
 readonly class FormFactory
@@ -25,6 +26,9 @@ readonly class FormFactory
         $form = new Form();
 
         foreach ($entityConfig->getFields($action) as $field) {
+            if ($field->getDataType() === FieldConfig::DATA_TYPE_VIRTUAL) {
+                continue;
+            }
             $columnName  = $field->getName();
             $controlName = $field->getControl();
             if ($controlName === null) {

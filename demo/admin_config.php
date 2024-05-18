@@ -10,9 +10,48 @@ use S2\AdminYard\Validator\Length;
 // Example of admin config for demo and tests
 
 $adminConfig = new AdminConfig();
+
+$postEntity = new EntityConfig('Post', 'posts');
+
+$commentConfig = (new EntityConfig('Comment', 'comments'))
+    ->addField(
+        (new FieldConfig('id'))
+            ->setDataType('int')
+            ->markAsPrimaryKey()
+            ->setUseOnActions([])
+    )
+    ->addField(
+        (new FieldConfig('post_id'))
+            ->setDataType('int')
+            ->setControl('select')
+            ->manyToOne($postEntity, 'CONCAT("#", id, " ", title)')
+            ->setUseOnActions([FieldConfig::ACTION_LIST, FieldConfig::ACTION_SHOW, FieldConfig::ACTION_NEW])
+    )
+    ->addField(
+        (new FieldConfig('name'))
+            ->setControl('input')
+            ->addValidator(new Length(50))
+    )
+    ->addField(
+        (new FieldConfig('email'))
+            ->setControl('input')
+            ->addValidator(new Length(80))
+    )
+    ->addField(
+        (new FieldConfig('comment_text'))
+            ->setDataType('string')
+            ->setControl('textarea')
+    )
+    ->addField(
+        (new FieldConfig('created_at'))
+            ->setDataType('timestamp')
+            ->setControl('datetime')
+    )
+;
+
 $adminConfig
     ->addEntity(
-        ($postEntity = new EntityConfig('Post', 'posts'))
+        $postEntity
             ->addField(
                 (new FieldConfig('id'))
                     ->setLabel('ID')
@@ -55,43 +94,15 @@ $adminConfig
                     ->setControl('datetime')
                     ->markAsFilterable(true)
             )
+            ->addField(
+                (new FieldConfig('comments'))
+                    ->setDataType(FieldConfig::DATA_TYPE_VIRTUAL)
+                    ->oneToMany($commentConfig, 'CASE WHEN COUNT(*) > 0 THEN COUNT(*) ELSE NULL END', 'post_id')
+            )
             ->markAsDefault()
     )
     ->addEntity(
-        (new EntityConfig('Comment', 'comments'))
-            ->addField(
-                (new FieldConfig('id'))
-                    ->setDataType('int')
-                    ->markAsPrimaryKey()
-                    ->setUseOnActions([])
-            )
-            ->addField(
-                (new FieldConfig('post_id'))
-                    ->setDataType('int')
-                    ->setControl('select')
-                    ->manyToOne($postEntity, 'CONCAT("#", id, " ", title)')
-                    ->setUseOnActions([FieldConfig::ACTION_LIST, FieldConfig::ACTION_SHOW, FieldConfig::ACTION_NEW])
-            )
-            ->addField(
-                (new FieldConfig('name'))
-                    ->setControl('input')
-                    ->addValidator(new Length(50))
-            )
-            ->addField(
-                (new FieldConfig('email'))
-                    ->setControl('input')
-                    ->addValidator(new Length(80))
-            )
-            ->addField(
-                (new FieldConfig('comment_text'))
-                    ->setDataType('string')
-                    ->setControl('textarea')
-            )
-            ->addField(
-                (new FieldConfig('created_at'))
-                    ->setDataType('timestamp')
-                    ->setControl('datetime')
-            )
+        $commentConfig
     )
     ->addEntity(
         (new EntityConfig('Tag', 'tags'))
