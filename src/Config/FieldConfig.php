@@ -1,8 +1,8 @@
 <?php
 /**
  * @copyright 2024 Roman Parpalak
- * @license http://opensource.org/licenses/MIT MIT
- * @package AdminYard
+ * @license   http://opensource.org/licenses/MIT MIT
+ * @package   AdminYard
  */
 
 declare(strict_types=1);
@@ -30,7 +30,6 @@ class FieldConfig
         self::DATA_TYPE_DATE,
         self::DATA_TYPE_TIMESTAMP,
         self::DATA_TYPE_UNIXTIME,
-        self::DATA_TYPE_VIRTUAL,
     ];
 
     public const ACTION_LIST   = 'list';
@@ -56,18 +55,33 @@ class FieldConfig
     private ?string $titleSqlExpression = null;
     private ?string $inverseFieldName = null;
     private string $viewTemplate = __DIR__ . '/../../templates/view_cell.php';
+    private ?array $options = null;
+    private string|int|null $defaultValue = null;
 
+    /**
+     * @param string $name Column name in the database.
+     */
     public function __construct(string $name)
     {
         $this->name = $name;
     }
 
+    /**
+     * @param string $label Field label in the interface. If not set, column name will be used as a label.
+     *
+     * @return $this
+     */
     public function setLabel(string $label): self
     {
         $this->label = $label;
         return $this;
     }
 
+    /**
+     * Describes data type of the column in database.
+     *
+     * @param string $dataType Data type of the field in database. One of the DATA_TYPE_* constants.
+     */
     public function setDataType(string $dataType): self
     {
         if (!\in_array($dataType, self::ALLOWED_DATA_TYPES)) {
@@ -81,6 +95,11 @@ class FieldConfig
         return $this;
     }
 
+    /**
+     * Specifies control type of this field for the new and edit forms.
+     *
+     * @param string $control What control should be used for this field in the new and edit forms.
+     */
     public function setControl(string $control): self
     {
         // TODO add control validation
@@ -100,6 +119,9 @@ class FieldConfig
         return $this;
     }
 
+    /**
+     * Describes on which action screens this field will be used.
+     */
     public function setUseOnActions(array $actions): self
     {
         $this->useOnActions = $actions;
@@ -164,6 +186,15 @@ class FieldConfig
         return $this->primaryKey;
     }
 
+    /**
+     * Defines this field as foreign key.
+     *
+     * @param EntityConfig $foreignEntity      The config of entity this field pointing to.
+     * @param string       $titleSqlExpression SQL expression that returns title of the foreign entity.
+     *                                         Example: 'CONCAT(first_name, " ", last_name)'
+     *
+     * @return $this
+     */
     public function manyToOne(EntityConfig $foreignEntity, string $titleSqlExpression): static
     {
         $this->foreignEntity      = $foreignEntity;
@@ -172,8 +203,21 @@ class FieldConfig
         return $this;
     }
 
+    /**
+     * Defines this field as a virtual field.
+     *
+     * @param EntityConfig $foreignEntity      The config of entity which is pointing to this field.
+     * @param string       $titleSqlExpression Aggregate function to be applied for all foreign entities
+     *                                         on the list and show screens. Example: 'COUNT(*)'
+     *                                         Expression should return NULL if there is no associated entities.
+     *                                         Otherwise, a link to filtered foreign entity list will be displayed.
+     * @param string       $inverseFieldName   The column name of the foreign entity that is pointing to this field.
+     *
+     * @return $this
+     */
     public function oneToMany(EntityConfig $foreignEntity, string $titleSqlExpression, string $inverseFieldName): static
     {
+        $this->dataType           = self::DATA_TYPE_VIRTUAL;
         $this->foreignEntity      = $foreignEntity;
         $this->titleSqlExpression = $titleSqlExpression;
         $this->inverseFieldName   = $inverseFieldName;
@@ -199,5 +243,42 @@ class FieldConfig
     public function getViewTemplate(): string
     {
         return $this->viewTemplate;
+    }
+
+    /**
+     * Specifies the selection options for select and radio controls
+     * and converts the values from the normalized internal representation for display.
+     *
+     * @param array $options Mapping of internal to displayed values. For example: ['active' => 'Enabled', 'inactive'
+     *                       => 'Disabled']
+     */
+    public function setOptions(array $options): static
+    {
+        $this->options = $options;
+        return $this;
+    }
+
+    public function getOptions(): ?array
+    {
+        return $this->options;
+    }
+
+    /**
+     * If this field is not present on the new form, and the column in the database has no default value,
+     * this value will be used.
+     *
+     * @param int|string $defaultValue The default value to be inserted in the database when the entity is created.
+     *
+     * @return $this
+     */
+    public function setDefaultValue(int|string $defaultValue): static
+    {
+        $this->defaultValue = $defaultValue;
+        return $this;
+    }
+
+    public function getDefaultValue(): int|string|null
+    {
+        return $this->defaultValue;
     }
 }

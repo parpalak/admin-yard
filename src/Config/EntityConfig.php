@@ -24,7 +24,7 @@ class EntityConfig
     private readonly string $tableName;
 
     /**
-     * @var array<FieldConfig>
+     * @var array<string,FieldConfig>
      */
     private array $fields = [];
     /**
@@ -103,7 +103,7 @@ class EntityConfig
     /**
      * @return array<string,string>
      */
-    public function getFieldDataTypes(string $action, bool $includePrimaryKey = false): array
+    public function getFieldDataTypes(string $action, bool $includePrimaryKey = false, bool $includeDefault = false): array
     {
         $dataTypes = [];
 
@@ -113,6 +113,8 @@ class EntityConfig
             }
 
             if ($includePrimaryKey && $field->isPrimaryKey()) {
+                $dataTypes[$fieldName] = $field->getDataType();
+            } elseif ($includeDefault && $field->getDefaultValue() !== null) {
                 $dataTypes[$fieldName] = $field->getDataType();
             } elseif ($field->getUseOnActions() === null || \in_array($action, $field->getUseOnActions(), true)) {
                 $dataTypes[$fieldName] = $field->getDataType();
@@ -190,12 +192,20 @@ class EntityConfig
     }
 
     /**
-     * @return array<FieldConfig>
+     * @return array<string,FieldConfig>
      */
     public function getFieldsWithForeignEntities(): array
     {
         return array_filter($this->fields, static function (FieldConfig $field) {
             return $field->getForeignEntity() !== null;
         });
+    }
+
+    public function getFieldDefaultValues(): array
+    {
+        $defaultValues = array_map(static fn(FieldConfig $field) => $field->getDefaultValue(), $this->fields);
+        $defaultValues = array_filter($defaultValues, static fn($value) => $value !== null);
+
+        return $defaultValues;
     }
 }

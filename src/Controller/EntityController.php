@@ -143,8 +143,8 @@ readonly class EntityController
 
             $lastInsertId         = $this->dataProvider->createEntity(
                 $this->entityConfig->getTableName(),
-                $this->entityConfig->getFieldDataTypes(FieldConfig::ACTION_NEW),
-                $data
+                $this->entityConfig->getFieldDataTypes(FieldConfig::ACTION_NEW, includeDefault: true),
+                array_merge($this->entityConfig->getFieldDefaultValues(), $data)
             );
             $primaryKeyFieldNames = $this->entityConfig->getFieldNamesOfPrimaryKey();
             if (is_numeric($lastInsertId) && (int)$lastInsertId > 0 && \count($primaryKeyFieldNames) === 1) {
@@ -216,7 +216,9 @@ readonly class EntityController
         foreach ($this->entityConfig->getFields($actionForFieldRestriction) as $field) {
             $columnName = $field->getName();
             $dataType   = $field->getDataType();
-            $cellValue  = $dataType === FieldConfig::DATA_TYPE_VIRTUAL ? null : $this->viewTransformer->viewFromNormalized($row['field_' . $columnName], $dataType);
+            $cellValue  = $dataType === FieldConfig::DATA_TYPE_VIRTUAL
+                ? null
+                : $this->viewTransformer->viewFromNormalized($row['field_' . $columnName], $dataType, $field->getOptions());
 
             // Additional attributes to build a link to an associated entity.
             $additionalParams = $this->getLinkCellParamsForAssociations($field, $idValues, $row);

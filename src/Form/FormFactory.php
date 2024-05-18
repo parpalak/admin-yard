@@ -29,6 +29,7 @@ readonly class FormFactory
             if ($field->getDataType() === FieldConfig::DATA_TYPE_VIRTUAL) {
                 continue;
             }
+
             $columnName  = $field->getName();
             $controlName = $field->getControl();
             if ($controlName === null) {
@@ -38,7 +39,8 @@ readonly class FormFactory
                     $entityConfig->getName()
                 ));
             }
-            $control       = $this->formControlFactory->create($controlName, $columnName);
+            $control = $this->formControlFactory->create($controlName, $columnName);
+
             $foreignEntity = $field->getForeignEntity();
             if ($foreignEntity !== null) {
                 if (!$control instanceof OptionsInterface) {
@@ -54,7 +56,19 @@ readonly class FormFactory
                     $foreignEntity->getFieldNamesOfPrimaryKey(),
                     $field->getTitleSqlExpression()
                 ));
+            } elseif ($control instanceof OptionsInterface) {
+                $options = $field->getOptions();
+                if ($options === null) {
+                    throw new \LogicException(sprintf(
+                        'Field "%s" for entity "%s" must have options configured since its control is "%s".',
+                        $columnName,
+                        $entityConfig->getName(),
+                        $controlName
+                    ));
+                }
+                $control->setOptions($options);
             }
+
             $form->addControl($control, $columnName);
         }
 

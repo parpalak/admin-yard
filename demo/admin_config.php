@@ -47,6 +47,14 @@ $commentConfig = (new EntityConfig('Comment', 'comments'))
             ->setDataType('timestamp')
             ->setControl('datetime')
     )
+    ->addField(
+        (new FieldConfig('status'))
+            ->setDataType('string')
+            ->setControl('radio')
+            ->setOptions(['new' => 'Pending', 'approved' => 'Approved', 'rejected' => 'Rejected'])
+            ->setDefaultValue('new')
+            ->setUseOnActions([FieldConfig::ACTION_LIST, FieldConfig::ACTION_SHOW, FieldConfig::ACTION_EDIT])
+    )
 ;
 
 $adminConfig
@@ -96,7 +104,6 @@ $adminConfig
             )
             ->addField(
                 (new FieldConfig('comments'))
-                    ->setDataType(FieldConfig::DATA_TYPE_VIRTUAL)
                     ->oneToMany($commentConfig, 'CASE WHEN COUNT(*) > 0 THEN COUNT(*) ELSE NULL END', 'post_id')
             )
             ->markAsDefault()

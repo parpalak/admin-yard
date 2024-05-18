@@ -1,8 +1,8 @@
 <?php
 /**
  * @copyright 2024 Roman Parpalak
- * @license http://opensource.org/licenses/MIT MIT
- * @package AdminYard
+ * @license   http://opensource.org/licenses/MIT MIT
+ * @package   AdminYard
  */
 
 declare(strict_types=1);
@@ -15,10 +15,15 @@ use S2\AdminYard\Config\FieldConfig;
 class ViewTransformer
 {
     /**
-     * One-directional, as it is used for displaying, but not for editing.
+     * One-directional transform, as its result is used for displaying,
+     * not for editing.
      */
-    public function viewFromNormalized(mixed $value, string $dataType): ?string
+    public function viewFromNormalized(mixed $value, string $dataType, ?array $options): ?string
     {
+        if ($options !== null && is_scalar($value) && isset($options[$value])) {
+            return $options[$value];
+        }
+
         return match ($dataType) {
             FieldConfig::DATA_TYPE_STRING,
             FieldConfig::DATA_TYPE_DATE => $value,
