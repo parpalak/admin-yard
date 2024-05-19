@@ -12,7 +12,7 @@ Debug::enable();
 
 $adminConfig = require 'admin_config.php';
 $pdo         = new PDO('mysql:host=localhost;dbname=adminyard', 'root', '');
-$adminPanel  = DefaultAdminFactory::createAdminPanel($adminConfig, $pdo);
+$adminPanel  = DefaultAdminFactory::createAdminPanel($adminConfig, $pdo, require '../translations/en.php', 'en');
 
 $request  = Request::createFromGlobals();
 $response = $adminPanel->handleRequest($request);

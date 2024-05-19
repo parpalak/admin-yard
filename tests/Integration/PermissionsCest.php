@@ -25,7 +25,7 @@ class PermissionsCest
     {
         $I->amOnPage('?entity=Unknown&action=list');
         $I->seeResponseCodeIs(404);
-        $I->see('Entity "Unknown" not found.');
+        $I->see('Unknown entity "Unknown" was requested.');
     }
 
     public function invalidPrimaryKeyTest(IntegrationTester $I): void

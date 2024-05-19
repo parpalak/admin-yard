@@ -138,7 +138,7 @@ readonly class PdoDataProvider
         } catch (\PDOException $e) {
             // TODO checks not only for MySQL
             if ($e->errorInfo[1] === 1062) {
-                throw new DataProviderException('This entity already exists.', 0, $e);
+                throw new DataProviderException('The entity with same parameters already exists.', 0, $e);
             }
             throw new DataProviderException('Cannot save entity to database', 0, $e);
 
@@ -163,7 +163,7 @@ readonly class PdoDataProvider
         } catch (\PDOException $e) {
             // TODO checks not only for MySQL
             if ($e->errorInfo[1] === 1062) {
-                throw new DataProviderException('This entity already exists.', 0, $e);
+                throw new DataProviderException('The entity with same parameters already exists.', 0, $e);
             }
             throw new DataProviderException('Cannot save entity to database', 0, $e);
         }

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+/** @var callable $trans */
 /** @var string $title */
 /** @var string $entityName */
 /** @var array $header */
@@ -17,7 +18,7 @@ declare(strict_types=1);
         <div class="list-header-actions">
             <?php foreach ($entityActions as $action): ?>
                 <a class="link-as-button entity-action entity-action-<?= $action['name'] ?>"
-                   href="?<?= http_build_query(['entity' => $entityName, 'action' => $action['name']]) ?>"><?= $action['name'] ?></a>
+                   href="?<?= http_build_query(['entity' => $entityName, 'action' => $action['name']]) ?>"><?= $trans($action['name']) ?></a>
             <?php endforeach; ?>
         </div>
     <?php endif; ?>
@@ -40,7 +41,7 @@ declare(strict_types=1);
                 </tbody>
             </table>
             <div class="form-buttons">
-                <button class="secondary" type="submit">Filter</button>
+                <button class="secondary" type="submit"><?= $trans('Filter') ?></button>
             </div>
         </form>
     </section>
@@ -53,7 +54,7 @@ declare(strict_types=1);
                 <th><?= htmlspecialchars($cell, ENT_QUOTES, 'UTF-8') ?></th>
             <?php endforeach; ?>
             <?php if (!empty($rowActions)): ?>
-                <th>Actions</th>
+                <th><?= $trans('Actions') ?></th>
             <?php endif; ?>
         </tr>
         </thead>
@@ -75,8 +76,8 @@ declare(strict_types=1);
                             ], $row['primary_key']));
                             ?>
                             <a class="list-action-link list-action-link-<?= $action['name'] ?>"
-                               title="<?= $action['name'] ?>"
-                               href="?<?= $queryParams ?>"><span><?= $action['name'] ?></span></a>
+                               title="<?= $trans($action['name']) ?>"
+                               href="?<?= $queryParams ?>"><span><?= $trans($action['name']) ?></span></a>
                         <?php } ?>
                     </td>
                 <?php endif; ?>

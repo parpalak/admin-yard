@@ -19,6 +19,7 @@ use S2\AdminYard\Database\PrimaryKey;
 use S2\AdminYard\Form\FormFactory;
 use S2\AdminYard\TemplateRenderer;
 use S2\AdminYard\Transformer\ViewTransformer;
+use S2\AdminYard\Translator;
 use Symfony\Component\HttpFoundation\Exception\SuspiciousOperationException;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -30,6 +31,7 @@ readonly class EntityController
         protected EntityConfig     $entityConfig,
         protected PdoDataProvider  $dataProvider,
         protected ViewTransformer  $viewTransformer,
+        protected Translator       $translator,
         protected TemplateRenderer $templateRenderer,
         protected FormFactory      $formFactory,
     ) {
@@ -76,7 +78,7 @@ readonly class EntityController
         $fieldNamesOfPrimaryKey = $this->entityConfig->getFieldNamesOfPrimaryKey();
         foreach ($fieldNamesOfPrimaryKey as $fieldName) {
             if (!$request->query->has($fieldName)) {
-                throw new BadRequestException(sprintf('Parameter "%s" must be provided.', $fieldName));
+                throw new BadRequestException(sprintf($this->translator->trans('Parameter "%s" must be provided.'), $fieldName));
             }
         }
         $primaryKey = PrimaryKey::fromRequestQueryParams($request, $fieldNamesOfPrimaryKey);
@@ -89,7 +91,7 @@ readonly class EntityController
         );
 
         if ($data === null) {
-            throw new NotFoundException(sprintf('%s with %s not found.', $this->entityConfig->getName(), $primaryKey->toString()));
+            throw new NotFoundException(sprintf($this->translator->trans('%s with %s not found.'), $this->entityConfig->getName(), $primaryKey->toString()));
         }
 
         $renderedRow = $this->renderCellsForNormalizedRow($data, FieldConfig::ACTION_SHOW);
@@ -132,7 +134,7 @@ readonly class EntityController
                     $data
                 );
             } catch (DataProviderException $e) {
-                $errorMessages[] = $e->getMessage();
+                $errorMessages[] = $this->translator->trans($e->getMessage());
             }
 
             if ($errorMessages === []) {
@@ -154,7 +156,7 @@ readonly class EntityController
             $primaryKey,
         );
         if ($data === null) {
-            throw new NotFoundException(sprintf('%s with %s not found.', $this->entityConfig->getName(), $primaryKey->toString()));
+            throw new NotFoundException(sprintf($this->translator->trans('%s with %s not found.'), $this->entityConfig->getName(), $primaryKey->toString()));
         }
         $form->fillFromNormalizedData($data);
 
@@ -191,7 +193,7 @@ readonly class EntityController
                     array_merge($this->entityConfig->getFieldDefaultValues(), $data)
                 );
             } catch (DataProviderException $e) {
-                $errorMessages[] = $e->getMessage();
+                $errorMessages[] = $this->translator->trans($e->getMessage());
             }
 
             if ($errorMessages === []) {

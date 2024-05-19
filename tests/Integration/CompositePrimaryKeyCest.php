@@ -85,7 +85,7 @@ class CompositePrimaryKeyCest
             'column3' => '2020-01-01',
         ]);
         // $I->seeResponseCodeIs(Response::HTTP_CONFLICT); // TODO implementation required
-        $I->see('This entity already exists.');
+        $I->see('The entity with same parameters already exists.');
 
         $I->amOnPage('?entity=CompositeKey&action=show&column1=1&column2=Test+title&column3=2020-01-01');
         $I->click('delete');

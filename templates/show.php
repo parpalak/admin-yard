@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+/** @var callable $trans */
 /** @var string $title */
 /** @var string $entityName */
 /** @var array $header */
@@ -34,8 +35,8 @@ declare(strict_types=1);
         ]);
         ?>
         <a class="link-as-button show-action-link show-action-link-<?= $action['name'] ?> <?= $action['name'] === 'delete' ? 'danger' : '' ?>"
-           title="<?= $action['name'] ?>"
-           href="?<?= $queryParams ?>"><span><?= $action['name'] ?></span></a>
+           title="<?= $trans($action['name']) ?>"
+           href="?<?= $queryParams ?>"><span><?= $trans($action['name']) ?></span></a>
         <?php
     }
     ?>

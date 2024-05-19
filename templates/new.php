@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+/** @var callable $trans */
 /** @var string $title */
 /** @var string $entityName */
 /** @var array $header */
@@ -19,7 +20,7 @@ $formQueryParams = http_build_query([
 <section class="new-content">
     <?php if (!empty($errorMessages)): ?>
         <div class="error-message-box">
-            <p>Cannot create new <?= $entityName ?> due to the following errors:</p>
+            <p><?php printf($trans('Cannot create new %s due to the following errors:'), $entityName) ?></p>
             <ul class="error-messages">
                 <?php foreach ($errorMessages as $message): ?>
                     <li><?= htmlspecialchars($message, ENT_QUOTES, 'UTF-8') ?></li>
@@ -41,7 +42,7 @@ $formQueryParams = http_build_query([
             </tbody>
         </table>
         <div class="form-buttons">
-            <button type="submit">Save</button>
+            <button type="submit"><?= $trans('Save') ?></button>
         </div>
     </form>
 </section>
@@ -54,8 +55,8 @@ $formQueryParams = http_build_query([
         ]);
         ?>
         <a class="link-as-button new-action-link new-action-link-<?= $action['name'] ?>"
-           title="<?= $action['name'] ?>"
-           href="?<?= $queryParams ?>"><span><?= $action['name'] ?></span></a>
+           title="<?= $trans($action['name']) ?>"
+           href="?<?= $queryParams ?>"><span><?= $trans($action['name']) ?></span></a>
         <?php
     }
     ?>

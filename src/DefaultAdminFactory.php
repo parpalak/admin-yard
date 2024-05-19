@@ -1,8 +1,8 @@
 <?php
 /**
  * @copyright 2024 Roman Parpalak
- * @license http://opensource.org/licenses/MIT MIT
- * @package AdminYard
+ * @license   http://opensource.org/licenses/MIT MIT
+ * @package   AdminYard
  */
 
 declare(strict_types=1);
@@ -23,9 +23,12 @@ class DefaultAdminFactory
 {
     public static function createAdminPanel(
         AdminConfig $adminConfig,
-        \PDO        $pdo
+        \PDO        $pdo,
+        array       $translations = [],
+        string      $locale = 'en'
     ): AdminPanel {
-        $templateRenderer = new TemplateRenderer();
+        $translator       = new Translator($translations, $locale);
+        $templateRenderer = new TemplateRenderer($translator);
         $dataProvider     = new PdoDataProvider($pdo, new TypeTransformer());
 
         return new AdminPanel(
@@ -33,6 +36,7 @@ class DefaultAdminFactory
             $dataProvider,
             new ViewTransformer(),
             new MenuGenerator($adminConfig, $templateRenderer),
+            $translator,
             $templateRenderer,
             new FormFactory(new FormControlFactory(), $dataProvider)
         );

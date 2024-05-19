@@ -9,10 +9,18 @@ declare(strict_types=1);
 
 namespace S2\AdminYard;
 
-class TemplateRenderer
+use Symfony\Contracts\Translation\TranslatorInterface;
+
+readonly class TemplateRenderer
 {
+    public function __construct(private TranslatorInterface $translator)
+    {
+    }
+
     public function render(string $_template_path, array $data): string
     {
+        $trans = $this->translator->trans(...);
+
         extract($data);
         ob_start();
         require $_template_path;

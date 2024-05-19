@@ -26,7 +26,8 @@
         "symfony/dom-crawler": "^7.0"
     },
     "require": {
+        "ext-pdo": "*",
         "symfony/http-foundation": "^7.0",
-        "ext-pdo": "*"
+        "symfony/translation-contracts": "^3.5"
     }
 }

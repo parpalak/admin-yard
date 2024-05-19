@@ -27,6 +27,7 @@ readonly class AdminPanel
         private PdoDataProvider  $dataProvider,
         private ViewTransformer  $dataTransformer,
         private MenuGenerator    $menuGenerator,
+        private Translator       $translator,
         private TemplateRenderer $templateRenderer,
         private FormFactory      $formFactory,
     ) {
@@ -40,7 +41,7 @@ readonly class AdminPanel
             $entityConfig = $this->config->findDefaultEntity();
             if ($entityConfig === null) {
                 return $this->errorResponse(
-                    'No entity was requested and no default entity has been configured.',
+                    $this->translator->trans('No entity was requested and no default entity has been configured.'),
                     Response::HTTP_INTERNAL_SERVER_ERROR
                 );
             }
@@ -50,7 +51,7 @@ readonly class AdminPanel
             $entityConfig = $this->config->findEntityByName($entityName);
             if ($entityConfig === null) {
                 return $this->errorResponse(
-                    sprintf('Entity "%s" not found.', $entityName),
+                    sprintf($this->translator->trans('Unknown entity "%s" was requested.'), $entityName),
                     Response::HTTP_NOT_FOUND
                 );
             }
@@ -58,7 +59,7 @@ readonly class AdminPanel
         }
 
         if ($action === null || $action === '') {
-            return $this->errorResponse('Action must be specified.');
+            return $this->errorResponse($this->translator->trans('No action was requested.'));
         }
 
         // TODO: Implement a controller resolver instead of $entityConfig->getControllerClass()?
@@ -67,16 +68,17 @@ readonly class AdminPanel
             $entityConfig,
             $this->dataProvider,
             $this->dataTransformer,
+            $this->translator,
             $this->templateRenderer,
             $this->formFactory,
         );
 
         $methodName = $action . 'Action';
         if (!method_exists($controller, $methodName)) {
-            return $this->errorResponse(sprintf('Action "%s" is unsupported.', $action));
+            return $this->errorResponse(sprintf($this->translator->trans('Action "%s" is unsupported.'), $action));
         }
         if (!$entityConfig->isAllowedAction($action)) {
-            return $this->errorResponse(sprintf('Action "%s" is not allowed for entity "%s".', $action, $entityConfig->getName()), Response::HTTP_FORBIDDEN);
+            return $this->errorResponse(sprintf($this->translator->trans('Action "%s" is not allowed for entity "%s".'), $action, $entityConfig->getName()), Response::HTTP_FORBIDDEN);
         }
 
         try {
