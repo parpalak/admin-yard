@@ -148,7 +148,7 @@ class FieldConfig
 
     public function getLabel(): ?string
     {
-        return $this->label ?? mb_convert_case($this->name, MB_CASE_TITLE, 'UTF-8');
+        return $this->label ?? mb_convert_case(str_replace('_', ' ', preg_replace('#_id$#', '', $this->name)), MB_CASE_TITLE, 'UTF-8');
     }
 
     public function getDataType(): string

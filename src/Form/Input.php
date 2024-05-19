@@ -26,10 +26,9 @@ class Input implements FormControlInterface
         return $this;
     }
 
-    public function setPostValue(string $value): static
+    public function setPostValue($value): static
     {
-        $this->value = $value;
-        return $this;
+        return $this->setValue($value);
     }
 
     public function getHtml(): string

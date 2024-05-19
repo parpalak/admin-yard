@@ -1,15 +1,15 @@
 <?php
 /**
  * @copyright 2024 Roman Parpalak
- * @license http://opensource.org/licenses/MIT MIT
- * @package AdminYard
+ * @license   http://opensource.org/licenses/MIT MIT
+ * @package   AdminYard
  */
 
 declare(strict_types=1);
 
 namespace S2\AdminYard\Form;
 
-use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\InputBag;
 
 class Form
 {
@@ -35,10 +35,17 @@ class Form
         return array_map(static fn(FormControlInterface $control) => $control->getValue(), $this->controls);
     }
 
-    public function fillFromRequest(Request $request): void
+    public function fillFromInputBag(InputBag $inputBag): void
     {
         foreach ($this->controls as $columnName => $control) {
-            $control->setPostValue($request->request->get($columnName));
+            if ($inputBag->has($columnName)) {
+                // TODO: check interface
+                if ($control instanceof MultiSelect) {
+                    $control->setPostValue($inputBag->all($columnName));
+                } else {
+                    $control->setPostValue($inputBag->get($columnName));
+                }
+            }
         }
     }
 

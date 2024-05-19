@@ -1,8 +1,8 @@
 <?php
 /**
  * @copyright 2024 Roman Parpalak
- * @license http://opensource.org/licenses/MIT MIT
- * @package AdminYard
+ * @license   http://opensource.org/licenses/MIT MIT
+ * @package   AdminYard
  */
 
 declare(strict_types=1);
@@ -27,6 +27,12 @@ class EntityConfig
      * @var array<string,FieldConfig>
      */
     private array $fields = [];
+
+    /**
+     * @var array<string,Filter>
+     */
+    private array $filters = [];
+
     /**
      * @var string[]
      */
@@ -37,7 +43,6 @@ class EntityConfig
     private string $showTemplate = __DIR__ . '/../../templates/show.php';
     private string $newTemplate = __DIR__ . '/../../templates/new.php';
     private string $editTemplate = __DIR__ . '/../../templates/edit.php';
-
 
     public function __construct(
         private readonly string $name,
@@ -144,6 +149,9 @@ class EntityConfig
         return $this->default;
     }
 
+    /**
+     * Display this entity list on the first screen.
+     */
     public function markAsDefault(): static
     {
         $this->default = true;
@@ -201,11 +209,48 @@ class EntityConfig
         });
     }
 
+    /**
+     * @return array<string,FieldConfig>
+     */
+    public function getOneToManyFields(): array
+    {
+        return array_filter($this->fields, static function (FieldConfig $field) {
+            return $field->getForeignEntity() !== null && $field->getInverseFieldName() !== null;
+        });
+    }
+
+    /**
+     * @return array<string,FieldConfig>
+     */
+    public function getManyToOneFields(): array
+    {
+        return array_filter($this->fields, static function (FieldConfig $field) {
+            return $field->getForeignEntity() !== null && $field->getInverseFieldName() === null;
+        });
+    }
+
     public function getFieldDefaultValues(): array
     {
         $defaultValues = array_map(static fn(FieldConfig $field) => $field->getDefaultValue(), $this->fields);
         $defaultValues = array_filter($defaultValues, static fn($value) => $value !== null);
 
         return $defaultValues;
+    }
+
+    public function addFilter(Filter $filter): static
+    {
+        if (isset($this->filters[$filter->name])) {
+            throw new InvalidArgumentException(sprintf('Filter "%s" already exists.', $filter->name));
+        }
+        $this->filters[$filter->name] = $filter;
+        return $this;
+    }
+
+    /**
+     * @return array<string,Filter>
+     */
+    public function getFilters(): array
+    {
+        return $this->filters;
     }
 }

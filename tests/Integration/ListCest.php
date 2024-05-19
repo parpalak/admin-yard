@@ -22,6 +22,6 @@ class ListCest
         $I->amOnPage('?');
         $I->seeResponseCodeIs(200);
         $I->see('Post', 'h1');
-        $I->assertCount(50, $I->grabMultiple('tbody tr'));
+        $I->assertCount(50, $I->grabMultiple('section.list-content tbody tr'));
     }
 }

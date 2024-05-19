@@ -16,8 +16,9 @@ interface FormControlInterface
 {
     /**
      * Converts POST data into normalized format and sets it into control.
+     * @param string|string[] $value
      */
-    public function setPostValue(string $value): static;
+    public function setPostValue($value): static;
 
     /**
      * Sets value into control.

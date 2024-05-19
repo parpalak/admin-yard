@@ -1,8 +1,8 @@
 <?php
 /**
  * @copyright 2024 Roman Parpalak
- * @license http://opensource.org/licenses/MIT MIT
- * @package AdminYard
+ * @license   http://opensource.org/licenses/MIT MIT
+ * @package   AdminYard
  */
 
 declare(strict_types=1);
@@ -20,8 +20,10 @@ class FormControlFactory implements FormControlFactoryInterface
             'int_input' => new IntInput($fieldName),
             'textarea' => new Textarea($fieldName),
             'select' => new Select($fieldName),
-            'checkbox' => new Checkbox($fieldName),
+            'multiselect' => new MultiSelect($fieldName),
             'radio' => new Radio($fieldName),
+            'checkbox' => new Checkbox($fieldName),
+            'checkbox_array' => new CheckboxArray($fieldName),
             'datetime' => new Datetime($fieldName),
             'date' => new Date($fieldName),
             default => throw new InvalidArgumentException(sprintf('Unknown control type "%s".', $control)),

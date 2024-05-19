@@ -26,8 +26,11 @@ class Checkbox implements FormControlInterface
         return $this;
     }
 
-    public function setPostValue(?string $value): static
+    public function setPostValue($value): static
     {
+        if (!\is_string($value) && !\is_null($value)) {
+            throw new \InvalidArgumentException(sprintf('Value must be a string or null, "%s" given.', \gettype($value)));
+        }
         return $this->setValue($value !== null);
     }
 

@@ -7,8 +7,10 @@ With AdminYard, you can quickly set up CRUD (Create, Read, Update, Delete) inter
 for your database tables and customize them according to your needs.
 The library also includes features for generating menus, rendering templates, and handling database setup.
 
-AdminYard simplifies the process of creating typical admin interfaces,
-allowing you to focus on developing core functionality.
+AdminYard simplifies the process of creating typical admin interfaces, allowing you to focus
+on developing core functionality. It does not attempt to create its own abstraction
+with as many features as possible.  Instead, it addresses common admin tasks
+while providing enough extension points to customize it for your specific project.
 
 When developing AdminYard, I had an example of EasyAdmin.
 I would use it to develop some of my own project,
@@ -31,6 +33,8 @@ Once installed, you can start using AdminYard by creating an instance of AdminCo
 and configuring it with your entity settings.
 Then, create an instance of AdminPanel passing the AdminConfig instance.
 Use the handleRequest method to handle incoming requests and generate the admin panel HTML.
+
+TODO config example
 
 ## Architecture
 AdminYard operates with three levels of data representation:

@@ -1,8 +1,8 @@
 <?php
 /**
  * @copyright 2024 Roman Parpalak
- * @license http://opensource.org/licenses/MIT MIT
- * @package AdminYard
+ * @license   http://opensource.org/licenses/MIT MIT
+ * @package   AdminYard
  */
 
 declare(strict_types=1);
@@ -21,7 +21,7 @@ readonly class FormFactory
     ) {
     }
 
-    public function create(EntityConfig $entityConfig, string $action): Form
+    public function createEntityForm(EntityConfig $entityConfig, string $action): Form
     {
         $form = new Form();
 
@@ -70,6 +70,58 @@ readonly class FormFactory
             }
 
             $form->addControl($control, $columnName);
+        }
+
+        return $form;
+    }
+
+    public function createFilterForm(EntityConfig $entityConfig): Form
+    {
+        $form = new Form();
+
+        // 1. Add external references to the filter form
+        foreach ($entityConfig->getManyToOneFields() as $field) {
+            $foreignEntity = $field->getForeignEntity();
+            if ($foreignEntity === null) {
+                throw new \LogicException(sprintf(
+                    'Field "%s" for entity "%s" must have a foreign entity since it is a many-to-one association.',
+                    $field->getName(),
+                    $entityConfig->getName()
+                ));
+            }
+            /** @var Select $select */
+            $select = $this->formControlFactory->create('select', $field->getName());
+
+            // TODO: Implement some kind of ajax autocomplete for large tables.
+            $options = $this->dataProvider->getLabelsFromTable(
+                $foreignEntity->getTableName(),
+                $foreignEntity->getFieldNamesOfPrimaryKey(),
+                $field->getTitleSqlExpression()
+            );
+
+            $options[''] = '–';
+
+            $select->setOptions($options);
+            $form->addControl($select, $field->getName());
+        }
+
+        // 2. Add filters from configuration.
+        foreach ($entityConfig->getFilters() as $filter) {
+            $filterName = $filter->name;
+            $control    = $this->formControlFactory->create($filter->control, $filterName);
+            if ($control instanceof OptionsInterface) {
+                $options = $filter->options;
+                if ($options === null) {
+                    throw new \LogicException(sprintf(
+                        'Filter "%s" for entity "%s" must have options configured since its control is "%s".',
+                        $filterName,
+                        $entityConfig->getName(),
+                        $filter->control
+                    ));
+                }
+                $control->setOptions($options);
+            }
+            $form->addControl($control, $filterName);
         }
 
         return $form;

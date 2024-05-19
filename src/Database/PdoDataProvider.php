@@ -1,13 +1,15 @@
 <?php
 /**
  * @copyright 2024 Roman Parpalak
- * @license http://opensource.org/licenses/MIT MIT
- * @package AdminYard
+ * @license   http://opensource.org/licenses/MIT MIT
+ * @package   AdminYard
  */
 
 declare(strict_types=1);
 
 namespace S2\AdminYard\Database;
+
+use S2\AdminYard\Config\Filter;
 
 readonly class PdoDataProvider
 {
@@ -17,14 +19,66 @@ readonly class PdoDataProvider
     ) {
     }
 
-    public function getEntityList(string $tableName, array $dataTypes, array $labels, ?int $limit, int $offset): array
+    /**
+     * @param string                $tableName
+     * @param array<string,string>  $dataTypes  List of data types configured for this entity.
+     *                                          If some fields are missing, they will be skipped in the query.
+     * @param array<string,string>  $labels     List of SQL expressions to be displayed instead of the field values.
+     * @param array<string, Filter> $filters    List of Filters configured for this entity
+     * @param array<string,mixed>   $filterData Content of the filter form
+     * @param int|null              $limit
+     * @param int                   $offset
+     *
+     * @return array
+     */
+    public function getEntityList(string $tableName, array $dataTypes, array $labels, array $filters, array $filterData, ?int $limit, int $offset): array
     {
         $sql = "SELECT " . $this->getAliasesForSelect($dataTypes, $labels) . " FROM $tableName AS entity";
+
+        $params = [];
+
+        $criteria = [];
+        foreach ($filterData as $filterName => $filterValue) {
+            if (isset($filters[$filterName])) {
+                $filterValue = $filters[$filterName]->transformParamValue($filterValue);
+            }
+            if ($filterValue === null || $filterValue === '' || $filterValue === []) {
+                // NOTE: maybe '' and [] must be excluded somewhere else, not for all filters here.
+                // It can be useful in case of different semantics for null and [].
+                continue;
+            }
+
+            if (\is_array($filterValue)) {
+                $format = "$filterName IN (%s)";
+                if (isset($filters[$filterName]) && $filters[$filterName]->sqlExprPattern !== null) {
+                    $format = $filters[$filterName]->sqlExprPattern;
+                }
+                $arrayParamNames = [];
+                foreach (array_values($filterValue) as $i => $value) {
+                    $arrayParamNames[]              = ':' . $filterName . '_' . $i;
+                    $params[$filterName . '_' . $i] = $value;
+                }
+                $criteria[] = sprintf($format, implode(', ', $arrayParamNames));
+                continue;
+            }
+
+            $params[$filterName] = $filterValue;
+            if (isset($filters[$filterName])) {
+                $criteria[] = $filters[$filterName]->getSqlExpressionWithSubstitutions();
+            } else {
+                $criteria[] = "$filterName = :$filterName";
+            }
+        }
+
+        if (\count($criteria) > 0) {
+            $sql .= ' WHERE (' . implode(') AND (', $criteria) . ')';
+        }
+
         if ($limit !== null) {
             $sql .= " LIMIT $limit OFFSET $offset";
         }
         $stmt = $this->pdo->prepare($sql);
-        $stmt->execute();
+        $stmt->execute($params);
         $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
         foreach ($rows as &$row) {

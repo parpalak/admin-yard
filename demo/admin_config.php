@@ -5,6 +5,7 @@ declare(strict_types=1);
 use S2\AdminYard\Config\AdminConfig;
 use S2\AdminYard\Config\EntityConfig;
 use S2\AdminYard\Config\FieldConfig;
+use S2\AdminYard\Config\Filter;
 use S2\AdminYard\Validator\Length;
 
 // Example of admin config for demo and tests
@@ -48,13 +49,40 @@ $commentConfig = (new EntityConfig('Comment', 'comments'))
             ->setControl('datetime')
     )
     ->addField(
-        (new FieldConfig('status'))
+        (new FieldConfig('status_code'))
+            ->setLabel('Status')
             ->setDataType('string')
             ->setControl('radio')
             ->setOptions(['new' => 'Pending', 'approved' => 'Approved', 'rejected' => 'Rejected'])
             ->setDefaultValue('new')
             ->setUseOnActions([FieldConfig::ACTION_LIST, FieldConfig::ACTION_SHOW, FieldConfig::ACTION_EDIT])
     )
+    ->addFilter(new Filter(
+        'search',
+        'Fulltext Search',
+        'input',
+        'name LIKE %1$s OR email LIKE %1$s OR comment_text LIKE %1$s',
+        fn(string $value) => $value !== '' ? '%' . $value . '%' : null
+    ))
+    ->addFilter(new Filter(
+        'created_from',
+        'Created after',
+        'date',
+        'created_at >= %1$s'
+    ))
+    ->addFilter(new Filter(
+        'created_to',
+        'Created before',
+        'date',
+        'created_at < %1$s'
+    ))
+    ->addFilter(new Filter(
+        'statuses',
+        'Status',
+        'checkbox_array',
+        'status IN (%1$s)',
+        options: ['new' => 'Pending', 'approved' => 'Approved', 'rejected' => 'Rejected']
+    ))
 ;
 
 $adminConfig
@@ -107,6 +135,42 @@ $adminConfig
                     ->oneToMany($commentConfig, 'CASE WHEN COUNT(*) > 0 THEN COUNT(*) ELSE NULL END', 'post_id')
             )
             ->markAsDefault()
+            ->addFilter(
+                new Filter(
+                    'search',
+                    'Fulltext Search',
+                    'input',
+                    'title LIKE %1$s OR text LIKE %1$s',
+                    fn(string $value) => $value !== '' ? '%' . $value . '%' : null
+                )
+            )
+            ->addFilter(
+                new Filter(
+                    'is_active',
+                    'Published',
+                    'radio',
+                    'is_active = %1$s',
+                    options: ['' => 'All', 1 => 'Yes', 0 => 'No']
+                )
+            )
+            ->addFilter(
+                new Filter(
+                    'modified_from',
+                    'Modified after',
+                    'date',
+                    'updated_at >= %1$s',
+                    fn(?string $value) => $value !== null ? strtotime($value) : null
+                )
+            )
+            ->addFilter(
+                new Filter(
+                    'modified_to',
+                    'Modified before',
+                    'date',
+                    'updated_at < %1$s',
+                    fn(?string $value) => $value !== null ? strtotime($value) : null
+                )
+            )
     )
     ->addEntity(
         $commentConfig

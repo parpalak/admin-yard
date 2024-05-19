@@ -33,8 +33,11 @@ class Datetime implements FormControlInterface
     /**
      * @throws \Exception
      */
-    public function setPostValue(string $value): static
+    public function setPostValue($value): static
     {
+        if (!\is_string($value)) {
+            throw new \InvalidArgumentException(sprintf('Value must be a string, "%s" given.', \gettype($value)));
+        }
         return $this->setValue($value === '' ? null : new DateTimeImmutable($value));
     }
 

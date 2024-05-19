@@ -1,8 +1,8 @@
 <?php
 /**
  * @copyright 2024 Roman Parpalak
- * @license http://opensource.org/licenses/MIT MIT
- * @package AdminYard
+ * @license   http://opensource.org/licenses/MIT MIT
+ * @package   AdminYard
  */
 
 declare(strict_types=1);
@@ -11,6 +11,7 @@ namespace S2\AdminYard\Controller;
 
 use S2\AdminYard\Config\EntityConfig;
 use S2\AdminYard\Config\FieldConfig;
+use S2\AdminYard\Config\Filter;
 use S2\AdminYard\Database\DatabaseHelper;
 use S2\AdminYard\Database\PdoDataProvider;
 use S2\AdminYard\Database\PrimaryKey;
@@ -34,7 +35,12 @@ readonly class EntityController
 
     final public function listAction(Request $request): string
     {
-        $data = $this->getEntityListFromRequest($request);
+        $filterForm = $this->formFactory->createFilterForm($this->entityConfig);
+        $filterForm->fillFromInputBag($request->query);
+        $filterData = $filterForm->getData();
+
+        $filters = $this->entityConfig->getFilters();
+        $data    = $this->getEntityList($filters, $filterData);
 
         $renderedRows = array_map(function (array $row) {
             return $this->renderCellsForNormalizedRow($row, FieldConfig::ACTION_LIST);
@@ -43,11 +49,13 @@ readonly class EntityController
         return $this->templateRenderer->render(
             $this->entityConfig->getListTemplate(),
             [
-                'title'      => $this->entityConfig->getName(),
-                'entityName' => $this->entityConfig->getName(),
-                'header'     => $this->entityConfig->getLabels(FieldConfig::ACTION_LIST),
-                'rows'       => $renderedRows,
-                'actions'    => array_map(static fn(string $action) => [
+                'title'          => $this->entityConfig->getName(),
+                'entityName'     => $this->entityConfig->getName(),
+                'filterControls' => $filterForm->getControls(),
+                'filterLabels'   => array_map(static fn(Filter $filter) => $filter->label, $filters),
+                'header'         => $this->entityConfig->getLabels(FieldConfig::ACTION_LIST),
+                'rows'           => $renderedRows,
+                'actions'        => array_map(static fn(string $action) => [
                     'name' => $action,
                 ], array_diff($this->entityConfig->getEnabledActions(), [FieldConfig::ACTION_LIST, FieldConfig::ACTION_NEW])),
             ]
@@ -86,9 +94,9 @@ readonly class EntityController
     {
         $primaryKey = PrimaryKey::fromRequestQueryParams($request, $this->entityConfig->getFieldNamesOfPrimaryKey());
 
-        $form = $this->formFactory->create($this->entityConfig, FieldConfig::ACTION_EDIT);
+        $form = $this->formFactory->createEntityForm($this->entityConfig, FieldConfig::ACTION_EDIT);
         if ($request->getMethod() === Request::METHOD_POST) {
-            $form->fillFromRequest($request);
+            $form->fillFromInputBag($request->request);
             // TODO validate
             $data = $form->getData();
 
@@ -134,10 +142,10 @@ readonly class EntityController
 
     public function newAction(Request $request): string|Response
     {
-        $form = $this->formFactory->create($this->entityConfig, FieldConfig::ACTION_NEW);
+        $form = $this->formFactory->createEntityForm($this->entityConfig, FieldConfig::ACTION_NEW);
 
         if ($request->getMethod() === Request::METHOD_POST) {
-            $form->fillFromRequest($request);
+            $form->fillFromInputBag($request->request);
             // TODO validate
             $data = $form->getData();
 
@@ -196,14 +204,19 @@ readonly class EntityController
         return new RedirectResponse('?entity=' . $this->entityConfig->getName() . '&action=list');
     }
 
-    protected function getEntityListFromRequest(Request $request): array
+    /**
+     * @param array<string, Filter> $filters
+     */
+    protected function getEntityList(array $filters, array $filterData): array
     {
         return $this->dataProvider->getEntityList(
             $this->entityConfig->getTableName(),
             $this->entityConfig->getFieldDataTypes(FieldConfig::ACTION_LIST, true),
             DatabaseHelper::getSqlExpressionsForAssociations($this->entityConfig),
+            $filters,
+            $filterData,
             $this->entityConfig->getLimit(),
-            $request->query->getInt('offset', 0)
+            0// $request->query->getInt('offset', 0)
         );
     }
 

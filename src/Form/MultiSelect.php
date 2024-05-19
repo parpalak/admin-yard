@@ -9,9 +9,9 @@ declare(strict_types=1);
 
 namespace S2\AdminYard\Form;
 
-class Select implements FormControlInterface, OptionsInterface
+class MultiSelect implements FormControlInterface, OptionsInterface
 {
-    protected ?string $value = null;
+    protected array $values = [];
     protected array $options = [];
 
     public function __construct(protected readonly string $fieldName)
@@ -25,10 +25,11 @@ class Select implements FormControlInterface, OptionsInterface
 
     public function setValue($value): static
     {
-        if (!\is_string($value)) {
-            throw new \InvalidArgumentException(sprintf('Value must be a string, "%s" given.', \gettype($value)));
+        if (!\is_array($value)) {
+            throw new \InvalidArgumentException(sprintf('Value must be an array, "%s" given.', \gettype($value)));
         }
-        $this->value = $value;
+        $this->values = $value;
+
         return $this;
     }
 
@@ -50,15 +51,15 @@ class Select implements FormControlInterface, OptionsInterface
             $options .= $this->getOptionHtml($key, $value);
         }
         return sprintf(
-            '<select name="%s">%s</select>',
-            $this->fieldName,
+            '<select name="%s" multiple>%s</select>',
+            $this->fieldName . '[]',
             $options
         );
     }
 
-    public function getValue(): ?string
+    public function getValue(): array
     {
-        return $this->value;
+        return $this->values;
     }
 
     private function getOptionHtml(int|string $key, mixed $value): string
@@ -74,6 +75,6 @@ class Select implements FormControlInterface, OptionsInterface
 
     protected function isCurrentOption(int|string $key): bool
     {
-        return (string)$key === $this->value;
+        return \in_array((string)$key, $this->values, true);
     }
 }
