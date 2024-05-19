@@ -12,13 +12,14 @@ extensions:
         - Codeception\Extension\RunFailed
 suites:
     unit:
-        path: unit
+        path: Unit
         actor: UnitTester
         modules:
             enabled:
                 - Asserts
         step_decorators: ~
     integration:
+        path: Integration
         actor: IntegrationTester
         suite_namespace: \Integration
         modules:

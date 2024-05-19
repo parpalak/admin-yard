@@ -1,0 +1,86 @@
+name: Test on MySQL
+
+on: [ push ]
+
+env:
+  DB_DATABASE: adminyard_test
+  DB_USER: root
+  DB_PASSWORD: root
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        operating_system: ['ubuntu-22.04']
+        mysql_versions:
+          - 'mariadb-10.2'
+          - 'mariadb-10.3'
+          - 'mariadb-10.4'
+          - 'mariadb-10.5'
+          - 'mariadb-10.6'
+          - 'mariadb-10.7'
+          - 'mariadb-10.8'
+          - 'mariadb-10.9'
+          - 'mariadb-10.10'
+          - 'mariadb-10.11'
+          - 'mariadb-11.0'
+          - 'mariadb-11.1'
+          - 'mariadb-11.2'
+          - '5.6'
+          - '5.7'
+        php_versions:
+          - '8.2'
+        include:
+          -
+            operating_system: 'ubuntu-22.04'
+            php_versions: 8.2
+            mysql_versions: '8.1'
+          -
+            operating_system: 'ubuntu-22.04'
+            php_versions: 8.2
+            mysql_versions: 'mariadb-11.4'
+          -
+            operating_system: 'ubuntu-22.04'
+            php_versions: 8.3
+            mysql_versions: '8.2'
+
+    runs-on: '${{ matrix.operating_system }}'
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: shogo82148/actions-setup-mysql@v1
+      with:
+        mysql-version: ${{ matrix.mysql_versions }}
+        root-password: ${{ env.DB_PASSWORD }}
+
+    - name: 'Setup MySQL'
+      run: |
+        mysql -e 'SELECT version();' -u${{ env.DB_USER }} -h127.0.0.1 -p${{ env.DB_PASSWORD }}
+        mysql -e 'CREATE DATABASE ${{ env.DB_DATABASE }};' -u${{ env.DB_USER }} -h127.0.0.1 -p${{ env.DB_PASSWORD }}
+
+    - name: 'Setup PHP'
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ matrix.php_versions }}
+
+    - name: Validate composer.json and composer.lock
+      run: composer validate --strict
+
+    - name: Cache Composer packages
+      id: composer-cache
+      uses: actions/cache@v3
+      with:
+        path: vendor
+        key: ${{ runner.os }}-php-${{ hashFiles('**/composer.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-php-
+
+    - name: Install dependencies
+      run: composer install --prefer-dist --no-progress
+
+    - name: Run test cases
+      run: php vendor/bin/codecept run

@@ -32,8 +32,8 @@ class Integration extends Module
      */
     public function _initialize()
     {
-        shell_exec('mysql -u root --database adminyard_test < ' . __DIR__ . '/../../../demo/init.sql');
-        $this->pdo = new \PDO('mysql:host=localhost;dbname=adminyard_test', 'root', '');
+        shell_exec('mysql -u root ' . (getenv('DB_PASSWORD') ? '-p' . getenv('DB_PASSWORD') : '') . ' --database adminyard_test < ' . __DIR__ . '/../../../demo/init.sql');
+        $this->pdo = new \PDO('mysql:host=127.0.0.1;dbname=adminyard_test;', 'root', getenv('DB_PASSWORD') ?: '');
 
         $adminConfig      = require __DIR__ . '/../../../demo/admin_config.php';
         $this->adminPanel = $this->createAdminPanel($adminConfig, $this->pdo);
