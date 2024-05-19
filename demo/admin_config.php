@@ -80,7 +80,7 @@ $commentConfig = (new EntityConfig('Comment', 'comments'))
         'statuses',
         'Status',
         'checkbox_array',
-        'status IN (%1$s)',
+        'status_code IN (%1$s)',
         options: ['new' => 'Pending', 'approved' => 'Approved', 'rejected' => 'Rejected']
     ))
 ;
@@ -199,7 +199,7 @@ $adminConfig
             )
     )
     ->addEntity(
-        (new EntityConfig('MyTable', 'my_table'))
+        (new EntityConfig('CompositeKeyTable', 'composite_key_table'))
             ->addField(
                 (new FieldConfig('column1'))
                     ->setDataType('int')

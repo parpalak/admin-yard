@@ -202,16 +202,6 @@ class EntityConfig
     /**
      * @return array<string,FieldConfig>
      */
-    public function getFieldsWithForeignEntities(): array
-    {
-        return array_filter($this->fields, static function (FieldConfig $field) {
-            return $field->getForeignEntity() !== null;
-        });
-    }
-
-    /**
-     * @return array<string,FieldConfig>
-     */
     public function getOneToManyFields(): array
     {
         return array_filter($this->fields, static function (FieldConfig $field) {

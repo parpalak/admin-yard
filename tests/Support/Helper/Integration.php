@@ -66,12 +66,12 @@ class Integration extends Module
         } else {
             $content = $this->response->getContent();
         }
-        $contains = str_contains($content, $text) || str_contains($content, htmlspecialchars($text, ENT_QUOTES, 'UTF-8'));
-        if (!$contains) {
+        $condition = str_contains($content, $text) || str_contains($content, htmlspecialchars($text, ENT_QUOTES, 'UTF-8'));
+        if (!$condition) {
             codecept_debug($content);
             $this->fail('Cannot see "' . $text . '" in response');
         }
-        $this->assertTrue($contains);
+        $this->assertTrue($condition);
     }
 
     public function grabMultiple(string $selector): array
@@ -83,7 +83,12 @@ class Integration extends Module
 
     public function seeElement(string $selector): void
     {
-        $this->assertTrue($this->crawler->filter($selector)->count() > 0);
+        $condition = $this->crawler->filter($selector)->count() > 0;
+        if (!$condition) {
+            codecept_debug($this->response->getContent());
+            $this->fail('Cannot see "' . $selector . '" in response');
+        }
+        $this->assertTrue($condition);
     }
 
     public function dontSeeElement(string $selector): void
@@ -124,6 +129,7 @@ class Integration extends Module
     public function submitForm(string $selector, array $data): void
     {
         $form = $this->crawler->filter($selector)->form();
+        $form->disableValidation(); // see https://stackoverflow.com/questions/57386450/how-to-tick-a-specific-checkbox-from-a-multi-dimensional-field-in-a-symfony-form
         $form->setValues($data);
 
         $request = Request::create($form->getUri(), $form->getMethod(), $form->getPhpValues());

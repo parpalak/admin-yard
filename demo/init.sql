@@ -89,8 +89,8 @@ FROM
     numbers
 LIMIT 50;
 
-DROP TABLE IF EXISTS my_table;
-CREATE TABLE IF NOT EXISTS my_table
+DROP TABLE IF EXISTS composite_key_table;
+CREATE TABLE IF NOT EXISTS composite_key_table
 (
     column1 INT          NOT NULL,
     column2 VARCHAR(255) NOT NULL,
@@ -98,7 +98,7 @@ CREATE TABLE IF NOT EXISTS my_table
     PRIMARY KEY (column1, column2, column3)
 );
 
-INSERT INTO my_table (column1, column2, column3)
+INSERT INTO composite_key_table (column1, column2, column3)
 SELECT
     n AS column1,
     CONCAT('text ', n) AS column2,

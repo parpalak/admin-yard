@@ -21,6 +21,10 @@ readonly class FormFactory
     ) {
     }
 
+    /**
+     * @throws \DomainException in case of incorrect entity configuration
+     * @throws \LogicException if a violation of invariants is detected
+     */
     public function createEntityForm(EntityConfig $entityConfig, string $action): Form
     {
         $form = new Form();
@@ -33,7 +37,7 @@ readonly class FormFactory
             $columnName  = $field->getName();
             $controlName = $field->getControl();
             if ($controlName === null) {
-                throw new \LogicException(sprintf(
+                throw new \DomainException(sprintf(
                     'Field "%s" for entity "%s" must have a control configured.',
                     $columnName,
                     $entityConfig->getName()
@@ -44,7 +48,7 @@ readonly class FormFactory
             $foreignEntity = $field->getForeignEntity();
             if ($foreignEntity !== null) {
                 if (!$control instanceof OptionsInterface) {
-                    throw new \LogicException(sprintf(
+                    throw new \DomainException(sprintf(
                         'Field "%s" for entity "%s" must have a control configured as OptionsInterface.',
                         $columnName,
                         $entityConfig->getName()
@@ -59,7 +63,7 @@ readonly class FormFactory
             } elseif ($control instanceof OptionsInterface) {
                 $options = $field->getOptions();
                 if ($options === null) {
-                    throw new \LogicException(sprintf(
+                    throw new \DomainException(sprintf(
                         'Field "%s" for entity "%s" must have options configured since its control is "%s".',
                         $columnName,
                         $entityConfig->getName(),
@@ -83,11 +87,13 @@ readonly class FormFactory
         foreach ($entityConfig->getManyToOneFields() as $field) {
             $foreignEntity = $field->getForeignEntity();
             if ($foreignEntity === null) {
+                // @codeCoverageIgnoreStart
                 throw new \LogicException(sprintf(
                     'Field "%s" for entity "%s" must have a foreign entity since it is a many-to-one association.',
                     $field->getName(),
                     $entityConfig->getName()
                 ));
+                // @codeCoverageIgnoreEnd
             }
             /** @var Select $select */
             $select = $this->formControlFactory->create('select', $field->getName());
@@ -112,7 +118,7 @@ readonly class FormFactory
             if ($control instanceof OptionsInterface) {
                 $options = $filter->options;
                 if ($options === null) {
-                    throw new \LogicException(sprintf(
+                    throw new \DomainException(sprintf(
                         'Filter "%s" for entity "%s" must have options configured since its control is "%s".',
                         $filterName,
                         $entityConfig->getName(),
