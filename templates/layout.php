@@ -16,8 +16,8 @@ declare(strict_types=1);
 <nav><?= $menu ?></nav>
 <?php if ($content === null && isset($errorMessage)): ?>
     <article class="error">
-        <h1>Error</h1>
-        <p class="error-message"><?= htmlspecialchars($errorMessage, ENT_QUOTES, 'UTF-8') ?></p>
+        <h1>An error encountered</h1>
+        <div class="error-message-box"><p><?= htmlspecialchars($errorMessage, ENT_QUOTES, 'UTF-8') ?></p></div>
     </article>
 <?php else: ?>
     <article><?= $content ?></article>

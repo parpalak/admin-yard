@@ -17,6 +17,16 @@ $formQueryParams = http_build_query([
 ?>
 <h1><?= htmlspecialchars($title, ENT_QUOTES, 'UTF-8') ?></h1>
 <section class="new-content">
+    <?php if (!empty($errorMessages)): ?>
+        <div class="error-message-box">
+            <p>Cannot create new <?= $entityName ?> due to the following errors:</p>
+            <ul class="error-messages">
+                <?php foreach ($errorMessages as $message): ?>
+                    <li><?= htmlspecialchars($message, ENT_QUOTES, 'UTF-8') ?></li>
+                <?php endforeach; ?>
+            </ul>
+        </div>
+    <?php endif; ?>
     <form method="POST" action="?<?= $formQueryParams ?>">
         <table>
             <tbody>

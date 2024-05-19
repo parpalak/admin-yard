@@ -13,11 +13,13 @@ use S2\AdminYard\Config\EntityConfig;
 use S2\AdminYard\Config\FieldConfig;
 use S2\AdminYard\Config\Filter;
 use S2\AdminYard\Database\DatabaseHelper;
+use S2\AdminYard\Database\DataProviderException;
 use S2\AdminYard\Database\PdoDataProvider;
 use S2\AdminYard\Database\PrimaryKey;
 use S2\AdminYard\Form\FormFactory;
 use S2\AdminYard\TemplateRenderer;
 use S2\AdminYard\Transformer\ViewTransformer;
+use Symfony\Component\HttpFoundation\Exception\SuspiciousOperationException;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -65,6 +67,10 @@ readonly class EntityController
         );
     }
 
+    /**
+     * @throws BadRequestException
+     * @throws NotFoundException
+     */
     public function showAction(Request $request): string
     {
         $fieldNamesOfPrimaryKey = $this->entityConfig->getFieldNamesOfPrimaryKey();
@@ -103,9 +109,14 @@ readonly class EntityController
         );
     }
 
+    /**
+     * @throws NotFoundException
+     * @throws SuspiciousOperationException
+     */
     public function editAction(Request $request): string|Response
     {
-        $primaryKey = PrimaryKey::fromRequestQueryParams($request, $this->entityConfig->getFieldNamesOfPrimaryKey());
+        $primaryKey    = PrimaryKey::fromRequestQueryParams($request, $this->entityConfig->getFieldNamesOfPrimaryKey());
+        $errorMessages = [];
 
         $form = $this->formFactory->createEntityForm($this->entityConfig, FieldConfig::ACTION_EDIT);
         if ($request->getMethod() === Request::METHOD_POST) {
@@ -113,21 +124,27 @@ readonly class EntityController
             // TODO validate
             $data = $form->getData();
 
-            $this->dataProvider->updateEntity(
-                $this->entityConfig->getTableName(),
-                $this->entityConfig->getFieldDataTypes(FieldConfig::ACTION_EDIT),
-                $primaryKey,
-                $data
-            );
+            try {
+                $this->dataProvider->updateEntity(
+                    $this->entityConfig->getTableName(),
+                    $this->entityConfig->getFieldDataTypes(FieldConfig::ACTION_EDIT),
+                    $primaryKey,
+                    $data
+                );
+            } catch (DataProviderException $e) {
+                $errorMessages[] = $e->getMessage();
+            }
 
-            // Update primary key for correct URL in form
-            $primaryKey = $primaryKey->withColumnValues($data);
+            if ($errorMessages === []) {
+                // Update primary key for correct URL in form
+                $primaryKey = $primaryKey->withColumnValues($data);
 
-            return new RedirectResponse('?' . http_build_query([
-                    'entity' => $this->entityConfig->getName(),
-                    'action' => 'edit',
-                    ...$primaryKey->toArray()
-                ]));
+                return new RedirectResponse('?' . http_build_query([
+                        'entity' => $this->entityConfig->getName(),
+                        'action' => 'edit',
+                        ...$primaryKey->toArray()
+                    ]));
+            }
         }
 
         $data = $this->dataProvider->getEntity(
@@ -144,12 +161,13 @@ readonly class EntityController
         return $this->templateRenderer->render(
             $this->entityConfig->getEditTemplate(),
             [
-                'title'      => $this->entityConfig->getName(),
-                'entityName' => $this->entityConfig->getName(),
-                'primaryKey' => $primaryKey->toArray(),
-                'header'     => array_map(static fn(FieldConfig $field) => $field->getLabel(), $this->entityConfig->getFields(FieldConfig::ACTION_SHOW)),
-                'fields'     => $form->getControls(),
-                'actions'    => array_map(static fn(string $action) => [
+                'title'         => $this->entityConfig->getName(),
+                'entityName'    => $this->entityConfig->getName(),
+                'errorMessages' => $errorMessages,
+                'primaryKey'    => $primaryKey->toArray(),
+                'header'        => array_map(static fn(FieldConfig $field) => $field->getLabel(), $this->entityConfig->getFields(FieldConfig::ACTION_SHOW)),
+                'fields'        => $form->getControls(),
+                'actions'       => array_map(static fn(string $action) => [
                     'name' => $action,
                 ], array_diff($this->entityConfig->getEnabledActions(), [FieldConfig::ACTION_EDIT, FieldConfig::ACTION_NEW])),
             ]
@@ -158,54 +176,63 @@ readonly class EntityController
 
     public function newAction(Request $request): string|Response
     {
-        $form = $this->formFactory->createEntityForm($this->entityConfig, FieldConfig::ACTION_NEW);
+        $form          = $this->formFactory->createEntityForm($this->entityConfig, FieldConfig::ACTION_NEW);
+        $errorMessages = [];
 
         if ($request->getMethod() === Request::METHOD_POST) {
             $form->fillFromInputBag($request->request);
             // TODO validate
             $data = $form->getData();
 
-            $lastInsertId         = $this->dataProvider->createEntity(
-                $this->entityConfig->getTableName(),
-                $this->entityConfig->getFieldDataTypes(FieldConfig::ACTION_NEW, includeDefault: true),
-                array_merge($this->entityConfig->getFieldDefaultValues(), $data)
-            );
-            $primaryKeyFieldNames = $this->entityConfig->getFieldNamesOfPrimaryKey();
-            if (is_numeric($lastInsertId) && (int)$lastInsertId > 0 && \count($primaryKeyFieldNames) === 1) {
-                // We have detected an assigned value of usual auto-increment ID
-                return new RedirectResponse('?' . http_build_query([
-                        'entity'                 => $this->entityConfig->getName(),
-                        'action'                 => 'edit',
-                        $primaryKeyFieldNames[0] => $lastInsertId
-                    ]));
+            try {
+                $lastInsertId = $this->dataProvider->createEntity(
+                    $this->entityConfig->getTableName(),
+                    $this->entityConfig->getFieldDataTypes(FieldConfig::ACTION_NEW, includeDefault: true),
+                    array_merge($this->entityConfig->getFieldDefaultValues(), $data)
+                );
+            } catch (DataProviderException $e) {
+                $errorMessages[] = $e->getMessage();
             }
 
-            $postPrimaryKey = [];
-            foreach ($primaryKeyFieldNames as $primaryKeyFieldName) {
-                if (!isset($data[$primaryKeyFieldName])) {
-                    // We do not know some part of primary key. Redirecting to the list page.
+            if ($errorMessages === []) {
+                $primaryKeyFieldNames = $this->entityConfig->getFieldNamesOfPrimaryKey();
+                if (is_numeric($lastInsertId) && (int)$lastInsertId > 0 && \count($primaryKeyFieldNames) === 1) {
+                    // We have detected an assigned value of usual auto-increment ID
                     return new RedirectResponse('?' . http_build_query([
-                            'entity' => $this->entityConfig->getName(),
-                            'action' => 'list',
+                            'entity'                 => $this->entityConfig->getName(),
+                            'action'                 => 'edit',
+                            $primaryKeyFieldNames[0] => $lastInsertId
                         ]));
                 }
-                $postPrimaryKey[$primaryKeyFieldName] = $data[$primaryKeyFieldName];
+
+                $postPrimaryKey = [];
+                foreach ($primaryKeyFieldNames as $primaryKeyFieldName) {
+                    if (!isset($data[$primaryKeyFieldName])) {
+                        // We do not know some part of primary key. Redirecting to the list page.
+                        return new RedirectResponse('?' . http_build_query([
+                                'entity' => $this->entityConfig->getName(),
+                                'action' => 'list',
+                            ]));
+                    }
+                    $postPrimaryKey[$primaryKeyFieldName] = $data[$primaryKeyFieldName];
+                }
+                return new RedirectResponse('?' . http_build_query([
+                        'entity' => $this->entityConfig->getName(),
+                        'action' => 'edit',
+                        ...$postPrimaryKey
+                    ]));
             }
-            return new RedirectResponse('?' . http_build_query([
-                    'entity' => $this->entityConfig->getName(),
-                    'action' => 'edit',
-                    ...$postPrimaryKey
-                ]));
         }
 
         return $this->templateRenderer->render(
             $this->entityConfig->getNewTemplate(),
             [
-                'title'      => $this->entityConfig->getName(),
-                'entityName' => $this->entityConfig->getName(),
-                'header'     => array_map(static fn(FieldConfig $field) => $field->getLabel(), $this->entityConfig->getFields(FieldConfig::ACTION_SHOW)),
-                'fields'     => $form->getControls(),
-                'actions'    => array_map(static fn(string $action) => [
+                'title'         => $this->entityConfig->getName(),
+                'entityName'    => $this->entityConfig->getName(),
+                'errorMessages' => $errorMessages,
+                'header'        => array_map(static fn(FieldConfig $field) => $field->getLabel(), $this->entityConfig->getFields(FieldConfig::ACTION_SHOW)),
+                'fields'        => $form->getControls(),
+                'actions'       => array_map(static fn(string $action) => [
                     'name' => $action,
                 ], array_intersect($this->entityConfig->getEnabledActions(), [FieldConfig::ACTION_LIST])),
             ]

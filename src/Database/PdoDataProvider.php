@@ -113,6 +113,9 @@ readonly class PdoDataProvider
         return $row;
     }
 
+    /**
+     * @throws DataProviderException
+     */
     public function updateEntity(string $tableName, array $dataTypes, PrimaryKey $primaryKey, array $data): void
     {
         if (\count($data) < 1) {
@@ -130,9 +133,21 @@ readonly class PdoDataProvider
             ));
 
         $stmt = $this->pdo->prepare($sql);
-        $stmt->execute(array_merge($data, $primaryKey->prepend('pk_')->toArray()));
+        try {
+            $stmt->execute(array_merge($data, $primaryKey->prepend('pk_')->toArray()));
+        } catch (\PDOException $e) {
+            // TODO checks not only for MySQL
+            if ($e->errorInfo[1] === 1062) {
+                throw new DataProviderException('This entity already exists.', 0, $e);
+            }
+            throw new DataProviderException('Cannot save entity to database', 0, $e);
+
+        }
     }
 
+    /**
+     * @throws DataProviderException
+     */
     public function createEntity(string $tableName, array $dataTypes, array $data): ?string
     {
         foreach ($dataTypes as $key => $type) {
@@ -143,7 +158,15 @@ readonly class PdoDataProvider
                 static fn($key) => isset($data[$key]) ? ":$key" : "NULL", array_keys($dataTypes)
             )) . ")";
         $stmt = $this->pdo->prepare($sql);
-        $stmt->execute(array_filter($data, static fn($value) => $value !== null));
+        try {
+            $stmt->execute(array_filter($data, static fn($value) => $value !== null));
+        } catch (\PDOException $e) {
+            // TODO checks not only for MySQL
+            if ($e->errorInfo[1] === 1062) {
+                throw new DataProviderException('This entity already exists.', 0, $e);
+            }
+            throw new DataProviderException('Cannot save entity to database', 0, $e);
+        }
 
         try {
             return $this->pdo->lastInsertId() ?: null;

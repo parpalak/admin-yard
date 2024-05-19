@@ -199,7 +199,7 @@ $adminConfig
             )
     )
     ->addEntity(
-        (new EntityConfig('CompositeKeyTable', 'composite_key_table'))
+        (new EntityConfig('CompositeKey', 'composite_key_table'))
             ->addField(
                 (new FieldConfig('column1'))
                     ->setDataType('int')
