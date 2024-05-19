@@ -1,8 +1,8 @@
 <?php
 /**
  * @copyright 2024 Roman Parpalak
- * @license http://opensource.org/licenses/MIT MIT
- * @package AdminYard
+ * @license   http://opensource.org/licenses/MIT MIT
+ * @package   AdminYard
  */
 
 declare(strict_types=1);
@@ -54,5 +54,10 @@ readonly class PrimaryKey
         }
 
         return new static($primaryKey);
+    }
+
+    public function toString(): string
+    {
+        return http_build_query($this->columns);
     }
 }

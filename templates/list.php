@@ -7,14 +7,20 @@ declare(strict_types=1);
 /** @var array $header */
 /** @var array $filterControls */
 /** @var array $rows */
-/** @var array $actions */
+/** @var array $rowActions */
+/** @var array $entityActions */
 
 ?>
 <section class="list-header">
     <h1><?= htmlspecialchars($title, ENT_QUOTES, 'UTF-8') ?></h1>
-    <div class="list-header-actions">
-        <a class="link-as-button" href="?<?= http_build_query(['entity' => $entityName, 'action' => 'new']) ?>">New</a>
-    </div>
+    <?php if (!empty($entityActions)): ?>
+        <div class="list-header-actions">
+            <?php foreach ($entityActions as $action): ?>
+                <a class="link-as-button entity-action entity-action-<?= $action['name'] ?>"
+                   href="?<?= http_build_query(['entity' => $entityName, 'action' => $action['name']]) ?>"><?= $action['name'] ?></a>
+            <?php endforeach; ?>
+        </div>
+    <?php endif; ?>
 </section>
 <?php if (!empty($filterControls)): ?>
     <section class="filter-content">
@@ -46,7 +52,7 @@ declare(strict_types=1);
             <?php foreach ($header as $cell): ?>
                 <th><?= htmlspecialchars($cell, ENT_QUOTES, 'UTF-8') ?></th>
             <?php endforeach; ?>
-            <?php if (!empty($actions)): ?>
+            <?php if (!empty($rowActions)): ?>
                 <th>Actions</th>
             <?php endif; ?>
         </tr>
@@ -60,9 +66,9 @@ declare(strict_types=1);
                         <?= $cell['content'] ?>
                     </td>
                 <?php endforeach; ?>
-                <?php if (!empty($actions)): ?>
+                <?php if (!empty($rowActions)): ?>
                     <td>
-                        <?php foreach ($actions as $action) {
+                        <?php foreach ($rowActions as $action) {
                             $queryParams = http_build_query(array_merge([
                                 'entity' => $entityName,
                                 'action' => $action['name']

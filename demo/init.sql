@@ -107,5 +107,25 @@ FROM
     numbers
 LIMIT 50;
 
+DROP TABLE IF EXISTS config;
+CREATE TABLE IF NOT EXISTS config
+(
+    name VARCHAR(255) NOT NULL,
+    value VARCHAR(255) NOT NULL,
+    PRIMARY KEY (name)
+);
+
+INSERT INTO config (name, value)
+VALUES
+    ('language', 'en'),
+    ('theme', 'dark'),
+    ('timezone', 'UTC'),
+    ('date_format', 'Y-m-d H:i:s'),
+    ('time_format', 'H:i:s'),
+    ('number_format', '0.00'),
+    ('is_active', '1'),
+    ('max_posts', '10')
+;
+
 
 DROP TEMPORARY TABLE IF EXISTS numbers;

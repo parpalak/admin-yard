@@ -219,6 +219,21 @@ $adminConfig
                     ->markAsPrimaryKey()
             )
     )
+    ->addEntity(
+        (new EntityConfig('Config', 'config'))
+            ->addField(
+                (new FieldConfig('name'))
+                    ->setDataType('string')
+                    ->setControl('input')
+                    ->markAsPrimaryKey()
+            )
+            ->addField(
+                (new FieldConfig('value'))
+                    ->setDataType('string')
+                    ->setControl('input')
+            )
+            ->setEnabledActions([FieldConfig::ACTION_LIST])
+    )
 ;
 
 return $adminConfig;

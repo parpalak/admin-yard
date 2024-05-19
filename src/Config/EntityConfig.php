@@ -253,4 +253,9 @@ class EntityConfig
     {
         return $this->filters;
     }
+
+    public function isAllowedAction(string $action): bool
+    {
+        return \in_array($action, $this->enabledActions, true);
+    }
 }

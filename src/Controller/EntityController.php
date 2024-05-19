@@ -55,16 +55,25 @@ readonly class EntityController
                 'filterLabels'   => array_map(static fn(Filter $filter) => $filter->label, $filters),
                 'header'         => $this->entityConfig->getLabels(FieldConfig::ACTION_LIST),
                 'rows'           => $renderedRows,
-                'actions'        => array_map(static fn(string $action) => [
+                'rowActions'     => array_map(static fn(string $action) => [
                     'name' => $action,
                 ], array_diff($this->entityConfig->getEnabledActions(), [FieldConfig::ACTION_LIST, FieldConfig::ACTION_NEW])),
+                'entityActions'  => array_map(static fn(string $action) => [
+                    'name' => $action,
+                ], array_intersect($this->entityConfig->getEnabledActions(), [FieldConfig::ACTION_NEW])),
             ]
         );
     }
 
     public function showAction(Request $request): string
     {
-        $primaryKey = PrimaryKey::fromRequestQueryParams($request, $this->entityConfig->getFieldNamesOfPrimaryKey());
+        $fieldNamesOfPrimaryKey = $this->entityConfig->getFieldNamesOfPrimaryKey();
+        foreach ($fieldNamesOfPrimaryKey as $fieldName) {
+            if (!$request->query->has($fieldName)) {
+                throw new BadRequestException(sprintf('Parameter "%s" must be provided.', $fieldName));
+            }
+        }
+        $primaryKey = PrimaryKey::fromRequestQueryParams($request, $fieldNamesOfPrimaryKey);
 
         $data = $this->dataProvider->getEntity(
             $this->entityConfig->getTableName(),
@@ -72,6 +81,10 @@ readonly class EntityController
             DatabaseHelper::getSqlExpressionsForAssociations($this->entityConfig),
             $primaryKey,
         );
+
+        if ($data === null) {
+            throw new NotFoundException(sprintf('%s with %s not found.', $this->entityConfig->getName(), $primaryKey->toString()));
+        }
 
         $renderedRow = $this->renderCellsForNormalizedRow($data, FieldConfig::ACTION_SHOW);
 
@@ -123,6 +136,9 @@ readonly class EntityController
             [],
             $primaryKey,
         );
+        if ($data === null) {
+            throw new NotFoundException(sprintf('%s with %s not found.', $this->entityConfig->getName(), $primaryKey->toString()));
+        }
         $form->fillFromNormalizedData($data);
 
         return $this->templateRenderer->render(

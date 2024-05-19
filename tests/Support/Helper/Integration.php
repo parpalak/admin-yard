@@ -1,8 +1,8 @@
 <?php
 /**
  * @copyright 2024 Roman Parpalak
- * @license http://opensource.org/licenses/MIT MIT
- * @package AdminYard
+ * @license   http://opensource.org/licenses/MIT MIT
+ * @package   AdminYard
  */
 
 declare(strict_types=1);
@@ -59,14 +59,19 @@ class Integration extends Module
         if ($selector !== null) {
             try {
                 $content = $this->crawler->filter($selector)->text();
-                $this->assertTrue(str_contains($content, $text));
             } catch (\Exception $e) {
                 $this->fail('Selector "' . $selector . '" is not found. Exception: ' . $e->getMessage());
+                return;
             }
         } else {
             $content = $this->response->getContent();
-            $this->assertTrue(str_contains($content, $text));
         }
+        $contains = str_contains($content, $text) || str_contains($content, htmlspecialchars($text, ENT_QUOTES, 'UTF-8'));
+        if (!$contains) {
+            codecept_debug($content);
+            $this->fail('Cannot see "' . $text . '" in response');
+        }
+        $this->assertTrue($contains);
     }
 
     public function grabMultiple(string $selector): array
@@ -79,6 +84,11 @@ class Integration extends Module
     public function seeElement(string $selector): void
     {
         $this->assertTrue($this->crawler->filter($selector)->count() > 0);
+    }
+
+    public function dontSeeElement(string $selector): void
+    {
+        $this->assertSame(0, $this->crawler->filter($selector)->count());
     }
 
     public function grabAttributeFrom(string $selector, string $attribute): ?string
@@ -117,6 +127,12 @@ class Integration extends Module
         $form->setValues($data);
 
         $request = Request::create($form->getUri(), $form->getMethod(), $form->getPhpValues());
+        $this->doRequest($request);
+    }
+
+    public function sendPost(string $url, array $data): void
+    {
+        $request = Request::create($url, 'POST', $data);
         $this->doRequest($request);
     }
 

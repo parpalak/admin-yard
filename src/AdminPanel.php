@@ -1,8 +1,8 @@
 <?php
 /**
  * @copyright 2024 Roman Parpalak
- * @license http://opensource.org/licenses/MIT MIT
- * @package AdminYard
+ * @license   http://opensource.org/licenses/MIT MIT
+ * @package   AdminYard
  */
 
 declare(strict_types=1);
@@ -11,7 +11,9 @@ namespace S2\AdminYard;
 
 use S2\AdminYard\Config\AdminConfig;
 use S2\AdminYard\Config\FieldConfig;
+use S2\AdminYard\Controller\BadRequestException;
 use S2\AdminYard\Controller\EntityController;
+use S2\AdminYard\Controller\NotFoundException;
 use S2\AdminYard\Database\PdoDataProvider;
 use S2\AdminYard\Form\FormFactory;
 use S2\AdminYard\Transformer\ViewTransformer;
@@ -26,7 +28,7 @@ readonly class AdminPanel
         private ViewTransformer  $dataTransformer,
         private MenuGenerator    $menuGenerator,
         private TemplateRenderer $templateRenderer,
-        private FormFactory     $formFactory,
+        private FormFactory      $formFactory,
     ) {
     }
 
@@ -37,16 +39,26 @@ readonly class AdminPanel
             // No entity was requested, consider as a "main" page and display a list of default entities
             $entityConfig = $this->config->findDefaultEntity();
             if ($entityConfig === null) {
-                return $this->errorResponse('No entity was requested and no default entity has been configured.');
+                return $this->errorResponse(
+                    'No entity was requested and no default entity has been configured.',
+                    Response::HTTP_INTERNAL_SERVER_ERROR
+                );
             }
             $action = $request->query->get('action', FieldConfig::ACTION_LIST);
 
         } else {
             $entityConfig = $this->config->findEntityByName($entityName);
             if ($entityConfig === null) {
-                return $this->errorResponse(sprintf('Entity %s not found.', $entityName));
+                return $this->errorResponse(
+                    sprintf('Entity "%s" not found.', $entityName),
+                    Response::HTTP_NOT_FOUND
+                );
             }
             $action = $request->query->get('action');
+        }
+
+        if ($action === null || $action === '') {
+            return $this->errorResponse('Action must be specified.');
         }
 
         // TODO: Implement a controller resolver instead of $entityConfig->getControllerClass()?
@@ -61,11 +73,19 @@ readonly class AdminPanel
 
         $methodName = $action . 'Action';
         if (!method_exists($controller, $methodName)) {
-            return $this->errorResponse('Action ' . $action . ' is unsupported.');
+            return $this->errorResponse(sprintf('Action "%s" is unsupported.', $action));
+        }
+        if (!$entityConfig->isAllowedAction($action)) {
+            return $this->errorResponse(sprintf('Action "%s" is not allowed for entity "%s".', $action, $entityConfig->getName()), Response::HTTP_FORBIDDEN);
         }
 
-        // TODO: Exception handling?
-        $content = $controller->{$methodName}($request);
+        try {
+            $content = $controller->{$methodName}($request);
+        } catch (NotFoundException $e) {
+            return $this->errorResponse($e->getMessage(), Response::HTTP_NOT_FOUND);
+        } catch (BadRequestException $e) {
+            return $this->errorResponse($e->getMessage());
+        }
         if ($content instanceof Response) {
             return $content;
         }
@@ -78,7 +98,7 @@ readonly class AdminPanel
         return new Response($html);
     }
 
-    private function errorResponse(string $errorMessage): Response
+    private function errorResponse(string $errorMessage, int $responseCode = Response::HTTP_BAD_REQUEST): Response
     {
         $html = $this->templateRenderer->render($this->config->getLayoutTemplate(), [
             'menu'         => $this->menuGenerator->generateMainMenu(''),
@@ -86,6 +106,6 @@ readonly class AdminPanel
             'errorMessage' => $errorMessage,
         ]);
 
-        return new Response($html);
+        return new Response($html, $responseCode);
     }
 }

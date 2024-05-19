@@ -27,3 +27,7 @@ suites:
                 - \Tests\Support\Helper\Integration
 settings:
     lint: true
+coverage:
+    enabled: true
+    include:
+        - src/*
