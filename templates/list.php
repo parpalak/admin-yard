@@ -40,9 +40,7 @@ declare(strict_types=1);
                 <?php endforeach; ?>
                 </tbody>
             </table>
-            <div class="form-buttons">
-                <button class="secondary" type="submit"><?= $trans('Filter') ?></button>
-            </div>
+            <p><button class="secondary filter-button" type="submit"><?= $trans('Filter') ?></button></p>
         </form>
     </section>
 <?php endif; ?>

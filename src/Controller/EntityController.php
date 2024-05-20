@@ -269,7 +269,8 @@ readonly class EntityController
     {
         $idFieldNames = $this->entityConfig->getFieldNamesOfPrimaryKey();
         $idValues     = array_map(static fn(string $columnName) => $row['field_' . $columnName], $idFieldNames);
-        $result       = ['primary_key' => array_combine($idFieldNames, $idValues)];
+        $primaryKey   = array_combine($idFieldNames, $idValues);
+        $result       = ['primary_key' => $primaryKey];
 
         foreach ($this->entityConfig->getFields($actionForFieldRestriction) as $field) {
             $columnName = $field->getName();
@@ -281,8 +282,13 @@ readonly class EntityController
             // Additional attributes to build a link to an associated entity.
             $additionalParams = $this->getLinkCellParamsForAssociations($field, $idValues, $row);
             $cellParams       = [
-                'value' => $cellValue,
-                'type'  => $dataType,
+                'value'        => $cellValue,
+                'type'         => $dataType,
+                'linkToAction' => $field->getLinkToAction(),
+                ...$field->getLinkToAction() !== null ? [
+                    'entity'     => $this->entityConfig->getName(),
+                    'primaryKey' => $primaryKey
+                ] : [],
                 ... $additionalParams,
             ];
 
@@ -306,7 +312,7 @@ readonly class EntityController
             throw new \LogicException(sprintf('Row data array for entity "%s" must have a "label_%s" key.', $this->entityConfig->getName(), $columnName));
         }
         if ($row['label_' . $columnName] === null) {
-            // Label is NULL so there will be no link
+            // Label is NULL so there will be no link to associated entity
             return [];
         }
         $labelContent = (string)$row['label_' . $columnName];

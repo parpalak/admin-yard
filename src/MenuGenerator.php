@@ -1,8 +1,8 @@
 <?php
 /**
  * @copyright 2024 Roman Parpalak
- * @license http://opensource.org/licenses/MIT MIT
- * @package AdminYard
+ * @license   http://opensource.org/licenses/MIT MIT
+ * @package   AdminYard
  */
 
 declare(strict_types=1);
@@ -19,13 +19,14 @@ readonly class MenuGenerator
     ) {
     }
 
-    public function generateMainMenu(string $baseUrl): string
+    public function generateMainMenu(string $baseUrl, ?string $currentEntity = null): string
     {
         $links = [];
         foreach ($this->config->getEntities() as $entity) {
             $links[] = [
-                'name' => $entity->getName(),
-                'url'  => $baseUrl . '?entity=' . urlencode($entity->getName()) . '&action=list',
+                'name'   => $entity->getName(),
+                'url'    => $baseUrl . '?entity=' . urlencode($entity->getName()) . '&action=list',
+                'active' => $currentEntity === $entity->getName(),
             ];
         }
 

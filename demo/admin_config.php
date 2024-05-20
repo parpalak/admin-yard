@@ -100,6 +100,7 @@ $adminConfig
             ->addField(
                 (new FieldConfig('title'))
                     ->setControl('input')
+                    ->setLinkToAction('edit')
                     ->markAsSortable()
                     ->markAsFilterable(true)
                     ->addValidator(new Length(80))
@@ -205,6 +206,7 @@ $adminConfig
                     ->setDataType('int')
                     ->setControl('int_input')
                     ->markAsPrimaryKey()
+                    ->setLinkToAction('edit')
             )
             ->addField(
                 (new FieldConfig('column2'))

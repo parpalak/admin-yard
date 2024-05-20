@@ -57,6 +57,7 @@ class FieldConfig
     private string $viewTemplate = __DIR__ . '/../../templates/view_cell.php';
     private ?array $options = null;
     private string|int|null $defaultValue = null;
+    private ?string $linkToAction = null;
 
     /**
      * @param string $name Column name in the database.
@@ -280,5 +281,17 @@ class FieldConfig
     public function getDefaultValue(): int|string|null
     {
         return $this->defaultValue;
+    }
+
+    public function setLinkToAction(string $action): static
+    {
+        $this->linkToAction = $action;
+
+        return $this;
+    }
+
+    public function getLinkToAction(): ?string
+    {
+        return $this->linkToAction;
     }
 }

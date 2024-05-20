@@ -93,7 +93,7 @@ readonly class AdminPanel
         }
 
         $html = $this->templateRenderer->render($this->config->getLayoutTemplate(), [
-            'menu'    => $this->menuGenerator->generateMainMenu(''),
+            'menu'    => $this->menuGenerator->generateMainMenu('', $entityName),
             'content' => $content,
         ]);
 
