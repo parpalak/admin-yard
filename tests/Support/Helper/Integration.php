@@ -76,6 +76,28 @@ class Integration extends Module
         $this->assertTrue($condition);
     }
 
+    public function dontSee(string $text, ?string $selector = null): void
+    {
+        if ($selector !== null) {
+            try {
+                $content = implode("\n", $this->crawler->filter($selector)->each(function (Crawler $node) {
+                    return $node->text();
+                }));
+            } catch (\Exception $e) {
+                $this->fail('Selector "' . $selector . '" is not found. Exception: ' . $e->getMessage());
+                return;
+            }
+        } else {
+            $content = $this->response->getContent();
+        }
+        $condition = str_contains($content, $text) || str_contains($content, htmlspecialchars($text, ENT_QUOTES, 'UTF-8'));
+        if ($condition) {
+            codecept_debug($content);
+            $this->fail('See "' . $text . '" in response');
+        }
+        $this->assertFalse($condition);
+    }
+
     public function grabMultiple(string $selector): array
     {
         return $this->crawler->filter($selector)->each(static function (Crawler $node) {

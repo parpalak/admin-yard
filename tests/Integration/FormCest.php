@@ -14,7 +14,7 @@ use Tests\Support\IntegrationTester;
 /**
  * @group validation
  */
-class ValidationCest
+class FormCest
 {
     public function validationNewTest(IntegrationTester $I): void
     {
@@ -48,12 +48,28 @@ class ValidationCest
 
         $I->submitForm('form', [
             'status_code' => 'unknown',
-            'created_at' => 'invalid',
+            'created_at'  => 'invalid',
         ]);
         $I->seeResponseCodeIs(200);
         $I->see('The value you selected is not a valid choice.', $this->getValidationErrorSelector('Comment', 'status_code'));
         $I->see('This value should not be blank.', $this->getValidationErrorSelector('Comment', 'name'));
         $I->see('This value is not a valid date.', $this->getValidationErrorSelector('Comment', 'created_at'));
+    }
+
+    public function disabledFieldsAreIgnoredTest(IntegrationTester $I): void
+    {
+        $I->sendPost('?entity=Comment&action=edit&id=10', [
+            'post_id'     => '9',
+            'name'        => 'Integration tester',
+            'status_code' => 'approved',
+        ]);
+        $I->seeResponseCodeIs(302);
+        $I->followRedirect();
+        $I->click('show');
+        $I->see('Integration tester');
+        $I->see('Approved');
+        $I->see('Post 4');
+        $I->dontSee('Post 9');
     }
 
     private function getValidationErrorSelector(string $entity, string $field): string
