@@ -17,6 +17,7 @@ use S2\AdminYard\Controller\NotFoundException;
 use S2\AdminYard\Database\PdoDataProvider;
 use S2\AdminYard\Form\FormFactory;
 use S2\AdminYard\Transformer\ViewTransformer;
+use Symfony\Component\HttpFoundation\Exception\SessionNotFoundException;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -41,6 +42,7 @@ readonly class AdminPanel
             $entityConfig = $this->config->findDefaultEntity();
             if ($entityConfig === null) {
                 return $this->errorResponse(
+                    $request,
                     $this->translator->trans('No entity was requested and no default entity has been configured.'),
                     Response::HTTP_INTERNAL_SERVER_ERROR
                 );
@@ -51,6 +53,7 @@ readonly class AdminPanel
             $entityConfig = $this->config->findEntityByName($entityName);
             if ($entityConfig === null) {
                 return $this->errorResponse(
+                    $request,
                     sprintf($this->translator->trans('Unknown entity "%s" was requested.'), $entityName),
                     Response::HTTP_NOT_FOUND
                 );
@@ -59,7 +62,7 @@ readonly class AdminPanel
         }
 
         if ($action === null || $action === '') {
-            return $this->errorResponse($this->translator->trans('No action was requested.'));
+            return $this->errorResponse($request, $this->translator->trans('No action was requested.'));
         }
 
         // TODO: Implement a controller resolver instead of $entityConfig->getControllerClass()?
@@ -75,39 +78,50 @@ readonly class AdminPanel
 
         $methodName = $action . 'Action';
         if (!method_exists($controller, $methodName)) {
-            return $this->errorResponse(sprintf($this->translator->trans('Action "%s" is unsupported.'), $action));
+            return $this->errorResponse($request, sprintf($this->translator->trans('Action "%s" is unsupported.'), $action));
         }
         if (!$entityConfig->isAllowedAction($action)) {
-            return $this->errorResponse(sprintf($this->translator->trans('Action "%s" is not allowed for entity "%s".'), $action, $entityConfig->getName()), Response::HTTP_FORBIDDEN);
+            return $this->errorResponse($request, sprintf($this->translator->trans('Action "%s" is not allowed for entity "%s".'), $action, $entityConfig->getName()), Response::HTTP_FORBIDDEN);
         }
 
         try {
             $content = $controller->{$methodName}($request);
         } catch (NotFoundException $e) {
-            return $this->errorResponse($e->getMessage(), Response::HTTP_NOT_FOUND);
+            return $this->errorResponse($request, $e->getMessage(), Response::HTTP_NOT_FOUND);
         } catch (BadRequestException $e) {
-            return $this->errorResponse($e->getMessage());
+            return $this->errorResponse($request, $e->getMessage());
         }
         if ($content instanceof Response) {
             return $content;
         }
 
         $html = $this->templateRenderer->render($this->config->getLayoutTemplate(), [
-            'menu'    => $this->menuGenerator->generateMainMenu('', $entityName),
-            'content' => $content,
+            'menu'          => $this->menuGenerator->generateMainMenu('', $entityName),
+            'content'       => $content,
+            'flashMessages' => $this->getFlashMessages($request),
         ]);
 
         return new Response($html);
     }
 
-    private function errorResponse(string $errorMessage, int $responseCode = Response::HTTP_BAD_REQUEST): Response
+    private function errorResponse(Request $request, string $errorMessage, int $responseCode = Response::HTTP_BAD_REQUEST): Response
     {
         $html = $this->templateRenderer->render($this->config->getLayoutTemplate(), [
-            'menu'         => $this->menuGenerator->generateMainMenu(''),
-            'content'      => null,
-            'errorMessage' => $errorMessage,
+            'menu'          => $this->menuGenerator->generateMainMenu(''),
+            'content'       => null,
+            'errorMessage'  => $errorMessage,
+            'flashMessages' => $this->getFlashMessages($request),
         ]);
 
         return new Response($html, $responseCode);
+    }
+
+    private function getFlashMessages(Request $request): array
+    {
+        try {
+            return $request->getSession()->getFlashBag()->all();
+        } catch (SessionNotFoundException $e) {
+            return [];
+        }
     }
 }

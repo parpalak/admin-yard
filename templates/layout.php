@@ -6,6 +6,7 @@ declare(strict_types=1);
 /** @var string $menu */
 /** @var ?string $content */
 /** @var ?string $errorMessage */
+/** @var array $flashMessages */
 
 ?>
 <html>
@@ -15,13 +16,25 @@ declare(strict_types=1);
 </head>
 <body>
 <nav><?= $menu ?></nav>
+<?php
+foreach ($flashMessages as $type => $messages) {
+    foreach ($messages as $message) {
+        ?>
+        <div class="flash-message flash-<?= $type ?>">
+            <?= htmlspecialchars($message, ENT_QUOTES, 'UTF-8') ?>
+            <button type="button" class="flash-message-close" onclick="this.parentElement.remove()">&times;</button>
+        </div>
+        <?php
+    }
+}
+?>
 <?php if ($content === null && isset($errorMessage)): ?>
     <article class="error">
         <h1><?= $trans('An error encountered') ?></h1>
         <div class="error-message-box"><p><?= htmlspecialchars($errorMessage, ENT_QUOTES, 'UTF-8') ?></p></div>
     </article>
 <?php else: ?>
-    <article><?= $content ?></article>
+    <article class="admin-content"><?= $content ?></article>
 <?php endif; ?>
 </body>
 </html>

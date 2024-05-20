@@ -36,54 +36,59 @@ declare(strict_types=1);
                         <td class="field-<?= $entityName ?>-<?= $fieldName ?>">
                             <?= $control->getHtml() ?>
                             <?php foreach ($control->getValidationErrors() as $error): ?>
-                                <span class="validation-error"><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></span>
+                                <span
+                                    class="validation-error"><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></span>
                             <?php endforeach; ?>
                         </td>
                     </tr>
                 <?php endforeach; ?>
                 </tbody>
             </table>
-            <p><button class="secondary filter-button" type="submit"><?= $trans('Filter') ?></button></p>
+            <p>
+                <button class="secondary filter-button" type="submit"><?= $trans('Filter') ?></button>
+            </p>
         </form>
     </section>
 <?php endif; ?>
 <section class="list-content">
-    <table>
-        <thead>
-        <tr>
-            <?php foreach ($header as $cell): ?>
-                <th><?= htmlspecialchars($cell, ENT_QUOTES, 'UTF-8') ?></th>
-            <?php endforeach; ?>
-            <?php if (!empty($rowActions)): ?>
-                <th><?= $trans('Actions') ?></th>
-            <?php endif; ?>
-        </tr>
-        </thead>
-
-        <tbody>
-        <?php foreach ($rows as $row): ?>
+    <div class="table-wrapper">
+        <table>
+            <thead>
             <tr>
-                <?php foreach ($row['cells'] as $fieldName => $cell): ?>
-                    <td class="type-<?= $cell['type'] ?> field-<?= $entityName ?>-<?= $fieldName ?>">
-                        <?= $cell['content'] ?>
-                    </td>
+                <?php foreach ($header as $cell): ?>
+                    <th><?= htmlspecialchars($cell, ENT_QUOTES, 'UTF-8') ?></th>
                 <?php endforeach; ?>
                 <?php if (!empty($rowActions)): ?>
-                    <td>
-                        <?php foreach ($rowActions as $action) {
-                            $queryParams = http_build_query(array_merge([
-                                'entity' => $entityName,
-                                'action' => $action['name']
-                            ], $row['primary_key']));
-                            ?>
-                            <a class="list-action-link list-action-link-<?= $action['name'] ?>"
-                               title="<?= $trans($action['name']) ?>"
-                               href="?<?= $queryParams ?>"><span><?= $trans($action['name']) ?></span></a>
-                        <?php } ?>
-                    </td>
+                    <th><?= $trans('Actions') ?></th>
                 <?php endif; ?>
             </tr>
-        <?php endforeach; ?>
-        </tbody>
-    </table>
+            </thead>
+
+            <tbody>
+            <?php foreach ($rows as $row): ?>
+                <tr>
+                    <?php foreach ($row['cells'] as $fieldName => $cell): ?>
+                        <td class="type-<?= $cell['type'] ?> field-<?= $entityName ?>-<?= $fieldName ?>">
+                            <?= $cell['content'] ?>
+                        </td>
+                    <?php endforeach; ?>
+                    <?php if (!empty($rowActions)): ?>
+                        <td>
+                            <?php foreach ($rowActions as $action) {
+                                $queryParams = http_build_query(array_merge([
+                                    'entity' => $entityName,
+                                    'action' => $action['name']
+                                ], $row['primary_key']));
+                                ?>
+                                <a class="list-action-link list-action-link-<?= $action['name'] ?>"
+                                   title="<?= $trans($action['name']) ?>"
+                                   href="?<?= $queryParams ?>"><span><?= $trans($action['name']) ?></span></a>
+                            <?php } ?>
+                        </td>
+                    <?php endif; ?>
+                </tr>
+            <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
 </section>

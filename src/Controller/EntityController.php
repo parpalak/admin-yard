@@ -20,6 +20,7 @@ use S2\AdminYard\Form\FormFactory;
 use S2\AdminYard\TemplateRenderer;
 use S2\AdminYard\Transformer\ViewTransformer;
 use S2\AdminYard\Translator;
+use Symfony\Component\HttpFoundation\Exception\SessionNotFoundException;
 use Symfony\Component\HttpFoundation\Exception\SuspiciousOperationException;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -213,6 +214,9 @@ readonly class EntityController
                     foreach ($primaryKeyFieldNames as $primaryKeyFieldName) {
                         if (!isset($data[$primaryKeyFieldName])) {
                             // We do not know some part of primary key. Redirecting to the list page.
+
+                            $this->addFlashMessage($request, 'success', sprintf($this->translator->trans('%s created successfully.'), $this->entityConfig->getName()));
+
                             return new RedirectResponse('?' . http_build_query([
                                     'entity' => $this->entityConfig->getName(),
                                     'action' => 'list',
@@ -349,5 +353,14 @@ readonly class EntityController
             'foreign_id_column' => $fieldNamesOfPrimaryKey[0],
             'label'             => $labelContent,
         ];
+    }
+
+    protected function addFlashMessage(Request $request, string $type, string $message): void
+    {
+        try {
+            $request->getSession()->getFlashBag()->add($type, $message);
+        } catch (SessionNotFoundException $e) {
+            // Ignore
+        }
     }
 }
