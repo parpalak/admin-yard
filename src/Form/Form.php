@@ -9,10 +9,16 @@ declare(strict_types=1);
 
 namespace S2\AdminYard\Form;
 
+use Symfony\Component\HttpFoundation\Exception\BadRequestException;
 use Symfony\Component\HttpFoundation\InputBag;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 class Form
 {
+    public function __construct(private readonly TranslatorInterface $translator)
+    {
+    }
+
     /**
      * @var array<string, FormControlInterface>
      */
@@ -32,20 +38,32 @@ class Form
 
     public function getData(): array
     {
-        return array_map(static fn(FormControlInterface $control) => $control->getValue(), $this->controls);
+        $result = [];
+        foreach ($this->controls as $columnName => $control) {
+            if ($control->getValidationErrors() === []) {
+                $result[$columnName] = $control->getValue();
+            }
+        }
+
+        return $result;
     }
 
-    public function fillFromInputBag(InputBag $inputBag): void
+    public function submit(InputBag $inputBag): void
     {
         foreach ($this->controls as $columnName => $control) {
             if ($inputBag->has($columnName)) {
                 // TODO: check interface
-                if ($control instanceof MultiSelect) {
-                    $control->setPostValue($inputBag->all($columnName));
-                } else {
-                    $control->setPostValue($inputBag->get($columnName));
+                try {
+                    if ($control instanceof MultiSelect) {
+                        $control->setPostValue($inputBag->all($columnName));
+                    } else {
+                        $control->setPostValue($inputBag->get($columnName));
+                    }
+                } catch (BadRequestException $e) {
+                    // Ignore values that does not match the setter input type (string vs array)
                 }
             }
+            $control->validate($this->translator);
         }
     }
 
@@ -54,5 +72,16 @@ class Form
         foreach ($this->controls as $columnName => $control) {
             $control->setValue($data['field_' . $columnName]);
         }
+    }
+
+    public function isValid(): bool
+    {
+        foreach ($this->controls as $control) {
+            if ($control->getValidationErrors() !== []) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

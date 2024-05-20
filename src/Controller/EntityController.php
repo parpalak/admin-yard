@@ -40,7 +40,7 @@ readonly class EntityController
     final public function listAction(Request $request): string
     {
         $filterForm = $this->formFactory->createFilterForm($this->entityConfig);
-        $filterForm->fillFromInputBag($request->query);
+        $filterForm->submit($request->query);
         $filterData = $filterForm->getData();
 
         $filters = $this->entityConfig->getFilters();
@@ -122,43 +122,44 @@ readonly class EntityController
 
         $form = $this->formFactory->createEntityForm($this->entityConfig, FieldConfig::ACTION_EDIT);
         if ($request->getMethod() === Request::METHOD_POST) {
-            $form->fillFromInputBag($request->request);
-            // TODO validate
-            $data = $form->getData();
+            $form->submit($request->request);
+            if ($form->isValid()) {
+                $data = $form->getData();
 
-            try {
-                $this->dataProvider->updateEntity(
-                    $this->entityConfig->getTableName(),
-                    $this->entityConfig->getFieldDataTypes(FieldConfig::ACTION_EDIT),
-                    $primaryKey,
-                    $data
-                );
-            } catch (DataProviderException $e) {
-                $errorMessages[] = $this->translator->trans($e->getMessage());
+                try {
+                    $this->dataProvider->updateEntity(
+                        $this->entityConfig->getTableName(),
+                        $this->entityConfig->getFieldDataTypes(FieldConfig::ACTION_EDIT),
+                        $primaryKey,
+                        $data
+                    );
+                } catch (DataProviderException $e) {
+                    $errorMessages[] = $this->translator->trans($e->getMessage());
+                }
+
+                if ($errorMessages === []) {
+                    // Update primary key for correct URL in form
+                    $primaryKey = $primaryKey->withColumnValues($data);
+
+                    return new RedirectResponse('?' . http_build_query([
+                            'entity' => $this->entityConfig->getName(),
+                            'action' => 'edit',
+                            ...$primaryKey->toArray()
+                        ]));
+                }
             }
-
-            if ($errorMessages === []) {
-                // Update primary key for correct URL in form
-                $primaryKey = $primaryKey->withColumnValues($data);
-
-                return new RedirectResponse('?' . http_build_query([
-                        'entity' => $this->entityConfig->getName(),
-                        'action' => 'edit',
-                        ...$primaryKey->toArray()
-                    ]));
+        } else {
+            $data = $this->dataProvider->getEntity(
+                $this->entityConfig->getTableName(),
+                $this->entityConfig->getFieldDataTypes(FieldConfig::ACTION_EDIT),
+                [],
+                $primaryKey,
+            );
+            if ($data === null) {
+                throw new NotFoundException(sprintf($this->translator->trans('%s with %s not found.'), $this->entityConfig->getName(), $primaryKey->toString()));
             }
+            $form->fillFromNormalizedData($data);
         }
-
-        $data = $this->dataProvider->getEntity(
-            $this->entityConfig->getTableName(),
-            $this->entityConfig->getFieldDataTypes(FieldConfig::ACTION_EDIT),
-            [],
-            $primaryKey,
-        );
-        if ($data === null) {
-            throw new NotFoundException(sprintf($this->translator->trans('%s with %s not found.'), $this->entityConfig->getName(), $primaryKey->toString()));
-        }
-        $form->fillFromNormalizedData($data);
 
         return $this->templateRenderer->render(
             $this->entityConfig->getEditTemplate(),
@@ -182,47 +183,49 @@ readonly class EntityController
         $errorMessages = [];
 
         if ($request->getMethod() === Request::METHOD_POST) {
-            $form->fillFromInputBag($request->request);
-            // TODO validate
-            $data = $form->getData();
+            $form->submit($request->request);
 
-            try {
-                $lastInsertId = $this->dataProvider->createEntity(
-                    $this->entityConfig->getTableName(),
-                    $this->entityConfig->getFieldDataTypes(FieldConfig::ACTION_NEW, includeDefault: true),
-                    array_merge($this->entityConfig->getFieldDefaultValues(), $data)
-                );
-            } catch (DataProviderException $e) {
-                $errorMessages[] = $this->translator->trans($e->getMessage());
-            }
+            if ($form->isValid()) {
+                $data = $form->getData();
 
-            if ($errorMessages === []) {
-                $primaryKeyFieldNames = $this->entityConfig->getFieldNamesOfPrimaryKey();
-                if (is_numeric($lastInsertId) && (int)$lastInsertId > 0 && \count($primaryKeyFieldNames) === 1) {
-                    // We have detected an assigned value of usual auto-increment ID
-                    return new RedirectResponse('?' . http_build_query([
-                            'entity'                 => $this->entityConfig->getName(),
-                            'action'                 => 'edit',
-                            $primaryKeyFieldNames[0] => $lastInsertId
-                        ]));
+                try {
+                    $lastInsertId = $this->dataProvider->createEntity(
+                        $this->entityConfig->getTableName(),
+                        $this->entityConfig->getFieldDataTypes(FieldConfig::ACTION_NEW, includeDefault: true),
+                        array_merge($this->entityConfig->getFieldDefaultValues(), $data)
+                    );
+                } catch (DataProviderException $e) {
+                    $errorMessages[] = $this->translator->trans($e->getMessage());
                 }
 
-                $postPrimaryKey = [];
-                foreach ($primaryKeyFieldNames as $primaryKeyFieldName) {
-                    if (!isset($data[$primaryKeyFieldName])) {
-                        // We do not know some part of primary key. Redirecting to the list page.
+                if ($errorMessages === []) {
+                    $primaryKeyFieldNames = $this->entityConfig->getFieldNamesOfPrimaryKey();
+                    if (is_numeric($lastInsertId) && (int)$lastInsertId > 0 && \count($primaryKeyFieldNames) === 1) {
+                        // We have detected an assigned value of usual auto-increment ID
                         return new RedirectResponse('?' . http_build_query([
-                                'entity' => $this->entityConfig->getName(),
-                                'action' => 'list',
+                                'entity'                 => $this->entityConfig->getName(),
+                                'action'                 => 'edit',
+                                $primaryKeyFieldNames[0] => $lastInsertId
                             ]));
                     }
-                    $postPrimaryKey[$primaryKeyFieldName] = $data[$primaryKeyFieldName];
+
+                    $postPrimaryKey = [];
+                    foreach ($primaryKeyFieldNames as $primaryKeyFieldName) {
+                        if (!isset($data[$primaryKeyFieldName])) {
+                            // We do not know some part of primary key. Redirecting to the list page.
+                            return new RedirectResponse('?' . http_build_query([
+                                    'entity' => $this->entityConfig->getName(),
+                                    'action' => 'list',
+                                ]));
+                        }
+                        $postPrimaryKey[$primaryKeyFieldName] = $data[$primaryKeyFieldName];
+                    }
+                    return new RedirectResponse('?' . http_build_query([
+                            'entity' => $this->entityConfig->getName(),
+                            'action' => 'edit',
+                            ...$postPrimaryKey
+                        ]));
                 }
-                return new RedirectResponse('?' . http_build_query([
-                        'entity' => $this->entityConfig->getName(),
-                        'action' => 'edit',
-                        ...$postPrimaryKey
-                    ]));
             }
         }
 

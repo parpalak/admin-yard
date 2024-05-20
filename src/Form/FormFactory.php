@@ -12,22 +12,24 @@ namespace S2\AdminYard\Form;
 use S2\AdminYard\Config\EntityConfig;
 use S2\AdminYard\Config\FieldConfig;
 use S2\AdminYard\Database\PdoDataProvider;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 readonly class FormFactory
 {
     public function __construct(
         private FormControlFactoryInterface $formControlFactory,
+        private TranslatorInterface         $translator,
         private PdoDataProvider             $dataProvider
     ) {
     }
 
     /**
-     * @throws \DomainException in case of incorrect entity configuration
-     * @throws \LogicException if a violation of invariants is detected
+     * @throws \DomainException in case of incorrect entity configuration, may be visible during AdminYard integration.
+     * @throws \LogicException if a violation of invariants is detected, may be visible in case of AdminYard bugs.
      */
     public function createEntityForm(EntityConfig $entityConfig, string $action): Form
     {
-        $form = new Form();
+        $form = new Form($this->translator);
 
         foreach ($entityConfig->getFields($action) as $field) {
             if ($field->getDataType() === FieldConfig::DATA_TYPE_VIRTUAL) {
@@ -45,6 +47,7 @@ readonly class FormFactory
             }
             $control = $this->formControlFactory->create($controlName, $columnName);
 
+            // Dealing with options
             $foreignEntity = $field->getForeignEntity();
             if ($foreignEntity !== null) {
                 if (!$control instanceof OptionsInterface) {
@@ -73,6 +76,8 @@ readonly class FormFactory
                 $control->setOptions($options);
             }
 
+            $control->setValidators(...$field->getValidators());
+
             $form->addControl($control, $columnName);
         }
 
@@ -81,7 +86,7 @@ readonly class FormFactory
 
     public function createFilterForm(EntityConfig $entityConfig): Form
     {
-        $form = new Form();
+        $form = new Form($this->translator);
 
         // 1. Add external references to the filter form
         foreach ($entityConfig->getManyToOneFields() as $field) {

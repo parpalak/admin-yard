@@ -36,6 +36,9 @@ $formQueryParams = http_build_query([
                     <td class="field-name"><?= htmlspecialchars($header[$fieldName], ENT_QUOTES, 'UTF-8') ?></td>
                     <td class="field-<?= $entityName ?>-<?= $fieldName ?>">
                         <?= $control->getHtml() ?>
+                        <?php foreach ($control->getValidationErrors() as $error): ?>
+                            <span class="validation-error"><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></span>
+                        <?php endforeach; ?>
                     </td>
                 </tr>
             <?php endforeach; ?>

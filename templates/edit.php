@@ -6,7 +6,7 @@ declare(strict_types=1);
 /** @var string $title */
 /** @var string $entityName */
 /** @var array $header */
-/** @var array $fields */
+/** @var array<string, \S2\AdminYard\Form\FormControlInterface> $fields */
 /** @var array $primaryKey */
 /** @var array $actions */
 
@@ -36,6 +36,9 @@ $formQueryParams = http_build_query(array_merge([
                     <td class="field-name"><?= htmlspecialchars($header[$fieldName], ENT_QUOTES, 'UTF-8') ?></td>
                     <td class="field-<?= $entityName ?>-<?= $fieldName ?>">
                         <?= $control->getHtml() ?>
+                        <?php foreach ($control->getValidationErrors() as $error): ?>
+                            <span class="validation-error"><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></span>
+                        <?php endforeach; ?>
                     </td>
                 </tr>
             <?php endforeach; ?>

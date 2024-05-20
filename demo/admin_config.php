@@ -7,6 +7,7 @@ use S2\AdminYard\Config\EntityConfig;
 use S2\AdminYard\Config\FieldConfig;
 use S2\AdminYard\Config\Filter;
 use S2\AdminYard\Validator\Length;
+use S2\AdminYard\Validator\NotBlank;
 
 // Example of admin config for demo and tests
 
@@ -25,18 +26,20 @@ $commentConfig = (new EntityConfig('Comment', 'comments'))
         (new FieldConfig('post_id'))
             ->setDataType('int')
             ->setControl('select')
+            ->addValidator(new NotBlank())
             ->manyToOne($postEntity, 'CONCAT("#", id, " ", title)')
             ->setUseOnActions([FieldConfig::ACTION_LIST, FieldConfig::ACTION_SHOW, FieldConfig::ACTION_NEW])
     )
     ->addField(
         (new FieldConfig('name'))
             ->setControl('input')
-            ->addValidator(new Length(50))
+            ->addValidator(new NotBlank())
+            ->addValidator(new Length(max: 50))
     )
     ->addField(
         (new FieldConfig('email'))
             ->setControl('input')
-            ->addValidator(new Length(80))
+            ->addValidator(new Length(max: 80))
     )
     ->addField(
         (new FieldConfig('comment_text'))
@@ -103,7 +106,7 @@ $adminConfig
                     ->setLinkToAction('edit')
                     ->markAsSortable()
                     ->markAsFilterable(true)
-                    ->addValidator(new Length(80))
+                    ->addValidator(new Length(max: 80))
             )
             ->addField(
                 (new FieldConfig('text'))
@@ -190,7 +193,8 @@ $adminConfig
                     ->setControl('input')
                     ->markAsSortable()
                     ->markAsFilterable(true)
-                    ->addValidator(new Length(80))
+                    ->addValidator(new Length(1, 80))
+                    ->addValidator(new NotBlank())
             )
             ->addField(
                 (new FieldConfig('description'))

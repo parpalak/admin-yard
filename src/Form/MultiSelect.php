@@ -11,6 +11,8 @@ namespace S2\AdminYard\Form;
 
 class MultiSelect implements FormControlInterface, OptionsInterface
 {
+    use ValidatableTrait;
+
     protected array $values = [];
     protected array $options = [];
 

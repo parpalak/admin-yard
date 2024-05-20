@@ -1,8 +1,8 @@
 <?php
 /**
  * @copyright 2024 Roman Parpalak
- * @license http://opensource.org/licenses/MIT MIT
- * @package AdminYard
+ * @license   http://opensource.org/licenses/MIT MIT
+ * @package   AdminYard
  */
 
 declare(strict_types=1);
@@ -11,6 +11,8 @@ namespace S2\AdminYard\Form;
 
 class Date implements FormControlInterface
 {
+    use ValidatableTrait;
+
     private ?string $value = null;
 
     public function __construct(
@@ -24,6 +26,7 @@ class Date implements FormControlInterface
             throw new \InvalidArgumentException(sprintf('Value must be a string, "%s" given.', \gettype($value)));
         }
         $this->value = $value;
+
         return $this;
     }
 
@@ -43,5 +46,12 @@ class Date implements FormControlInterface
     public function getValue(): ?string
     {
         return $this->value;
+    }
+
+    protected function getInternalValidators(): array
+    {
+        return [
+            new \S2\AdminYard\Validator\DateTime(),
+        ];
     }
 }

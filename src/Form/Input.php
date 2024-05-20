@@ -1,8 +1,8 @@
 <?php
 /**
  * @copyright 2024 Roman Parpalak
- * @license http://opensource.org/licenses/MIT MIT
- * @package AdminYard
+ * @license   http://opensource.org/licenses/MIT MIT
+ * @package   AdminYard
  */
 
 declare(strict_types=1);
@@ -11,6 +11,8 @@ namespace S2\AdminYard\Form;
 
 class Input implements FormControlInterface
 {
+    use ValidatableTrait;
+
     protected string $value = '';
 
     public function __construct(protected readonly string $fieldName)

@@ -38,7 +38,7 @@ class DefaultAdminFactory
             new MenuGenerator($adminConfig, $templateRenderer),
             $translator,
             $templateRenderer,
-            new FormFactory(new FormControlFactory(), $dataProvider)
+            new FormFactory(new FormControlFactory(), $translator, $dataProvider)
         );
     }
 }

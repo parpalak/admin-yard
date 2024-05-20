@@ -6,7 +6,7 @@ declare(strict_types=1);
 /** @var string $title */
 /** @var string $entityName */
 /** @var array $header */
-/** @var array $filterControls */
+/** @var array<string, \S2\AdminYard\Form\FormControlInterface> $filterControls */
 /** @var array $rows */
 /** @var array $rowActions */
 /** @var array $entityActions */
@@ -35,6 +35,9 @@ declare(strict_types=1);
                         <td class="field-name"><?= htmlspecialchars($filterLabels[$fieldName] ?? $header[$fieldName], ENT_QUOTES, 'UTF-8') ?></td>
                         <td class="field-<?= $entityName ?>-<?= $fieldName ?>">
                             <?= $control->getHtml() ?>
+                            <?php foreach ($control->getValidationErrors() as $error): ?>
+                                <span class="validation-error"><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></span>
+                            <?php endforeach; ?>
                         </td>
                     </tr>
                 <?php endforeach; ?>

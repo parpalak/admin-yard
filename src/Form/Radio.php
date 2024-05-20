@@ -9,6 +9,8 @@ declare(strict_types=1);
 
 namespace S2\AdminYard\Form;
 
+use S2\AdminYard\Validator\Choice;
+
 class Radio extends Select
 {
     public function getHtml(): string
@@ -40,5 +42,12 @@ class Radio extends Select
     protected function isCurrentOption(int|string $key): bool
     {
         return parent::isCurrentOption($key) || ($key === '' && $this->value === null);
+    }
+
+    protected function getInternalValidators(): array
+    {
+        return [
+            new Choice(array_keys($this->options)),
+        ];
     }
 }

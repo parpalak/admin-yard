@@ -58,7 +58,9 @@ class Integration extends Module
     {
         if ($selector !== null) {
             try {
-                $content = $this->crawler->filter($selector)->text();
+                $content = implode("\n", $this->crawler->filter($selector)->each(function (Crawler $node) {
+                    return $node->text();
+                }));
             } catch (\Exception $e) {
                 $this->fail('Selector "' . $selector . '" is not found. Exception: ' . $e->getMessage());
                 return;

@@ -1,19 +1,19 @@
 <?php
 /**
  * @copyright 2024 Roman Parpalak
- * @license http://opensource.org/licenses/MIT MIT
- * @package AdminYard
+ * @license   http://opensource.org/licenses/MIT MIT
+ * @package   AdminYard
  */
 
 declare(strict_types=1);
 
 namespace S2\AdminYard\Form;
 
-use DateTimeImmutable;
-
 class Datetime implements FormControlInterface
 {
-    private ?DateTimeImmutable $value = null;
+    use ValidatableTrait;
+
+    private \DateTimeImmutable|string|null $value = null;
 
     public function __construct(
         private readonly string $fieldName,
@@ -22,7 +22,7 @@ class Datetime implements FormControlInterface
 
     public function setValue($value): static
     {
-        if (!$value instanceof DateTimeImmutable && $value !== null) {
+        if (!$value instanceof \DateTimeImmutable && $value !== null) {
             throw new \InvalidArgumentException(sprintf('Value must be a DateTimeImmutable or null, "%s" given.', \gettype($value)));
         }
         $this->value = $value;
@@ -30,24 +30,45 @@ class Datetime implements FormControlInterface
         return $this;
     }
 
-    /**
-     * @throws \Exception
-     */
     public function setPostValue($value): static
     {
         if (!\is_string($value)) {
             throw new \InvalidArgumentException(sprintf('Value must be a string, "%s" given.', \gettype($value)));
         }
-        return $this->setValue($value === '' ? null : new DateTimeImmutable($value));
+        $this->value = $value === '' ? null : $value;
+
+        return $this;
     }
 
     public function getHtml(): string
     {
-        return sprintf('<input type="datetime-local" name="%s" value="%s">', $this->fieldName, $this->value?->format('Y-m-d\TH:i') ?? '');
+        if ($this->value === null) {
+            $formattedValue = '';
+        } elseif ($this->value instanceof \DateTimeImmutable) {
+            $formattedValue = $this->value?->format('Y-m-d\TH:i');
+        } else {
+            $formattedValue = $this->value;
+        }
+        return sprintf('<input type="datetime-local" name="%s" value="%s">', $this->fieldName, $formattedValue);
     }
 
-    public function getValue(): ?DateTimeImmutable
+    public function getInternalValue(): \DateTimeImmutable|string|null
     {
         return $this->value;
+    }
+
+    public function getValue(): ?\DateTimeImmutable
+    {
+        if (\is_string($this->value)) {
+            $this->value = \DateTimeImmutable::createFromFormat('Y-m-d\TH:i', $this->value);
+        }
+        return $this->value;
+    }
+
+    protected function getInternalValidators(): array
+    {
+        return [
+            new \S2\AdminYard\Validator\DateTime('Y-m-d\TH:i'),
+        ];
     }
 }

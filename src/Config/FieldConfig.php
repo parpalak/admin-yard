@@ -177,6 +177,9 @@ class FieldConfig
         return $this->useOnActions;
     }
 
+    /**
+     * @return ValidatorInterface[]
+     */
     public function getValidators(): array
     {
         return $this->validators;

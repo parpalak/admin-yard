@@ -11,6 +11,8 @@ namespace S2\AdminYard\Form;
 
 class Select implements FormControlInterface, OptionsInterface
 {
+    use ValidatableTrait;
+
     protected ?string $value = null;
     protected array $options = [];
 
