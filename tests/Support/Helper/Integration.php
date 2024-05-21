@@ -47,6 +47,7 @@ class Integration extends Module
     public function _before(TestInterface $test)
     {
         $this->pdo->beginTransaction();
+        $this->session->clear();
     }
 
     public function _after(TestInterface $test)
@@ -167,11 +168,21 @@ class Integration extends Module
 
     public function submitForm(string $selector, array $data): void
     {
-        $form = $this->crawler->filter($selector)->form();
+        $formCrawler = $this->crawler->filter($selector);
+        $button      = $formCrawler->filter('button[type="submit"]');
+        if ($button->count() > 0 && $button->attr('name')) {
+            $buttonData = [$button->attr('name') => $button->attr('value') ?? ''];
+        } else {
+            $buttonData = [];
+        }
+
+        $form = $formCrawler->form();
         $form->disableValidation(); // see https://stackoverflow.com/questions/57386450/how-to-tick-a-specific-checkbox-from-a-multi-dimensional-field-in-a-symfony-form
         $form->setValues($data);
 
-        $request = Request::create($form->getUri(), $form->getMethod(), $form->getPhpValues());
+        // Hack for crawler. Looks like it doesn't add button data for no reason, so we do it manually here
+        $phpValues = array_merge($buttonData, $form->getPhpValues());
+        $request   = Request::create($form->getUri(), $form->getMethod(), $phpValues);
         $this->doRequest($request);
     }
 

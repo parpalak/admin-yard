@@ -16,6 +16,7 @@ use S2\AdminYard\Database\DatabaseHelper;
 use S2\AdminYard\Database\DataProviderException;
 use S2\AdminYard\Database\PdoDataProvider;
 use S2\AdminYard\Database\PrimaryKey;
+use S2\AdminYard\Form\Form;
 use S2\AdminYard\Form\FormFactory;
 use S2\AdminYard\TemplateRenderer;
 use S2\AdminYard\Transformer\ViewTransformer;
@@ -40,8 +41,7 @@ readonly class EntityController
 
     final public function listAction(Request $request): string
     {
-        $filterForm = $this->formFactory->createFilterForm($this->entityConfig);
-        $filterForm->submit($request);
+        $filterForm = $this->getListFilterForm($request);
         $filterData = $filterForm->getData();
 
         $filters = $this->entityConfig->getFilters();
@@ -159,7 +159,7 @@ readonly class EntityController
             if ($data === null) {
                 throw new NotFoundException(sprintf($this->translator->trans('%s with %s not found.'), $this->entityConfig->getName(), $primaryKey->toString()));
             }
-            $form->fillFromNormalizedData($data);
+            $form->fillFromArray($data, 'field_');
         }
 
         return $this->templateRenderer->render(
@@ -362,5 +362,33 @@ readonly class EntityController
         } catch (SessionNotFoundException $e) {
             // Ignore
         }
+    }
+
+    private function getListFilterForm(Request $request): Form
+    {
+        $filterForm = $this->formFactory->createFilterForm($this->entityConfig);
+        $session    = $request->getSession();
+
+        // First we fill the filter form with the previous filter values
+        $storedFilterData = $session->get('filter_' . $this->entityConfig->getName());
+        if (\is_array($storedFilterData)) {
+            $filterForm->fillFromArray($storedFilterData);
+        }
+
+        // Then we overwrite with the new values if there are any
+        $filterFormWasSubmitted = $request->get('apply_filter') !== null;
+        $filterForm->submit($request, $filterFormWasSubmitted);
+        $filterData = $filterForm->getData();
+
+        if ($filterFormWasSubmitted) {
+            // Update filter state in the session to current state for the next request
+            if ($filterData !== []) {
+                $session->set('filter_' . $this->entityConfig->getName(), array_filter($filterData, static fn($value) => $value !== null));
+            } else {
+                $session->remove('filter_' . $this->entityConfig->getName());
+            }
+        }
+
+        return $filterForm;
     }
 }

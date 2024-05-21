@@ -15,7 +15,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 class Form
 {
-    private const CSRF_CONTROL_NAME = '__csrf_token';
+    private const CSRF_FIELD_NAME = '__csrf_token';
     private ?string $csrfToken = null;
 
     /**
@@ -32,9 +32,9 @@ class Form
      */
     private array $controls = [];
 
-    public function addControl(FormControlInterface $control, string $columnName): static
+    public function addControl(FormControlInterface $control, string $fieldName): static
     {
-        $this->controls[$columnName] = $control;
+        $this->controls[$fieldName] = $control;
 
         return $this;
     }
@@ -57,16 +57,16 @@ class Form
     public function getData(): array
     {
         $result = [];
-        foreach ($this->controls as $columnName => $control) {
-            if ($columnName !== self::CSRF_CONTROL_NAME && $control->getValidationErrors() === []) {
-                $result[$columnName] = $control->getValue();
+        foreach ($this->controls as $fieldName => $control) {
+            if ($fieldName !== self::CSRF_FIELD_NAME && $control->getValidationErrors() === []) {
+                $result[$fieldName] = $control->getValue();
             }
         }
 
         return $result;
     }
 
-    public function submit(Request $request): void
+    public function submit(Request $request, bool $overwriteEmptyArrayControls = false): void
     {
         $method = $request->getMethod();
         if ($method === Request::METHOD_POST) {
@@ -79,13 +79,13 @@ class Form
 
         $csrfCheckPassed = false;
         foreach ($this->controls as $columnName => $control) {
-            if ($columnName === self::CSRF_CONTROL_NAME) {
+            if ($columnName === self::CSRF_FIELD_NAME) {
                 $csrfCheckPassed = $inputBag->get($columnName) === $this->csrfToken;
                 continue;
             }
 
             if ($inputBag->has($columnName)) {
-                // TODO: check interface
+                // TODO: check interface instead of MultiSelect
                 try {
                     if ($control instanceof MultiSelect) {
                         $control->setPostValue($inputBag->all($columnName));
@@ -94,6 +94,26 @@ class Form
                     }
                 } catch (BadRequestException $e) {
                     // Ignore values that does not match the setter input type (string vs array)
+                }
+            } else {
+                /**
+                 * Browsers do not send any data in checkbox arrays when there are no checkboxes checked:
+                 * <input type="checkbox" name="foo[]" value="bar" />
+                 * <input type="checkbox" name="foo[]" value="qux" />
+                 *
+                 * So we cannot distinguish two situations:
+                 * 1. There is no GET parameter foo because the user has not submitted any form.
+                 * 2. There is no GET parameter foo because the user has not checked any checkboxes however the form has been submitted.
+                 *
+                 * The workaround is to check if the form data contains the key-value pair for the submit button.
+                 * $overwriteEmptyArrayControls is used for this purpose.
+                 *
+                 * Other controls like input do not have this problem.
+                 * There is no key (url === '/') when the form is not submitted,
+                 * and there is an empty value (url === '/?text=') when the form is submitted.
+                 */
+                if ($overwriteEmptyArrayControls && $control instanceof MultiSelect) {
+                    $control->setPostValue([]);
                 }
             }
             $control->validate($this->translator);
@@ -104,13 +124,13 @@ class Form
         }
     }
 
-    public function fillFromNormalizedData(array $data): void
+    public function fillFromArray(array $data, string $fieldPrefix = ''): void
     {
-        foreach ($this->controls as $columnName => $control) {
-            if ($columnName === self::CSRF_CONTROL_NAME) {
+        foreach ($this->controls as $fieldName => $control) {
+            if ($fieldName === self::CSRF_FIELD_NAME || !\array_key_exists($fieldPrefix . $fieldName, $data)) {
                 continue;
             }
-            $control->setValue($data['field_' . $columnName]);
+            $control->setValue($data[$fieldPrefix . $fieldName]);
         }
     }
 
@@ -138,8 +158,8 @@ class Form
     {
         $this->csrfToken = $csrfToken;
         $this->addControl(
-            (new HiddenInput(self::CSRF_CONTROL_NAME))->setValue($this->csrfToken),
-            self::CSRF_CONTROL_NAME
+            (new HiddenInput(self::CSRF_FIELD_NAME))->setValue($this->csrfToken),
+            self::CSRF_FIELD_NAME
         );
     }
 }

@@ -10,6 +10,9 @@ namespace Tests\Integration;
 use Codeception\Example;
 use Tests\Support\IntegrationTester;
 
+/**
+ * @group list
+ */
 class ListCest
 {
     public const ENTITY_ROW_SELECTOR  = 'section.list-content tbody tr';
@@ -130,6 +133,13 @@ class ListCest
         ]);
         $I->seeResponseCodeIs(200);
         $I->assertCount(3, $I->grabMultiple(self::ENTITY_ROW_SELECTOR));
+
+        // Check that filters were stored in session
+        $I->amOnPage('?entity=Comment&action=list');
+        $I->assertCount(3, $I->grabMultiple(self::ENTITY_ROW_SELECTOR));
+        $filterFormData = $I->grabFormValues(self::FILTER_FORM_SELECTOR);
+        $I->assertEquals('10', $filterFormData['post_id']);
+        $I->assertEquals('post 10', $filterFormData['search']);
 
         $I->submitForm(self::FILTER_FORM_SELECTOR, [
             'post_id' => '1111111',
