@@ -9,9 +9,11 @@ declare(strict_types=1);
 
 namespace S2\AdminYard\Form;
 
+use Random\RandomException;
 use S2\AdminYard\Config\EntityConfig;
 use S2\AdminYard\Config\FieldConfig;
 use S2\AdminYard\Database\PdoDataProvider;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 readonly class FormFactory
@@ -27,9 +29,11 @@ readonly class FormFactory
      * @throws \DomainException in case of incorrect entity configuration, may be visible during AdminYard integration.
      * @throws \LogicException if a violation of invariants is detected, may be visible in case of AdminYard bugs.
      */
-    public function createEntityForm(EntityConfig $entityConfig, string $action): Form
+    public function createEntityForm(EntityConfig $entityConfig, string $action, Request $request): Form
     {
-        $form = new Form($this->translator);
+        $form      = new Form($this->translator);
+        $csrfToken = $this->generateCsrfToken($entityConfig->getName(), $action, $request);
+        $form->setCsrfToken($csrfToken);
 
         foreach ($entityConfig->getFields($action) as $field) {
             if ($field->getDataType() === FieldConfig::DATA_TYPE_VIRTUAL) {
@@ -136,5 +140,22 @@ readonly class FormFactory
         }
 
         return $form;
+    }
+
+    private function generateCsrfToken(string $entityName, string $action, Request $request): string
+    {
+        $session = $request->getSession();
+        if (!$session->has('main_csrf_token')) {
+            try {
+                $mainToken = bin2hex(random_bytes(16));
+            } catch (RandomException $e) {
+                $mainToken = sha1(uniqid((string)mt_rand(), true));
+            }
+            $session->set('main_csrf_token', $mainToken);
+        } else {
+            $mainToken = $session->get('main_csrf_token');
+        }
+
+        return sha1(serialize([$entityName, $action, $mainToken]));
     }
 }

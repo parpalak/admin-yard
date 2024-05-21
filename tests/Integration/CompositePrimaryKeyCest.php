@@ -45,12 +45,14 @@ class CompositePrimaryKeyCest
         $I->seeElement('form input[type="text"][name="column2"]');
         $I->seeElement('form input[type="date"][name="column3"]');
 
-        $I->assertEquals($formData, $I->grabFormValues('form'));
+        $formValues = $I->grabFormValues('form');
+        $I->assertEquals($formData, array_intersect_key($formValues, $formData));
 
         $I->submitForm('form', [
-            'column1' => 234,
-            'column2' => 'Test title after edit',
-            'column3' => '2020-01-01',
+            'column1'      => 234,
+            'column2'      => 'Test title after edit',
+            'column3'      => '2020-01-01',
+            '__csrf_token' => $formValues['__csrf_token'],
         ]);
 
         $I->seeResponseCodeIs(Response::HTTP_FOUND);

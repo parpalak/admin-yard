@@ -43,7 +43,7 @@ readonly class AdminPanel
             if ($entityConfig === null) {
                 return $this->errorResponse(
                     $request,
-                    $this->translator->trans('No entity was requested and no default entity has been configured.'),
+                    $this->translator->trans('No entity was requested.'),
                     Response::HTTP_INTERNAL_SERVER_ERROR
                 );
             }

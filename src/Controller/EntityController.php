@@ -41,7 +41,7 @@ readonly class EntityController
     final public function listAction(Request $request): string
     {
         $filterForm = $this->formFactory->createFilterForm($this->entityConfig);
-        $filterForm->submit($request->query);
+        $filterForm->submit($request);
         $filterData = $filterForm->getData();
 
         $filters = $this->entityConfig->getFilters();
@@ -121,9 +121,9 @@ readonly class EntityController
         $primaryKey    = PrimaryKey::fromRequestQueryParams($request, $this->entityConfig->getFieldNamesOfPrimaryKey());
         $errorMessages = [];
 
-        $form = $this->formFactory->createEntityForm($this->entityConfig, FieldConfig::ACTION_EDIT);
+        $form = $this->formFactory->createEntityForm($this->entityConfig, FieldConfig::ACTION_EDIT, $request);
         if ($request->getMethod() === Request::METHOD_POST) {
-            $form->submit($request->request);
+            $form->submit($request);
             if ($form->isValid()) {
                 $data = $form->getData();
 
@@ -170,7 +170,7 @@ readonly class EntityController
                 'errorMessages' => $errorMessages,
                 'primaryKey'    => $primaryKey->toArray(),
                 'header'        => array_map(static fn(FieldConfig $field) => $field->getLabel(), $this->entityConfig->getFields(FieldConfig::ACTION_SHOW)),
-                'fields'        => $form->getControls(),
+                'form'          => $form,
                 'actions'       => array_map(static fn(string $action) => [
                     'name' => $action,
                 ], array_diff($this->entityConfig->getEnabledActions(), [FieldConfig::ACTION_EDIT, FieldConfig::ACTION_NEW])),
@@ -180,11 +180,11 @@ readonly class EntityController
 
     public function newAction(Request $request): string|Response
     {
-        $form          = $this->formFactory->createEntityForm($this->entityConfig, FieldConfig::ACTION_NEW);
+        $form          = $this->formFactory->createEntityForm($this->entityConfig, FieldConfig::ACTION_NEW, $request);
         $errorMessages = [];
 
         if ($request->getMethod() === Request::METHOD_POST) {
-            $form->submit($request->request);
+            $form->submit($request);
 
             if ($form->isValid()) {
                 $data = $form->getData();
@@ -240,7 +240,7 @@ readonly class EntityController
                 'entityName'    => $this->entityConfig->getName(),
                 'errorMessages' => $errorMessages,
                 'header'        => array_map(static fn(FieldConfig $field) => $field->getLabel(), $this->entityConfig->getFields(FieldConfig::ACTION_SHOW)),
-                'fields'        => $form->getControls(),
+                'form'          => $form,
                 'actions'       => array_map(static fn(string $action) => [
                     'name' => $action,
                 ], array_intersect($this->entityConfig->getEnabledActions(), [FieldConfig::ACTION_LIST])),

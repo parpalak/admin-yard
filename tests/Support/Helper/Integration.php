@@ -10,33 +10,48 @@ declare(strict_types=1);
 namespace Tests\Support\Helper;
 
 use Codeception\Module;
+use Codeception\TestInterface;
 use Psr\Container\ContainerExceptionInterface;
-use Psr\Container\NotFoundExceptionInterface;
 use S2\AdminYard\AdminPanel;
 use S2\AdminYard\Config\AdminConfig;
 use S2\AdminYard\DefaultAdminFactory;
 use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\Session\Session;
+use Symfony\Component\HttpFoundation\Session\SessionInterface;
+use Symfony\Component\HttpFoundation\Session\Storage\MockArraySessionStorage;
 
 class Integration extends Module
 {
-    private ?\PDO $pdo = null;
+    protected ?\PDO $pdo = null;
     protected ?AdminPanel $adminPanel = null;
     protected ?Response $response = null;
-    private ?Crawler $crawler = null;
+    protected ?Crawler $crawler = null;
+    protected ?SessionInterface $session = null;
 
     /**
      * @throws ContainerExceptionInterface
-     * @throws NotFoundExceptionInterface
+     * @throws \PDOException
      */
-    public function _initialize()
+    public function _initialize(): void
     {
         shell_exec('mysql -u root ' . (getenv('DB_PASSWORD') ? '-p' . getenv('DB_PASSWORD') : '') . ' --database adminyard_test < ' . __DIR__ . '/../../../demo/init.sql');
         $this->pdo = new \PDO('mysql:host=127.0.0.1;dbname=adminyard_test;', 'root', getenv('DB_PASSWORD') ?: '');
 
         $adminConfig      = require __DIR__ . '/../../../demo/admin_config.php';
         $this->adminPanel = $this->createAdminPanel($adminConfig, $this->pdo);
+        $this->session    = new Session(new MockArraySessionStorage());
+    }
+
+    public function _before(TestInterface $test)
+    {
+        $this->pdo->beginTransaction();
+    }
+
+    public function _after(TestInterface $test)
+    {
+        $this->pdo->rollBack();
     }
 
     public function createAdminPanel(AdminConfig $adminConfig, \PDO $pdo): AdminPanel
@@ -173,6 +188,7 @@ class Integration extends Module
 
     private function doRequest(Request $request): void
     {
+        $request->setSession($this->session);
         $this->response = $this->adminPanel->handleRequest($request);
         $this->crawler  = new Crawler($this->response->getContent(), 'http://localhost');
     }

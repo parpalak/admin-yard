@@ -6,7 +6,8 @@ declare(strict_types=1);
 /** @var string $title */
 /** @var string $entityName */
 /** @var array $header */
-/** @var array<string, \S2\AdminYard\Form\FormControlInterface> $fields */
+/** @var array $errorMessages */
+/** @var \S2\AdminYard\Form\Form $form */
 /** @var array $primaryKey */
 /** @var array $actions */
 
@@ -14,6 +15,8 @@ $formQueryParams = http_build_query(array_merge([
     'entity' => $entityName,
     'action' => 'edit'
 ], $primaryKey));
+
+$errorMessages = array_merge($errorMessages, $form->getGlobalFormErrors());
 
 ?>
 <h1><?= htmlspecialchars($title, ENT_QUOTES, 'UTF-8') ?></h1>
@@ -31,7 +34,7 @@ $formQueryParams = http_build_query(array_merge([
     <form method="POST" action="?<?= $formQueryParams ?>">
         <table>
             <tbody>
-            <?php foreach ($fields as $fieldName => $control): ?>
+            <?php foreach ($form->getVisibleControls() as $fieldName => $control): ?>
                 <tr>
                     <td class="field-name"><?= htmlspecialchars($header[$fieldName], ENT_QUOTES, 'UTF-8') ?></td>
                     <td class="field-<?= $entityName ?>-<?= $fieldName ?>">
@@ -44,6 +47,9 @@ $formQueryParams = http_build_query(array_merge([
             <?php endforeach; ?>
             </tbody>
         </table>
+        <?php foreach ($form->getHiddenControls() as $control): ?>
+            <?= $control->getHtml() ?>
+        <?php endforeach; ?>
         <div class="form-buttons">
             <button type="submit"><?= $trans('Save') ?></button>
         </div>

@@ -48,7 +48,8 @@ class CrudCest
         $I->seeElement('form input[type="datetime-local"][name="created_at"]');
         $I->seeElement('form input[type="datetime-local"][name="updated_at"]');
 
-        $I->assertEquals($formData, $I->grabFormValues('form'));
+        $formValues = $I->grabFormValues('form');
+        $I->assertEquals($formData, array_intersect_key($formValues, $formData));
 
         $I->click('show');
         $I->see('Post', 'h1');

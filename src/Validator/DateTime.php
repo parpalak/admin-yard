@@ -13,11 +13,11 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 class DateTime implements ValidatorInterface
 {
+    public string $message = 'This value is not a valid date.';
+
     public function __construct(private readonly string $format = 'Y-m-d')
     {
     }
-
-    public string $message = 'This value is not a valid date.';
 
     public function getValidationErrors(mixed $value, TranslatorInterface $translator): array
     {

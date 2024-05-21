@@ -141,7 +141,6 @@ readonly class PdoDataProvider
                 throw new DataProviderException('The entity with same parameters already exists.', 0, $e);
             }
             throw new DataProviderException('Cannot save entity to database', 0, $e);
-
         }
     }
 
