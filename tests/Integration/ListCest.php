@@ -183,8 +183,79 @@ class ListCest
     public function invalidFilterList(IntegrationTester $I): void
     {
         $I->amOnPage('?entity=Post&action=list&search=[]&is_active=invalid_field&modified_from=invalid_date&modified_to=invalid_date');
-        // TODO check validation error messages when they will be implemented
         $I->seeResponseCodeIs(200);
         $I->see('Post', 'h1');
+        $I->see('The value you selected is not a valid choice.', self::FILTER_FORM_SELECTOR . ' .field-Post-is_active');
+        $I->see('This value is not a valid date.', self::FILTER_FORM_SELECTOR . ' .field-Post-modified_from');
+        $I->see('This value is not a valid date.', self::FILTER_FORM_SELECTOR . ' .field-Post-modified_to');
+    }
+
+    public function sortTest(IntegrationTester $I): void
+    {
+        $I->amOnPage('?entity=Post&action=list');
+        $I->seeResponseCodeIs(200);
+        $I->see('Post', 'h1');
+
+        $I->assertEquals(range(1, 50), $I->grabMultiple(self::ENTITY_ROW_SELECTOR . ' .field-Post-id'));
+        $I->click('section.list-content th.field-Post-id a');
+        $I->assertEquals(range(1, 50), $I->grabMultiple(self::ENTITY_ROW_SELECTOR . ' .field-Post-id'));
+        $I->click('section.list-content th.field-Post-id a');
+        $I->assertEquals(range(50, 1), $I->grabMultiple(self::ENTITY_ROW_SELECTOR . ' .field-Post-id'));
+
+        $I->submitForm(self::FILTER_FORM_SELECTOR, [
+            'search'        => 'post 1',
+            'is_active'     => '',
+            'modified_from' => '',
+            'modified_to'   => '',
+        ]);
+
+        $I->assertEquals([19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 1], $I->grabMultiple(self::ENTITY_ROW_SELECTOR . ' .field-Post-id'));
+        $I->click('section.list-content th.field-Post-id a');
+        $I->assertEquals([1, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], $I->grabMultiple(self::ENTITY_ROW_SELECTOR . ' .field-Post-id'));
+
+        // Sort one-to-many
+        $I->click('section.list-content th.field-Post-comments a');
+        $I->assertEquals(['null', 'null', 'null', 'null', 'null', 'null', 'null', 'null', 'null', '3', '3'], $I->grabMultiple(self::ENTITY_ROW_SELECTOR . ' .field-Post-comments'));
+
+        $I->click('section.list-content th.field-Post-comments a');
+        $I->assertEquals(['3', '3', 'null', 'null', 'null', 'null', 'null', 'null', 'null', 'null', 'null'], $I->grabMultiple(self::ENTITY_ROW_SELECTOR . ' .field-Post-comments'));
+
+        // Sort many-to-one
+        $I->amOnPage('?entity=Comment&action=list');
+        $I->seeResponseCodeIs(200);
+        $I->click('section.list-content th.field-Comment-post_id a');
+        $I->assertEquals([
+            '#1 Post 1',
+            '#1 Post 1',
+            '#1 Post 1',
+            '#10 Post 10',
+            '#10 Post 10',
+            '#10 Post 10',
+            '#2 Post 2',
+            '#2 Post 2',
+            '#2 Post 2',
+            '#3 Post 3',
+            '#3 Post 3',
+            '#3 Post 3',
+            '#4 Post 4',
+            '#4 Post 4',
+            '#4 Post 4',
+            '#5 Post 5',
+            '#5 Post 5',
+            '#5 Post 5',
+            '#6 Post 6',
+            '#6 Post 6',
+            '#6 Post 6',
+            '#7 Post 7',
+            '#7 Post 7',
+            '#7 Post 7',
+            '#8 Post 8',
+            '#8 Post 8',
+            '#8 Post 8',
+            '#9 Post 9',
+            '#9 Post 9',
+            '#9 Post 9',
+
+        ], $I->grabMultiple(self::ENTITY_ROW_SELECTOR . ' .field-Comment-post_id'));
     }
 }

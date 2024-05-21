@@ -5,6 +5,7 @@
     --color-text: #000;
     --color-error: #b7302c;
     --color-success: #3eb059;
+    --color-highlight: #eee;
     --color-warning: #ffb817;
     --color-secondary-text: #666;
     --color-muted: #999;
@@ -56,6 +57,13 @@ body, button, input, select, textarea {
 }
 .admin-content th {
     border-color: var(--table-header-border);
+}
+.admin-content th a.sort-link {
+    color: var(--color-text);
+}
+.admin-content th.current-sort,
+.admin-content td.current-sort {
+    background: var(--color-highlight);
 }
 .admin-content .list-content .table-wrapper {
     overflow-x: auto;

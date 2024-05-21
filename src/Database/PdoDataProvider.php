@@ -26,13 +26,25 @@ readonly class PdoDataProvider
      * @param array<string,string>  $labels     List of SQL expressions to be displayed instead of the field values.
      * @param array<string, Filter> $filters    List of Filters configured for this entity
      * @param array<string,mixed>   $filterData Content of the filter form
-     * @param int|null              $limit
+     * @param ?string               $sortField
+     * @param string                $sortDirection
+     * @param ?int                  $limit
      * @param int                   $offset
      *
      * @return array
+     * @throws \PDOException
      */
-    public function getEntityList(string $tableName, array $dataTypes, array $labels, array $filters, array $filterData, ?int $limit, int $offset): array
-    {
+    public function getEntityList(
+        string  $tableName,
+        array   $dataTypes,
+        array   $labels,
+        array   $filters,
+        array   $filterData,
+        ?string $sortField,
+        string  $sortDirection,
+        ?int    $limit,
+        int     $offset
+    ): array {
         $sql = "SELECT " . $this->getAliasesForSelect($dataTypes, $labels) . " FROM $tableName AS entity";
 
         $params = [];
@@ -72,6 +84,10 @@ readonly class PdoDataProvider
 
         if (\count($criteria) > 0) {
             $sql .= ' WHERE (' . implode(') AND (', $criteria) . ')';
+        }
+
+        if ($sortField !== null) {
+            $sql .= " ORDER BY $sortField $sortDirection";
         }
 
         if ($limit !== null) {

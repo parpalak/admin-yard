@@ -39,13 +39,18 @@ readonly class EntityController
     ) {
     }
 
+    /**
+     * @throws \PDOException
+     */
     final public function listAction(Request $request): string
     {
         $filterForm = $this->getListFilterForm($request);
         $filterData = $filterForm->getData();
 
+        [$sortField, $sortDirection] = $this->getListSorting($request);
+
         $filters = $this->entityConfig->getFilters();
-        $data    = $this->getEntityList($filters, $filterData);
+        $data    = $this->getEntityList($filters, $filterData, $sortField, $sortDirection);
 
         $renderedRows = array_map(function (array $row) {
             return $this->renderCellsForNormalizedRow($row, FieldConfig::ACTION_LIST);
@@ -54,16 +59,23 @@ readonly class EntityController
         return $this->templateRenderer->render(
             $this->entityConfig->getListTemplate(),
             [
-                'title'          => $this->entityConfig->getName(),
-                'entityName'     => $this->entityConfig->getName(),
+                'title'      => $this->entityConfig->getName(),
+                'entityName' => $this->entityConfig->getName(),
+
                 'filterControls' => $filterForm->getControls(),
                 'filterLabels'   => array_map(static fn(Filter $filter) => $filter->label, $filters),
-                'header'         => $this->entityConfig->getLabels(FieldConfig::ACTION_LIST),
-                'rows'           => $renderedRows,
-                'rowActions'     => array_map(static fn(string $action) => [
+                'filterData'     => array_map(static fn($value) => $value ?? '', $filterData),
+
+                'sortableFields' => $this->entityConfig->getSortableFieldNames(),
+                'sortField'      => $sortField,
+                'sortDirection'  => $sortDirection,
+
+                'header'        => $this->entityConfig->getLabels(FieldConfig::ACTION_LIST),
+                'rows'          => $renderedRows,
+                'rowActions'    => array_map(static fn(string $action) => [
                     'name' => $action,
                 ], array_diff($this->entityConfig->getEnabledActions(), [FieldConfig::ACTION_LIST, FieldConfig::ACTION_NEW])),
-                'entityActions'  => array_map(static fn(string $action) => [
+                'entityActions' => array_map(static fn(string $action) => [
                     'name' => $action,
                 ], array_intersect($this->entityConfig->getEnabledActions(), [FieldConfig::ACTION_NEW])),
             ]
@@ -258,15 +270,25 @@ readonly class EntityController
 
     /**
      * @param array<string, Filter> $filters
+     *
+     * @throws \PDOException
      */
-    protected function getEntityList(array $filters, array $filterData): array
+    protected function getEntityList(array $filters, array $filterData, ?string $sortField, ?string $sortDirection): array
     {
+        $sortField = $this->entityConfig->modifySortableField($sortField);
+
+        if ($sortDirection !== 'desc') {
+            $sortDirection = 'asc';
+        }
+
         return $this->dataProvider->getEntityList(
             $this->entityConfig->getTableName(),
             $this->entityConfig->getFieldDataTypes(FieldConfig::ACTION_LIST, true),
             DatabaseHelper::getSqlExpressionsForAssociations($this->entityConfig),
             $filters,
             $filterData,
+            $sortField,
+            $sortDirection,
             $this->entityConfig->getLimit(),
             0// $request->query->getInt('offset', 0)
         );
@@ -390,5 +412,24 @@ readonly class EntityController
         }
 
         return $filterForm;
+    }
+
+    private function getListSorting(Request $request): array
+    {
+        $entityName = $this->entityConfig->getName();
+        $session    = $request->getSession();
+
+        $sortField     = $request->get('sort_field');
+        $sortDirection = $request->get('sort_direction');
+
+        if ($sortField !== null && $sortDirection !== null) {
+            $session->set('sort_field_' . $entityName, $sortField);
+            $session->set('sort_direction_' . $entityName, $sortDirection);
+        } else {
+            $sortField     = $session->get('sort_field_' . $entityName);
+            $sortDirection = $session->get('sort_direction_' . $entityName);
+        }
+
+        return [$sortField, $sortDirection];
     }
 }

@@ -248,4 +248,27 @@ class EntityConfig
     {
         return \in_array($action, $this->enabledActions, true);
     }
+
+    public function modifySortableField(?string $sortField): ?string
+    {
+        if ($sortField === null) {
+            return null;
+        }
+
+        foreach ($this->fields as $field) {
+            if ($field->getName() === $sortField) {
+                return $field->getForeignEntity() === null ? $sortField : 'label_' . $sortField;
+            }
+        }
+
+        return null;
+    }
+
+    public function getSortableFieldNames(): array
+    {
+        return array_keys(array_filter(
+            $this->fields,
+            static fn(FieldConfig $fieldConfig) => $fieldConfig->isSortable()
+        ));
+    }
 }

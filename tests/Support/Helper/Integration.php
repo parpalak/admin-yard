@@ -163,7 +163,11 @@ class Integration extends Module
 
     public function click(string $selector): void
     {
-        $this->doRequest(Request::create($this->crawler->selectLink($selector)->link()->getUri()));
+        $crawler = $this->crawler->selectLink($selector);
+        if ($crawler->count() === 0) {
+            $crawler = $this->crawler->filter($selector);
+        }
+        $this->doRequest(Request::create($crawler->link()->getUri()));
     }
 
     public function submitForm(string $selector, array $data): void

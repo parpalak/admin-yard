@@ -5,8 +5,16 @@ declare(strict_types=1);
 /** @var callable $trans */
 /** @var string $title */
 /** @var string $entityName */
-/** @var array $header */
+
 /** @var array<string, \S2\AdminYard\Form\FormControlInterface> $filterControls */
+/** @var array<string, string> $filterLabels */
+/** @var array $filterData output from filter form */
+
+/** @var array $sortableFields list of sortable field names */
+/** @var string $sortField */
+/** @var string $sortDirection */
+
+/** @var array $header */
 /** @var array $rows */
 /** @var array $rowActions */
 /** @var array $entityActions */
@@ -45,7 +53,8 @@ declare(strict_types=1);
                 </tbody>
             </table>
             <p>
-                <button class="secondary filter-button" type="submit" name="apply_filter" value="1"><?= $trans('Filter') ?></button>
+                <button class="secondary filter-button" type="submit" name="apply_filter"
+                        value="1"><?= $trans('Filter') ?></button>
             </p>
         </form>
     </section>
@@ -55,8 +64,16 @@ declare(strict_types=1);
         <table>
             <thead>
             <tr>
-                <?php foreach ($header as $cell): ?>
-                    <th><?= htmlspecialchars($cell, ENT_QUOTES, 'UTF-8') ?></th>
+                <?php foreach ($header as $fieldName => $cell): ?>
+                    <?php if (in_array($fieldName, $sortableFields, true)): ?>
+                        <th class="field-<?= $entityName ?>-<?= $fieldName ?> <?= $fieldName === $sortField ? 'current-sort' : '' ?>">
+                            <a class="sort-link" href="?<?= http_build_query(['entity' => $entityName, 'action' => 'list', ...$filterData, 'sort_field' => $fieldName, 'sort_direction' => $sortDirection === 'asc' && $fieldName === $sortField ? 'desc' : 'asc']) ?>">
+                                <?= htmlspecialchars($cell, ENT_QUOTES, 'UTF-8') ?><?= $fieldName === $sortField ? ($sortDirection === 'asc' ? ' ▴' : ' ▾') : '' ?>
+                            </a>
+                        </th>
+                    <?php else: ?>
+                        <th class="field-<?= $entityName ?>-<?= $fieldName ?>"><?= htmlspecialchars($cell, ENT_QUOTES, 'UTF-8') ?></th>
+                    <?php endif; ?>
                 <?php endforeach; ?>
                 <?php if (!empty($rowActions)): ?>
                     <th><?= $trans('Actions') ?></th>
@@ -68,7 +85,7 @@ declare(strict_types=1);
             <?php foreach ($rows as $row): ?>
                 <tr>
                     <?php foreach ($row['cells'] as $fieldName => $cell): ?>
-                        <td class="type-<?= $cell['type'] ?> field-<?= $entityName ?>-<?= $fieldName ?>">
+                        <td class="type-<?= $cell['type'] ?> field-<?= $entityName ?>-<?= $fieldName ?> <?= $fieldName === $sortField ? 'current-sort' : '' ?>">
                             <?= $cell['content'] ?>
                         </td>
                     <?php endforeach; ?>

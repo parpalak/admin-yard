@@ -25,6 +25,7 @@ $commentConfig = (new EntityConfig('Comment', 'comments'))
     ->addField(
         (new FieldConfig('post_id'))
             ->setDataType('int')
+            ->markAsSortable()
             ->setControl('select')
             ->addValidator(new NotBlank())
             ->manyToOne($postEntity, 'CONCAT("#", id, " ", title)')
@@ -50,6 +51,7 @@ $commentConfig = (new EntityConfig('Comment', 'comments'))
         (new FieldConfig('created_at'))
             ->setDataType('timestamp')
             ->setControl('datetime')
+            ->markAsSortable()
     )
     ->addField(
         (new FieldConfig('status_code'))
@@ -137,6 +139,7 @@ $adminConfig
             ->addField(
                 (new FieldConfig('comments'))
                     ->oneToMany($commentConfig, 'CASE WHEN COUNT(*) > 0 THEN COUNT(*) ELSE NULL END', 'post_id')
+                    ->markAsSortable()
             )
             ->markAsDefault()
             ->addFilter(
