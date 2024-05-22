@@ -9,8 +9,6 @@ declare(strict_types=1);
 
 namespace S2\AdminYard\Database;
 
-use Symfony\Component\HttpFoundation\Request;
-
 readonly class PrimaryKey
 {
     public function __construct(protected array $columns)
@@ -18,12 +16,6 @@ readonly class PrimaryKey
         if (\count($this->columns) < 1) {
             throw new \InvalidArgumentException('Primary key must contain at least one column.');
         }
-    }
-
-    public static function fromRequestQueryParams(Request $request, array $columnNames): static
-    {
-        $values = array_map(static fn(string $field) => $request->query->get($field), $columnNames);
-        return new static(array_combine($columnNames, $values));
     }
 
     /**
@@ -58,6 +50,10 @@ readonly class PrimaryKey
 
     public function toString(): string
     {
-        return http_build_query($this->columns);
+        $result = [];
+        foreach ($this->columns as $key => $value) {
+            $result[] = $key . '=' . var_export($value, true);
+        }
+        return implode('&', $result);
     }
 }

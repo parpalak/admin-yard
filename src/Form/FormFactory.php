@@ -11,7 +11,6 @@ namespace S2\AdminYard\Form;
 
 use Random\RandomException;
 use S2\AdminYard\Config\EntityConfig;
-use S2\AdminYard\Config\FieldConfig;
 use S2\AdminYard\Database\PdoDataProvider;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -37,12 +36,8 @@ readonly class FormFactory
         $form->setCsrfToken($csrfToken);
 
         foreach ($entityConfig->getFields($action) as $field) {
-            if ($field->getDataType() === FieldConfig::DATA_TYPE_VIRTUAL) {
-                continue;
-            }
-
-            $columnName  = $field->getName();
-            $controlName = $field->getControl();
+            $columnName  = $field->name;
+            $controlName = $field->control;
             if ($controlName === null) {
                 throw new \DomainException(sprintf(
                     'Field "%s" for entity "%s" must have a control configured.',
@@ -53,8 +48,8 @@ readonly class FormFactory
             $control = $this->formControlFactory->create($controlName, $columnName);
 
             // Dealing with options
-            $foreignEntity = $field->getForeignEntity();
-            if ($foreignEntity !== null) {
+            if ($field->linkToEntity !== null) {
+                $foreignEntity = $field->linkToEntity->foreignEntity;
                 if (!$control instanceof OptionsInterface) {
                     throw new \DomainException(sprintf(
                         'Field "%s" for entity "%s" must have a control configured as OptionsInterface.',
@@ -66,10 +61,10 @@ readonly class FormFactory
                 $control->setOptions($this->dataProvider->getLabelsFromTable(
                     $foreignEntity->getTableName(),
                     $foreignEntity->getFieldNamesOfPrimaryKey(),
-                    $field->getTitleSqlExpression()
+                    $field->linkToEntity->titleSqlExpression
                 ));
             } elseif ($control instanceof OptionsInterface) {
-                $options = $field->getOptions();
+                $options = $field->options;
                 if ($options === null) {
                     throw new \DomainException(sprintf(
                         'Field "%s" for entity "%s" must have options configured since its control is "%s".',
@@ -81,7 +76,7 @@ readonly class FormFactory
                 $control->setOptions($options);
             }
 
-            $control->setValidators(...$field->getValidators());
+            $control->setValidators(...$field->validators);
 
             $form->addControl($control, $columnName);
         }
@@ -94,31 +89,31 @@ readonly class FormFactory
         $form = new Form($this->translator);
 
         // 1. Add external references to the filter form
+        // TODO move to config
         foreach ($entityConfig->getManyToOneFields() as $field) {
-            $foreignEntity = $field->getForeignEntity();
-            if ($foreignEntity === null) {
+            if ($field->linkToEntity === null) {
                 // @codeCoverageIgnoreStart
                 throw new \LogicException(sprintf(
                     'Field "%s" for entity "%s" must have a foreign entity since it is a many-to-one association.',
-                    $field->getName(),
+                    $field->name,
                     $entityConfig->getName()
                 ));
                 // @codeCoverageIgnoreEnd
             }
             /** @var Select $select */
-            $select = $this->formControlFactory->create('select', $field->getName());
+            $select = $this->formControlFactory->create('select', $field->name);
 
             // TODO: Implement some kind of ajax autocomplete for large tables.
             $options = $this->dataProvider->getLabelsFromTable(
-                $foreignEntity->getTableName(),
-                $foreignEntity->getFieldNamesOfPrimaryKey(),
-                $field->getTitleSqlExpression()
+                $field->linkToEntity->foreignEntity->getTableName(),
+                $field->linkToEntity->foreignEntity->getFieldNamesOfPrimaryKey(),
+                $field->linkToEntity->titleSqlExpression
             );
 
             $options[''] = '–';
 
             $select->setOptions($options);
-            $form->addControl($select, $field->getName());
+            $form->addControl($select, $field->name);
         }
 
         // 2. Add filters from configuration.

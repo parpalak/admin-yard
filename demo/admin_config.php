@@ -6,6 +6,8 @@ use S2\AdminYard\Config\AdminConfig;
 use S2\AdminYard\Config\EntityConfig;
 use S2\AdminYard\Config\FieldConfig;
 use S2\AdminYard\Config\Filter;
+use S2\AdminYard\Config\LinkedBy;
+use S2\AdminYard\Config\LinkTo;
 use S2\AdminYard\Validator\Length;
 use S2\AdminYard\Validator\NotBlank;
 
@@ -16,52 +18,49 @@ $adminConfig = new AdminConfig();
 $postEntity = new EntityConfig('Post', 'posts');
 
 $commentConfig = (new EntityConfig('Comment', 'comments'))
-    ->addField(
-        (new FieldConfig('id'))
-            ->setDataType('int')
-            ->markAsPrimaryKey()
-            ->setUseOnActions([])
-    )
-    ->addField(
-        (new FieldConfig('post_id'))
-            ->setDataType('int')
-            ->markAsSortable()
-            ->setControl('select')
-            ->addValidator(new NotBlank())
-            ->manyToOne($postEntity, 'CONCAT("#", id, " ", title)')
-            ->setUseOnActions([FieldConfig::ACTION_LIST, FieldConfig::ACTION_SHOW, FieldConfig::ACTION_NEW])
-    )
-    ->addField(
-        (new FieldConfig('name'))
-            ->setControl('input')
-            ->addValidator(new NotBlank())
-            ->addValidator(new Length(max: 50))
-    )
-    ->addField(
-        (new FieldConfig('email'))
-            ->setControl('input')
-            ->addValidator(new Length(max: 80))
-    )
-    ->addField(
-        (new FieldConfig('comment_text'))
-            ->setDataType('string')
-            ->setControl('textarea')
-    )
-    ->addField(
-        (new FieldConfig('created_at'))
-            ->setDataType('timestamp')
-            ->setControl('datetime')
-            ->markAsSortable()
-    )
-    ->addField(
-        (new FieldConfig('status_code'))
-            ->setLabel('Status')
-            ->setDataType('string')
-            ->setControl('radio')
-            ->setOptions(['new' => 'Pending', 'approved' => 'Approved', 'rejected' => 'Rejected'])
-            ->setDefaultValue('new')
-            ->setUseOnActions([FieldConfig::ACTION_LIST, FieldConfig::ACTION_SHOW, FieldConfig::ACTION_EDIT])
-    )
+    ->addField(new FieldConfig(
+        name: 'id',
+        dataType: FieldConfig::DATA_TYPE_INT,
+        primaryKey: true,
+        useOnActions: []
+    ))
+    ->addField((new FieldConfig(
+        name: 'post_id',
+        dataType: FieldConfig::DATA_TYPE_INT,
+        control: 'select',
+        validators: [new NotBlank()],
+        sortable: true,
+        linkToEntity: new LinkTo($postEntity, 'CONCAT("#", id, " ", title)'),
+        useOnActions: [FieldConfig::ACTION_LIST, FieldConfig::ACTION_SHOW, FieldConfig::ACTION_NEW])
+    ))
+    ->addField(new FieldConfig(
+        name: 'name',
+        control: 'input',
+        validators: [new NotBlank(), new Length(max: 50)]
+    ))
+    ->addField(new FieldConfig(
+        name: 'email',
+        control: 'input',
+        validators: [new Length(max: 80)]
+    ))
+    ->addField(new FieldConfig(
+        name: 'comment_text',
+        control: 'textarea',
+    ))
+    ->addField(new FieldConfig(
+        name: 'created_at',
+        dataType: FieldConfig::DATA_TYPE_TIMESTAMP,
+        control: 'datetime',
+        sortable: true
+    ))
+    ->addField(new FieldConfig(
+        name: 'status_code',
+        dataType: FieldConfig::DATA_TYPE_STRING,
+        control: 'radio',
+        options: ['new' => 'Pending', 'approved' => 'Approved', 'rejected' => 'Rejected'],
+        defaultValue: 'new',
+        useOnActions: [FieldConfig::ACTION_LIST, FieldConfig::ACTION_SHOW, FieldConfig::ACTION_EDIT]
+    ))
     ->addFilter(new Filter(
         'search',
         'Fulltext Search',
@@ -93,56 +92,49 @@ $commentConfig = (new EntityConfig('Comment', 'comments'))
 $adminConfig
     ->addEntity(
         $postEntity
-            ->addField(
-                (new FieldConfig('id'))
-                    ->setLabel('ID')
-                    ->setDataType(FieldConfig::DATA_TYPE_INT)
-                    ->markAsPrimaryKey()
-                    ->markAsSortable()
-                    ->markAsFilterable(true)
-                    ->setUseOnActions([FieldConfig::ACTION_LIST, FieldConfig::ACTION_SHOW])
-            )
-            ->addField(
-                (new FieldConfig('title'))
-                    ->setControl('input')
-                    ->setLinkToAction('edit')
-                    ->markAsSortable()
-                    ->markAsFilterable(true)
-                    ->addValidator(new Length(max: 80))
-            )
-            ->addField(
-                (new FieldConfig('text'))
-                    ->setControl('textarea')
-                    ->setUseOnActions([FieldConfig::ACTION_SHOW, FieldConfig::ACTION_EDIT, FieldConfig::ACTION_NEW])
-            )
-            ->addField(
-                (new FieldConfig('is_active'))
-                    ->setLabel('Published')
-                    ->setDataType(FieldConfig::DATA_TYPE_BOOL)
-                    ->setControl('checkbox')
-                    ->markAsFilterable(true)
-            )
-            ->addField(
-                (new FieldConfig('created_at'))
-                    ->setLabel('Created at')
-                    ->setDataType(FieldConfig::DATA_TYPE_TIMESTAMP)
-                    ->setControl('datetime')
-                    ->markAsFilterable(true)
-                    ->markAsSortable()
-            )
-            ->addField(
-                (new FieldConfig('updated_at'))
-                    ->setLabel('Modified at')
-                    ->setDataType(FieldConfig::DATA_TYPE_UNIXTIME)
-                    ->setControl('datetime')
-                    ->markAsFilterable(true)
-                    ->markAsSortable()
-            )
-            ->addField(
-                (new FieldConfig('comments'))
-                    ->oneToMany($commentConfig, 'CASE WHEN COUNT(*) > 0 THEN COUNT(*) ELSE NULL END', 'post_id')
-                    ->markAsSortable()
-            )
+            ->addField(new FieldConfig(
+                name: 'id',
+                label: 'ID',
+                dataType: FieldConfig::DATA_TYPE_INT,
+                primaryKey: true,
+                sortable: true,
+                useOnActions: [FieldConfig::ACTION_LIST, FieldConfig::ACTION_SHOW]
+            ))
+            ->addField(new FieldConfig(
+                name: 'title',
+                control: 'input',
+                validators: [new Length(max: 80)],
+                sortable: true,
+                linkToAction: 'edit'
+            ))
+            ->addField(new FieldConfig(
+                name: 'text',
+                control: 'textarea',
+                useOnActions: [FieldConfig::ACTION_SHOW, FieldConfig::ACTION_EDIT, FieldConfig::ACTION_NEW]
+            ))
+            ->addField(new FieldConfig(
+                name: 'is_active',
+                label: 'Published',
+                dataType: FieldConfig::DATA_TYPE_BOOL,
+                control: 'checkbox',
+            ))
+            ->addField(new FieldConfig(
+                name: 'created_at',
+                dataType: FieldConfig::DATA_TYPE_TIMESTAMP,
+                control: 'datetime',
+                sortable: true
+            ))
+            ->addField(new FieldConfig(
+                name: 'updated_at',
+                dataType: FieldConfig::DATA_TYPE_UNIXTIME,
+                control: 'datetime',
+                sortable: true
+            ))
+            ->addField(new FieldConfig(
+                name: 'comments',
+                sortable: true,
+                linkedBy: new LinkedBy($commentConfig, 'CASE WHEN COUNT(*) > 0 THEN COUNT(*) ELSE NULL END', 'post_id')
+            ))
             ->markAsDefault()
             ->addFilter(
                 new Filter(
@@ -186,64 +178,69 @@ $adminConfig
     )
     ->addEntity(
         (new EntityConfig('Tag', 'tags'))
-            ->addField(
-                (new FieldConfig('id'))
-                    ->setDataType('int')
-                    ->markAsPrimaryKey()
-                    ->setUseOnActions([])
-            )
-            ->addField(
-                (new FieldConfig('name'))
-                    ->setDataType('string')
-                    ->setControl('input')
-                    ->markAsSortable()
-                    ->markAsFilterable(true)
-                    ->addValidator(new Length(1, 80))
-                    ->addValidator(new NotBlank())
-            )
-            ->addField(
-                (new FieldConfig('description'))
-                    ->setDataType('string')
-                    ->setControl('textarea')
-                    ->setUseOnActions([FieldConfig::ACTION_SHOW, FieldConfig::ACTION_EDIT, FieldConfig::ACTION_NEW])
-            )
+            ->addField(new FieldConfig(
+                name: 'id',
+                dataType: FieldConfig::DATA_TYPE_INT,
+                primaryKey: true,
+                useOnActions: []
+            ))
+            ->addField(new FieldConfig(
+                name: 'name',
+                control: 'input',
+                validators: [new NotBlank(), new Length(min: 1, max: 80)],
+                sortable: true
+            ))
+            ->addField(new FieldConfig(
+                name: 'description',
+                control: 'textarea',
+                useOnActions: [FieldConfig::ACTION_SHOW, FieldConfig::ACTION_EDIT, FieldConfig::ACTION_NEW]
+            ))
     )
     ->addEntity(
         (new EntityConfig('CompositeKey', 'composite_key_table'))
-            ->addField(
-                (new FieldConfig('column1'))
-                    ->setDataType('int')
-                    ->setControl('int_input')
-                    ->markAsPrimaryKey()
-                    ->setLinkToAction('edit')
-            )
-            ->addField(
-                (new FieldConfig('column2'))
-                    ->setDataType('string')
-                    ->setControl('input')
-                    ->markAsPrimaryKey()
-            )
-            ->addField(
-                (new FieldConfig('column3'))
-                    ->setDataType('date')
-                    ->setControl('date')
-                    ->markAsPrimaryKey()
-            )
+            ->addField(new FieldConfig(
+                name: 'column1',
+                dataType: FieldConfig::DATA_TYPE_INT,
+                primaryKey: true,
+                control: 'int_input',
+                linkToAction: 'edit'
+            ))
+            ->addField(new FieldConfig(
+                name: 'column2',
+                primaryKey: true,
+                control: 'input',
+            ))
+            ->addField(new FieldConfig(
+                name: 'column3',
+                dataType: FieldConfig::DATA_TYPE_DATE,
+                primaryKey: true,
+                control: 'date',
+            ))
     )
     ->addEntity(
         (new EntityConfig('Config', 'config'))
-            ->addField(
-                (new FieldConfig('name'))
-                    ->setDataType('string')
-                    ->setControl('input')
-                    ->markAsPrimaryKey()
-            )
-            ->addField(
-                (new FieldConfig('value'))
-                    ->setDataType('string')
-                    ->setControl('input')
-            )
+            ->addField(new FieldConfig(
+                name: 'name',
+                primaryKey: true,
+                control: 'input'  // TODO exception, only link is available
+            ))
+            ->addField(new FieldConfig(
+                name: 'value',
+                control: 'input',
+            ))
             ->setEnabledActions([FieldConfig::ACTION_LIST])
+    )
+    ->addEntity(
+        (new EntityConfig('Sequence', 'sequence'))
+            ->addField(new FieldConfig(
+                name: 'id',
+                dataType: FieldConfig::DATA_TYPE_INT,
+                primaryKey: true,
+                useOnActions: []
+            ))
+    )
+    ->addEntity(
+        (new EntityConfig('Empty', 'sequence'))
     )
 ;
 

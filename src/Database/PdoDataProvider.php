@@ -226,6 +226,12 @@ readonly class PdoDataProvider
             $aliases[] = "$sqlExpression AS label_$columnName";
         }
 
+        if (\count($aliases) === 0) {
+            return '0 as _dummy';
+            // TODO figure out how to process entities without fields. Allow or not?
+            // throw new \LogicException('No fields are configured to be selected.');
+        }
+
         return implode(', ', $aliases);
     }
 

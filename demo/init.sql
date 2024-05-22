@@ -127,5 +127,24 @@ VALUES
     ('max_posts', '10')
 ;
 
+DROP TABLE IF EXISTS sequence;
+CREATE TABLE IF NOT EXISTS sequence
+(
+    id INT AUTO_INCREMENT PRIMARY KEY
+);
+
+INSERT INTO sequence (id)
+VALUES (1),
+       (2),
+       (3),
+       (4),
+       (5),
+       (6),
+       (7),
+       (8),
+       (9),
+       (10)
+;
+
 
 DROP TEMPORARY TABLE IF EXISTS numbers;

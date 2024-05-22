@@ -11,8 +11,9 @@ namespace S2\AdminYard;
 
 use S2\AdminYard\Config\AdminConfig;
 use S2\AdminYard\Config\FieldConfig;
-use S2\AdminYard\Controller\InvalidRequestException;
 use S2\AdminYard\Controller\EntityController;
+use S2\AdminYard\Controller\InvalidConfigException;
+use S2\AdminYard\Controller\InvalidRequestException;
 use S2\AdminYard\Controller\NotFoundException;
 use S2\AdminYard\Database\PdoDataProvider;
 use S2\AdminYard\Form\FormFactory;
@@ -86,8 +87,15 @@ readonly class AdminPanel
 
         try {
             $content = $controller->{$methodName}($request);
+        } catch (SessionNotFoundException $e) {
+            return $this->errorResponse($request, sprintf(
+                'No session has been provided. One must set session via Request::setSession() before calling %s().',
+                __METHOD__
+            ), Response::HTTP_INTERNAL_SERVER_ERROR);
         } catch (NotFoundException $e) {
             return $this->errorResponse($request, $e->getMessage(), Response::HTTP_NOT_FOUND);
+        } catch (InvalidConfigException $e) {
+            return $this->errorResponse($request, 'Configuration contains some errors to be fixed: ' . $e->getMessage(), Response::HTTP_INTERNAL_SERVER_ERROR);
         } catch (InvalidRequestException $e) {
             return $this->errorResponse($request, $e->getMessage(), $e->getCode() ?: Response::HTTP_BAD_REQUEST);
         }

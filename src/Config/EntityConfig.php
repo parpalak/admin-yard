@@ -9,9 +9,6 @@ declare(strict_types=1);
 
 namespace S2\AdminYard\Config;
 
-use InvalidArgumentException;
-use LogicException;
-
 class EntityConfig
 {
     private const ALLOWED_ACTIONS = [
@@ -63,31 +60,29 @@ class EntityConfig
 
     public function addField(FieldConfig $fieldConfig): self
     {
-        if (isset($this->fields[$fieldConfig->getName()])) {
-            throw new LogicException(sprintf('Field "%s" has already been defined.', $fieldConfig->getName()));
+        if (isset($this->fields[$fieldConfig->name])) {
+            throw new \LogicException(sprintf('Field "%s" has already been defined.', $fieldConfig->name));
         }
-        $this->fields[$fieldConfig->getName()] = $fieldConfig;
+        $this->fields[$fieldConfig->name] = $fieldConfig;
         return $this;
     }
 
     /**
-     * @return array<FieldConfig>
+     * @return array<string,FieldConfig>
      */
-    public function getFields(?string $action = null): array
+    public function getFields(string $action): array
     {
-        if ($action !== null) {
-            return array_filter($this->fields, static function (FieldConfig $field) use ($action) {
-                return $field->getUseOnActions() === null || \in_array($action, $field->getUseOnActions(), true);
-            });
-        }
-
-        return $this->fields;
+        return array_filter($this->fields, static function (FieldConfig $field) use ($action) {
+            $allowedInConfig = $field->useOnActions === null || \in_array($action, $field->useOnActions, true);
+            $virtualOnForms  = $field->isVirtual() && \in_array($action, [FieldConfig::ACTION_NEW, FieldConfig::ACTION_EDIT], true);
+            return $allowedInConfig && !$virtualOnForms;
+        });
     }
 
     public function setEnabledActions(array $enabledActions): static
     {
         if (\count(array_diff($enabledActions, self::ALLOWED_ACTIONS)) > 0) {
-            throw new InvalidArgumentException(sprintf(
+            throw new \InvalidArgumentException(sprintf(
                 'Unknown action encountered: "%s". Actions must be set of %s.',
                 implode(', ', $enabledActions),
                 implode(', ', self::ALLOWED_ACTIONS)
@@ -113,16 +108,16 @@ class EntityConfig
         $dataTypes = [];
 
         foreach ($this->fields as $fieldName => $field) {
-            if ($field->getDataType() === FieldConfig::DATA_TYPE_VIRTUAL) {
+            if ($field->isVirtual()) {
                 continue;
             }
 
-            if ($includePrimaryKey && $field->isPrimaryKey()) {
-                $dataTypes[$fieldName] = $field->getDataType();
-            } elseif ($includeDefault && $field->getDefaultValue() !== null) {
-                $dataTypes[$fieldName] = $field->getDataType();
-            } elseif ($field->getUseOnActions() === null || \in_array($action, $field->getUseOnActions(), true)) {
-                $dataTypes[$fieldName] = $field->getDataType();
+            if ($includePrimaryKey && $field->primaryKey) {
+                $dataTypes[$fieldName] = $field->dataType;
+            } elseif ($includeDefault && $field->defaultValue !== null) {
+                $dataTypes[$fieldName] = $field->dataType;
+            } elseif ($field->useOnActions === null || \in_array($action, $field->useOnActions, true)) {
+                $dataTypes[$fieldName] = $field->dataType;
             }
         }
 
@@ -135,9 +130,9 @@ class EntityConfig
     public function getFieldNamesOfPrimaryKey(): array
     {
         $result = [];
-        foreach ($this->getFields() as $field) {
-            if ($field->isPrimaryKey()) {
-                $result[] = $field->getName();
+        foreach ($this->fields as $field) {
+            if ($field->primaryKey) {
+                $result[] = $field->name;
             }
         }
 
@@ -205,7 +200,7 @@ class EntityConfig
     public function getOneToManyFields(): array
     {
         return array_filter($this->fields, static function (FieldConfig $field) {
-            return $field->getForeignEntity() !== null && $field->getInverseFieldName() !== null;
+            return $field->linkedBy !== null;
         });
     }
 
@@ -215,13 +210,13 @@ class EntityConfig
     public function getManyToOneFields(): array
     {
         return array_filter($this->fields, static function (FieldConfig $field) {
-            return $field->getForeignEntity() !== null && $field->getInverseFieldName() === null;
+            return $field->linkToEntity !== null;
         });
     }
 
     public function getFieldDefaultValues(): array
     {
-        $defaultValues = array_map(static fn(FieldConfig $field) => $field->getDefaultValue(), $this->fields);
+        $defaultValues = array_map(static fn(FieldConfig $field) => $field->defaultValue, $this->fields);
         $defaultValues = array_filter($defaultValues, static fn($value) => $value !== null);
 
         return $defaultValues;
@@ -230,7 +225,7 @@ class EntityConfig
     public function addFilter(Filter $filter): static
     {
         if (isset($this->filters[$filter->name])) {
-            throw new InvalidArgumentException(sprintf('Filter "%s" already exists.', $filter->name));
+            throw new \InvalidArgumentException(sprintf('Filter "%s" already exists.', $filter->name));
         }
         $this->filters[$filter->name] = $filter;
         return $this;
@@ -256,8 +251,8 @@ class EntityConfig
         }
 
         foreach ($this->fields as $field) {
-            if ($field->getName() === $sortField) {
-                return $field->getForeignEntity() === null ? $sortField : 'label_' . $sortField;
+            if ($field->name === $sortField) {
+                return $field->linkedBy === null && $field->linkToEntity === null ? $sortField : 'label_' . $sortField;
             }
         }
 
@@ -268,7 +263,7 @@ class EntityConfig
     {
         return array_keys(array_filter(
             $this->fields,
-            static fn(FieldConfig $fieldConfig) => $fieldConfig->isSortable()
+            static fn(FieldConfig $fieldConfig) => $fieldConfig->sortable
         ));
     }
 }

@@ -94,7 +94,7 @@ class PermissionsCest
         $I->amOnPage('?entity=Post&action=' . $example['action'] . '&id=111111');
         $I->seeResponseCodeIs($example['code']);
         if ($example['code'] === 404) {
-            $I->see('Post with id=111111 not found.');
+            $I->see('Post with id=\'111111\' not found.');
         }
     }
 

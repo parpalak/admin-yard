@@ -30,7 +30,6 @@ class AdminConfig
      */
     public function getEntities(): array
     {
-        // Сортировка сущностей по приоритету
         usort($this->entities, static function ($a, $b) {
             return $a['priority'] <=> $b['priority'];
         });

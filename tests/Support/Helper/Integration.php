@@ -55,9 +55,9 @@ class Integration extends Module
         $this->pdo->rollBack();
     }
 
-    public function createAdminPanel(AdminConfig $adminConfig, \PDO $pdo): AdminPanel
+    public function createAdminPanel(AdminConfig $adminConfig, ?\PDO $pdo = null): AdminPanel
     {
-        return DefaultAdminFactory::createAdminPanel($adminConfig, $pdo);
+        return DefaultAdminFactory::createAdminPanel($adminConfig, $pdo ?? $this->pdo);
     }
 
     public function amOnPage(string $url): void
@@ -144,6 +144,22 @@ class Integration extends Module
     public function seeResponseCodeIs(int $code): void
     {
         $this->assertEquals($code, $this->response->getStatusCode());
+    }
+
+    public function seeFlashMessage(string $check): void
+    {
+        $flashMessages = $this->session->getFlashBag()->peekAll();
+        $condition = false;
+        foreach ($flashMessages as $type => $messages) {
+            foreach ($messages as $message) {
+                if (str_contains($message, $check)) {
+                    $condition = true;
+                    break;
+                }
+            }
+        }
+
+        $this->assertTrue($condition);
     }
 
     public function seeLocationIs(string $location): void

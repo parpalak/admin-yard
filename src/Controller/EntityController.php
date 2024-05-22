@@ -21,7 +21,7 @@ use S2\AdminYard\Form\FormFactory;
 use S2\AdminYard\TemplateRenderer;
 use S2\AdminYard\Transformer\ViewTransformer;
 use S2\AdminYard\Translator;
-use Symfony\Component\HttpFoundation\Exception\SessionNotFoundException;
+use Symfony\Component\HttpFoundation\Exception\BadRequestException;
 use Symfony\Component\HttpFoundation\Exception\SuspiciousOperationException;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -84,18 +84,13 @@ readonly class EntityController
     }
 
     /**
+     * @throws BadRequestException
      * @throws InvalidRequestException
      * @throws NotFoundException
      */
     public function showAction(Request $request): string
     {
-        $fieldNamesOfPrimaryKey = $this->entityConfig->getFieldNamesOfPrimaryKey();
-        foreach ($fieldNamesOfPrimaryKey as $fieldName) {
-            if (!$request->query->has($fieldName)) {
-                throw new InvalidRequestException(sprintf($this->translator->trans('Parameter "%s" must be provided.'), $fieldName));
-            }
-        }
-        $primaryKey = PrimaryKey::fromRequestQueryParams($request, $fieldNamesOfPrimaryKey);
+        $primaryKey = $this->getEntityPrimaryKeyFromRequest($request);
 
         $data = $this->dataProvider->getEntity(
             $this->entityConfig->getTableName(),
@@ -127,12 +122,15 @@ readonly class EntityController
     }
 
     /**
+     * @throws BadRequestException
+     * @throws InvalidRequestException
      * @throws NotFoundException
      * @throws SuspiciousOperationException
      */
     public function editAction(Request $request): string|Response
     {
-        $primaryKey    = PrimaryKey::fromRequestQueryParams($request, $this->entityConfig->getFieldNamesOfPrimaryKey());
+        $primaryKey = $this->getEntityPrimaryKeyFromRequest($request);
+
         $errorMessages = [];
 
         $form = $this->formFactory->createEntityForm($this->entityConfig, FieldConfig::ACTION_EDIT, $request);
@@ -184,7 +182,7 @@ readonly class EntityController
                 'errorMessages' => $errorMessages,
                 'primaryKey'    => $primaryKey->toArray(),
                 'csrfToken'     => $this->getDeleteCsrfToken($primaryKey->toArray(), $request),
-                'header'        => array_map(static fn(FieldConfig $field) => $field->getLabel(), $this->entityConfig->getFields(FieldConfig::ACTION_SHOW)),
+                'header'        => $this->entityConfig->getLabels(FieldConfig::ACTION_SHOW),
                 'form'          => $form,
                 'actions'       => array_map(static fn(string $action) => [
                     'name' => $action,
@@ -254,7 +252,7 @@ readonly class EntityController
                 'title'         => $this->entityConfig->getName(),
                 'entityName'    => $this->entityConfig->getName(),
                 'errorMessages' => $errorMessages,
-                'header'        => array_map(static fn(FieldConfig $field) => $field->getLabel(), $this->entityConfig->getFields(FieldConfig::ACTION_SHOW)),
+                'header'        => $this->entityConfig->getLabels(FieldConfig::ACTION_SHOW),
                 'form'          => $form,
                 'actions'       => array_map(static fn(string $action) => [
                     'name' => $action,
@@ -274,20 +272,30 @@ readonly class EntityController
         if ($request->getMethod() !== Request::METHOD_POST) {
             throw new InvalidRequestException('Delete action must be called via POST request.', Response::HTTP_METHOD_NOT_ALLOWED);
         }
-        $primaryKey = PrimaryKey::fromRequestQueryParams($request, $this->entityConfig->getFieldNamesOfPrimaryKey());
+        $primaryKey = $this->getEntityPrimaryKeyFromRequest($request);
         $csrfToken  = $request->request->get('csrf_token');
         if ($this->getDeleteCsrfToken($primaryKey->toArray(), $request) !== $csrfToken) {
-            $this->addFlashMessage($request, 'error', $this->translator->trans('Unable to confirm security token. A likely cause for this is that some time passed between when you first entered the page and when you submitted the form. If that is the case and you would like to continue, submit the form again.'));
+            $this->addFlashMessage(
+                $request,
+                'error',
+                $this->translator->trans('Unable to confirm security token. A likely cause for this is that some time passed between when you first entered the page and when you submitted the form. If that is the case and you would like to continue, submit the form again.')
+            );
             return new Response('CSRF token mismatch', Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
         $deletedRows = $this->dataProvider->deleteEntity($this->entityConfig->getTableName(), $primaryKey);
         if ($deletedRows === 0) {
-            $this->addFlashMessage($request, 'warning', sprintf($this->translator->trans('%s was not deleted.'), $this->entityConfig->getName()));
+            $this->addFlashMessage($request, 'warning', sprintf(
+                $this->translator->trans('%s was not deleted.'),
+                $this->entityConfig->getName()
+            ));
             return new Response('No entity was deleted', Response::HTTP_NOT_FOUND);
         }
 
-        $this->addFlashMessage($request, 'success', sprintf($this->translator->trans('%s deleted successfully.'), $this->entityConfig->getName()));
+        $this->addFlashMessage($request, 'success', sprintf(
+            $this->translator->trans('%s deleted successfully.'),
+            $this->entityConfig->getName()
+        ));
         return new Response('Entity was deleted', Response::HTTP_OK);
     }
 
@@ -323,6 +331,7 @@ readonly class EntityController
         $idValues     = array_map(static fn(string $columnName) => $row['field_' . $columnName], $idFieldNames);
         $primaryKey   = array_combine($idFieldNames, $idValues);
         $result       = [
+            'cells'       => [],
             'primary_key' => $primaryKey,
             ... $this->entityConfig->isAllowedAction(FieldConfig::ACTION_DELETE) ? [
                 'csrf_token' => $this->getDeleteCsrfToken($primaryKey, $request),
@@ -330,19 +339,19 @@ readonly class EntityController
         ];
 
         foreach ($this->entityConfig->getFields($actionForFieldRestriction) as $field) {
-            $columnName = $field->getName();
-            $dataType   = $field->getDataType();
-            $cellValue  = $dataType === FieldConfig::DATA_TYPE_VIRTUAL
+            $columnName = $field->name;
+            $dataType   = $field->dataType;
+            $cellValue  = $field->isVirtual()
                 ? null
-                : $this->viewTransformer->viewFromNormalized($row['field_' . $columnName], $dataType, $field->getOptions());
+                : $this->viewTransformer->viewFromNormalized($row['field_' . $columnName], $dataType, $field->options);
 
             // Additional attributes to build a link to an associated entity.
             $additionalParams = $this->getLinkCellParamsForAssociations($field, $idValues, $row);
             $cellParams       = [
                 'value'        => $cellValue,
                 'type'         => $dataType,
-                'linkToAction' => $field->getLinkToAction(),
-                ...$field->getLinkToAction() !== null ? [
+                'linkToAction' => $field->linkToAction,
+                ...$field->linkToAction !== null ? [
                     'entity'     => $this->entityConfig->getName(),
                     'primaryKey' => $primaryKey
                 ] : [],
@@ -351,7 +360,7 @@ readonly class EntityController
 
             $result['cells'][$columnName] = [
                 'type'    => $additionalParams === [] ? $dataType : FieldConfig::DATA_TYPE_STRING, // string for int IDs converted to links
-                'content' => $this->templateRenderer->render($field->getViewTemplate(), $cellParams),
+                'content' => $this->templateRenderer->render($field->viewTemplate, $cellParams),
             ];
         }
 
@@ -360,11 +369,10 @@ readonly class EntityController
 
     protected function getLinkCellParamsForAssociations(FieldConfig $currentField, array $idValues, array $row): array
     {
-        $foreignEntity = $currentField->getForeignEntity();
-        $columnName    = $currentField->getName();
-        if ($foreignEntity === null) {
+        if ($currentField->linkedBy === null && $currentField->linkToEntity === null) {
             return [];
         }
+        $columnName = $currentField->name;
         if (!\array_key_exists('label_' . $columnName, $row)) {
             throw new \LogicException(sprintf('Row data array for entity "%s" must have a "label_%s" key.', $this->entityConfig->getName(), $columnName));
         }
@@ -374,7 +382,7 @@ readonly class EntityController
         }
         $labelContent = (string)$row['label_' . $columnName];
 
-        if ($currentField->getInverseFieldName() !== null) {
+        if ($currentField->linkedBy !== null) {
             // One-To-Many, link to "children" entities
             if (\count($idValues) === 0) {
                 throw new \LogicException(sprintf(
@@ -383,35 +391,34 @@ readonly class EntityController
                 ));
             }
             return [
-                'foreign_entity' => $foreignEntity->getName(),
-                'inverse_column' => $currentField->getInverseFieldName(),
+                'foreign_entity' => $currentField->linkedBy->foreignEntity->getName(),
+                'inverse_column' => $currentField->linkedBy->inverseFieldName,
                 'inverse_id'     => $idValues[0],
                 'label'          => $labelContent,
             ];
         }
+        if ($currentField->linkToEntity !== null) {
+            // Many-To-One, link to "parent" entity
+            $foreignEntity          = $currentField->linkToEntity->foreignEntity;
+            $fieldNamesOfPrimaryKey = $foreignEntity->getFieldNamesOfPrimaryKey();
+            if (\count($fieldNamesOfPrimaryKey) === 0) {
+                throw new \LogicException(sprintf('Entity "%s" has no primary key configured and it cannot be used in a many-to-one relationship.', $foreignEntity->getName()));
+            }
 
-        // Many-To-One, link to "parent" entity
-        $fieldNamesOfPrimaryKey = $foreignEntity->getFieldNamesOfPrimaryKey();
-        if (\count($fieldNamesOfPrimaryKey) === 0) {
-            throw new \LogicException(sprintf('Entity "%s" has no primary key configured and it cannot be used in a many-to-one relationship.', $foreignEntity->getName()));
+            return [
+                'foreign_entity'    => $foreignEntity->getName(),
+                // NOTE: think about how to handle primary keys with more than one field.
+                //       For now, we just take the first field. It's ok for usual ID fields.
+                'foreign_id_column' => $fieldNamesOfPrimaryKey[0],
+                'label'             => $labelContent,
+            ];
         }
-
-        return [
-            'foreign_entity'    => $foreignEntity->getName(),
-            // NOTE: think about how to handle primary keys with more than one field.
-            //       For now, we just take the first field. It's ok for usual ID fields.
-            'foreign_id_column' => $fieldNamesOfPrimaryKey[0],
-            'label'             => $labelContent,
-        ];
+        throw new \LogicException('Unreachable code.');
     }
 
     protected function addFlashMessage(Request $request, string $type, string $message): void
     {
-        try {
-            $request->getSession()->getFlashBag()->add($type, $message);
-        } catch (SessionNotFoundException $e) {
-            // Ignore
-        }
+        $request->getSession()->getFlashBag()->add($type, $message);
     }
 
     protected function getListFilterForm(Request $request): Form
@@ -464,5 +471,27 @@ readonly class EntityController
     protected function getDeleteCsrfToken(array $primaryKey, Request $request): string
     {
         return $this->formFactory->generateCsrfToken($this->entityConfig->getName(), FieldConfig::ACTION_DELETE, $primaryKey, $request);
+    }
+
+    /**
+     * @throws InvalidRequestException
+     * @throws BadRequestException
+     */
+    protected function getEntityPrimaryKeyFromRequest(Request $request): PrimaryKey
+    {
+        $fieldNamesOfPrimaryKey = $this->entityConfig->getFieldNamesOfPrimaryKey();
+        if ($fieldNamesOfPrimaryKey === []) {
+            throw new InvalidConfigException(sprintf('Entity "%s" without primary key columns cannot be accessed.', $this->entityConfig->getName()));
+        }
+
+        $values = [];
+        foreach ($fieldNamesOfPrimaryKey as $fieldName) {
+            if (!$request->query->has($fieldName)) {
+                throw new InvalidRequestException(sprintf($this->translator->trans('Parameter "%s" must be provided.'), $fieldName));
+            }
+            $values[$fieldName] = $request->query->get($fieldName);
+        }
+
+        return new PrimaryKey($values);
     }
 }

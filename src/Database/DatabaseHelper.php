@@ -21,19 +21,19 @@ class DatabaseHelper
             array_map(static fn(FieldConfig $field) => sprintf(
             // One-To-Many, aggregated info about "children"
                 '(SELECT %s FROM %s WHERE %s = entity.%s)',
-                $field->getTitleSqlExpression(),
-                $field->getForeignEntity()->getTableName(),
-                $field->getInverseFieldName(),
+                $field->linkedBy->titleSqlExpression,
+                $field->linkedBy->foreignEntity->getTableName(),
+                $field->linkedBy->inverseFieldName,
                 $entityConfig->getFieldNamesOfPrimaryKey()[0]
             ), $entityConfig->getOneToManyFields()),
 
             array_map(static fn(FieldConfig $field) => sprintf(
             // Many-To-One, info about "parent"
                 '(SELECT %s FROM %s WHERE %s = entity.%s)',
-                $field->getTitleSqlExpression(),
-                $field->getForeignEntity()->getTableName(),
-                $field->getForeignEntity()->getFieldNamesOfPrimaryKey()[0],
-                $field->getName()
+                $field->linkToEntity->titleSqlExpression,
+                $field->linkToEntity->foreignEntity->getTableName(),
+                $field->linkToEntity->foreignEntity->getFieldNamesOfPrimaryKey()[0],
+                $field->name
             ), $entityConfig->getManyToOneFields())
         );
     }
