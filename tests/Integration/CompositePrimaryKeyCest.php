@@ -65,9 +65,14 @@ class CompositePrimaryKeyCest
         $I->see('Test title after edit');
         $I->see('234');
 
-        $I->click('delete');
+        $tokenMatch = $I->grabAndMatch('a.show-action-link-delete', '#csrf_token=([0-9a-z]+)#');
+        $urlMatch   = $I->grabAndMatch('a.show-action-link-delete', '#href="([^"]+)"#');
+        $I->sendPost($urlMatch[1], [
+            'csrf_token' => $tokenMatch[1],
+        ]);
 
-        $I->seeResponseCodeIs(Response::HTTP_FOUND);
+        $I->seeResponseCodeIs(Response::HTTP_OK);
+        $I->see('Entity was deleted');
     }
 
     public function uniqueKeyViolationTest(IntegrationTester $I): void
@@ -90,7 +95,13 @@ class CompositePrimaryKeyCest
         $I->see('The entity with same parameters already exists.');
 
         $I->amOnPage('?entity=CompositeKey&action=show&column1=1&column2=Test+title&column3=2020-01-01');
-        $I->click('delete');
-        $I->seeResponseCodeIs(Response::HTTP_FOUND);
+        $tokenMatch = $I->grabAndMatch('a.show-action-link-delete', '#csrf_token=([0-9a-z]+)#');
+        $urlMatch   = $I->grabAndMatch('a.show-action-link-delete', '#href="([^"]+)"#');
+        $I->sendPost($urlMatch[1], [
+            'csrf_token' => $tokenMatch[1],
+        ]);
+
+        $I->seeResponseCodeIs(Response::HTTP_OK);
+        $I->see('Entity was deleted');
     }
 }

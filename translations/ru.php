@@ -10,6 +10,8 @@ return [
     'new'                                               => 'Создать',
     'Save'                                              => 'Сохранить',
     'Filter'                                            => 'Фильтровать',
+    'Confirm deletion'                                  => 'Подтвердить удаление',
+    'Cancel'                                            => 'Отменить',
 
     // Core errors
     'An error encountered'                              => 'Произошла ошибка',
@@ -27,6 +29,10 @@ return [
     // Template errors
     'Cannot create new %s due to the following errors:' => 'Невозможно создать %s из-за следующих ошибок:',
     'Cannot save %s due to the following errors:'       => 'Невозможно сохранить %s из-за следующих ошибок:',
+
+    'Are you sure you want to delete?' => 'Вы уверены, что хотите удалить эту запись?',
+    '%s was not deleted.'              => 'Запись "%s" не была удален.',
+    '%s deleted successfully.'         => 'Запись "%s" была успешно удалена.',
 
     'This value should not be blank.'                                                                                                                => 'Поле не может быть пустым.',
     'The value you selected is not a valid choice.'                                                                                                  => 'Выбранное значение неверно.',

@@ -8,6 +8,7 @@ declare(strict_types=1);
 /** @var array $header */
 /** @var array $errorMessages */
 /** @var \S2\AdminYard\Form\Form $form */
+/** @var string $csrfToken */
 /** @var array $primaryKey */
 /** @var array $actions */
 
@@ -64,9 +65,16 @@ $errorMessages = array_merge($errorMessages, $form->getGlobalFormErrors());
             ...($action['name'] === 'show' || $action['name'] === 'delete' ? $primaryKey : [])
         ]);
         ?>
-        <a class="link-as-button edit-action-link edit-action-link-<?= $action['name'] ?> <?= $action['name'] === 'delete' ? 'danger' : '' ?>"
-           title="<?= $trans($action['name']) ?>"
-           href="?<?= $queryParams ?>"><span><?= $trans($action['name']) ?></span></a>
+        <?php if ($action['name'] === 'delete'): ?>
+            <a class="link-as-button edit-action-link edit-action-link-delete danger"
+               title="<?= $trans($action['name']) ?>"
+               href="?<?= $queryParams ?>"
+               onclick="if (confirm('<?= $trans('Are you sure you want to delete?') ?>')) {fetch(this.href, {method: 'POST', body: new URLSearchParams('csrf_token=<?= $csrfToken ?>')}).then(function () { window.location = '?<?= http_build_query(['entity' => $entityName, 'action' => 'list']) ?>'; } );} return false;"><span><?= $trans($action['name']) ?></span></a>
+        <?php else: ?>
+            <a class="link-as-button edit-action-link edit-action-link-<?= $action['name'] ?>"
+               title="<?= $trans($action['name']) ?>"
+               href="?<?= $queryParams ?>"><span><?= $trans($action['name']) ?></span></a>
+        <?php endif; ?>
         <?php
     }
     ?>

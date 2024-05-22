@@ -52,9 +52,10 @@ readonly class EntityController
         $filters = $this->entityConfig->getFilters();
         $data    = $this->getEntityList($filters, $filterData, $sortField, $sortDirection);
 
-        $renderedRows = array_map(function (array $row) {
-            return $this->renderCellsForNormalizedRow($row, FieldConfig::ACTION_LIST);
-        }, $data);
+        $renderedRows = array_map(
+            fn(array $row) => $this->renderCellsForNormalizedRow($request, $row, FieldConfig::ACTION_LIST),
+            $data
+        );
 
         return $this->templateRenderer->render(
             $this->entityConfig->getListTemplate(),
@@ -83,7 +84,7 @@ readonly class EntityController
     }
 
     /**
-     * @throws BadRequestException
+     * @throws InvalidRequestException
      * @throws NotFoundException
      */
     public function showAction(Request $request): string
@@ -91,7 +92,7 @@ readonly class EntityController
         $fieldNamesOfPrimaryKey = $this->entityConfig->getFieldNamesOfPrimaryKey();
         foreach ($fieldNamesOfPrimaryKey as $fieldName) {
             if (!$request->query->has($fieldName)) {
-                throw new BadRequestException(sprintf($this->translator->trans('Parameter "%s" must be provided.'), $fieldName));
+                throw new InvalidRequestException(sprintf($this->translator->trans('Parameter "%s" must be provided.'), $fieldName));
             }
         }
         $primaryKey = PrimaryKey::fromRequestQueryParams($request, $fieldNamesOfPrimaryKey);
@@ -107,7 +108,7 @@ readonly class EntityController
             throw new NotFoundException(sprintf($this->translator->trans('%s with %s not found.'), $this->entityConfig->getName(), $primaryKey->toString()));
         }
 
-        $renderedRow = $this->renderCellsForNormalizedRow($data, FieldConfig::ACTION_SHOW);
+        $renderedRow = $this->renderCellsForNormalizedRow($request, $data, FieldConfig::ACTION_SHOW);
 
         return $this->templateRenderer->render(
             $this->entityConfig->getShowTemplate(),
@@ -117,6 +118,7 @@ readonly class EntityController
                 'header'     => $this->entityConfig->getLabels(FieldConfig::ACTION_SHOW),
                 'row'        => $renderedRow,
                 'primaryKey' => $primaryKey->toArray(),
+                'csrfToken'  => $this->getDeleteCsrfToken($primaryKey->toArray(), $request),
                 'actions'    => array_map(static fn(string $action) => [
                     'name' => $action,
                 ], array_diff($this->entityConfig->getEnabledActions(), [FieldConfig::ACTION_SHOW, FieldConfig::ACTION_NEW])),
@@ -181,6 +183,7 @@ readonly class EntityController
                 'entityName'    => $this->entityConfig->getName(),
                 'errorMessages' => $errorMessages,
                 'primaryKey'    => $primaryKey->toArray(),
+                'csrfToken'     => $this->getDeleteCsrfToken($primaryKey->toArray(), $request),
                 'header'        => array_map(static fn(FieldConfig $field) => $field->getLabel(), $this->entityConfig->getFields(FieldConfig::ACTION_SHOW)),
                 'form'          => $form,
                 'actions'       => array_map(static fn(string $action) => [
@@ -260,12 +263,32 @@ readonly class EntityController
         );
     }
 
-    public function deleteAction(Request $request): RedirectResponse
+    /**
+     * @throws InvalidRequestException
+     * @throws SuspiciousOperationException
+     * @throws \PDOException
+     * @throws \Symfony\Component\HttpFoundation\Exception\BadRequestException
+     */
+    public function deleteAction(Request $request): Response
     {
+        if ($request->getMethod() !== Request::METHOD_POST) {
+            throw new InvalidRequestException('Delete action must be called via POST request.', Response::HTTP_METHOD_NOT_ALLOWED);
+        }
         $primaryKey = PrimaryKey::fromRequestQueryParams($request, $this->entityConfig->getFieldNamesOfPrimaryKey());
-        $this->dataProvider->deleteEntity($this->entityConfig->getTableName(), $primaryKey);
+        $csrfToken  = $request->request->get('csrf_token');
+        if ($this->getDeleteCsrfToken($primaryKey->toArray(), $request) !== $csrfToken) {
+            $this->addFlashMessage($request, 'error', $this->translator->trans('Unable to confirm security token. A likely cause for this is that some time passed between when you first entered the page and when you submitted the form. If that is the case and you would like to continue, submit the form again.'));
+            return new Response('CSRF token mismatch', Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
 
-        return new RedirectResponse('?entity=' . $this->entityConfig->getName() . '&action=list');
+        $deletedRows = $this->dataProvider->deleteEntity($this->entityConfig->getTableName(), $primaryKey);
+        if ($deletedRows === 0) {
+            $this->addFlashMessage($request, 'warning', sprintf($this->translator->trans('%s was not deleted.'), $this->entityConfig->getName()));
+            return new Response('No entity was deleted', Response::HTTP_NOT_FOUND);
+        }
+
+        $this->addFlashMessage($request, 'success', sprintf($this->translator->trans('%s deleted successfully.'), $this->entityConfig->getName()));
+        return new Response('Entity was deleted', Response::HTTP_OK);
     }
 
     /**
@@ -294,12 +317,17 @@ readonly class EntityController
         );
     }
 
-    protected function renderCellsForNormalizedRow(array $row, string $actionForFieldRestriction): array
+    protected function renderCellsForNormalizedRow(Request $request, array $row, string $actionForFieldRestriction): array
     {
         $idFieldNames = $this->entityConfig->getFieldNamesOfPrimaryKey();
         $idValues     = array_map(static fn(string $columnName) => $row['field_' . $columnName], $idFieldNames);
         $primaryKey   = array_combine($idFieldNames, $idValues);
-        $result       = ['primary_key' => $primaryKey];
+        $result       = [
+            'primary_key' => $primaryKey,
+            ... $this->entityConfig->isAllowedAction(FieldConfig::ACTION_DELETE) ? [
+                'csrf_token' => $this->getDeleteCsrfToken($primaryKey, $request),
+            ] : [],
+        ];
 
         foreach ($this->entityConfig->getFields($actionForFieldRestriction) as $field) {
             $columnName = $field->getName();
@@ -386,7 +414,7 @@ readonly class EntityController
         }
     }
 
-    private function getListFilterForm(Request $request): Form
+    protected function getListFilterForm(Request $request): Form
     {
         $filterForm = $this->formFactory->createFilterForm($this->entityConfig);
         $session    = $request->getSession();
@@ -414,7 +442,7 @@ readonly class EntityController
         return $filterForm;
     }
 
-    private function getListSorting(Request $request): array
+    protected function getListSorting(Request $request): array
     {
         $entityName = $this->entityConfig->getName();
         $session    = $request->getSession();
@@ -431,5 +459,10 @@ readonly class EntityController
         }
 
         return [$sortField, $sortDirection];
+    }
+
+    protected function getDeleteCsrfToken(array $primaryKey, Request $request): string
+    {
+        return $this->formFactory->generateCsrfToken($this->entityConfig->getName(), FieldConfig::ACTION_DELETE, $primaryKey, $request);
     }
 }

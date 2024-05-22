@@ -31,8 +31,9 @@ readonly class FormFactory
      */
     public function createEntityForm(EntityConfig $entityConfig, string $action, Request $request): Form
     {
+        // NOTE: Pass primary key and generate form action here?
         $form      = new Form($this->translator);
-        $csrfToken = $this->generateCsrfToken($entityConfig->getName(), $action, $request);
+        $csrfToken = $this->generateCsrfToken($entityConfig->getName(), $action, [], $request);
         $form->setCsrfToken($csrfToken);
 
         foreach ($entityConfig->getFields($action) as $field) {
@@ -142,7 +143,7 @@ readonly class FormFactory
         return $form;
     }
 
-    private function generateCsrfToken(string $entityName, string $action, Request $request): string
+    public function generateCsrfToken(string $entityName, string $action, array $primaryKey, Request $request): string
     {
         $session = $request->getSession();
         if (!$session->has('main_csrf_token')) {
@@ -156,6 +157,6 @@ readonly class FormFactory
             $mainToken = $session->get('main_csrf_token');
         }
 
-        return sha1(serialize([$entityName, $action, $mainToken]));
+        return sha1(serialize([$entityName, $action, $primaryKey, $mainToken]));
     }
 }

@@ -10,6 +10,8 @@ return [
     'new'                                               => 'New',
     'Save'                                              => 'Save',
     'Filter'                                            => 'Filter',
+    'Confirm deletion'                                  => 'Confirm deletion',
+    'Cancel'                                            => 'Cancel',
 
     // Core errors
     'An error encountered'                              => 'An error encountered',
@@ -27,6 +29,10 @@ return [
     // Template errors
     'Cannot create new %s due to the following errors:' => 'Cannot create new %s due to the following errors:',
     'Cannot save %s due to the following errors:'       => 'Cannot save %s due to the following errors:',
+
+    'Are you sure you want to delete?' => 'Are you sure you want to delete?',
+    '%s was not deleted.'              => '%s was not deleted.',
+    '%s deleted successfully.'         => '%s deleted successfully.',
 
     'This value should not be blank.'                                                                                                                => 'This value should not be blank.',
     'The value you selected is not a valid choice.'                                                                                                  => 'The value you selected is not a valid choice.',

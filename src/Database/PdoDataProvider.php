@@ -190,13 +190,33 @@ readonly class PdoDataProvider
         }
     }
 
-    public function deleteEntity(string $tableName, PrimaryKey $primaryKey): void
+    /**
+     * @throws \PDOException
+     */
+    public function deleteEntity(string $tableName, PrimaryKey $primaryKey): int
     {
-        $sql  = "DELETE FROM $tableName WHERE " . implode(' AND ', array_map(
-                static fn($key) => "$key = :$key", $primaryKey->getColumnNames()
-            ));
-        $stmt = $this->pdo->prepare($sql);
+        $criteria  = implode(' AND ', array_map(
+            static fn($key) => "$key = :$key", $primaryKey->getColumnNames()
+        ));
+        $selectSql = "SELECT COUNT(*) FROM $tableName WHERE " . $criteria;
+        $stmt      = $this->pdo->prepare($selectSql);
         $stmt->execute($primaryKey->toArray());
+        $oldCount = $stmt->fetchColumn();
+
+        $deleteSql = "DELETE FROM $tableName WHERE " . $criteria;
+        $stmt      = $this->pdo->prepare($deleteSql);
+        $stmt->execute($primaryKey->toArray());
+
+        $reportedCount = $stmt->rowCount();
+        if ($reportedCount > 0) {
+            return $reportedCount;
+        }
+
+        $stmt = $this->pdo->prepare($selectSql);
+        $stmt->execute($primaryKey->toArray());
+        $newCount = $stmt->fetchColumn();
+
+        return $newCount - $oldCount;
     }
 
     private function getAliasesForSelect(array $dataTypes, array $labels): string

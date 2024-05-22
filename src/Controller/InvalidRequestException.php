@@ -9,7 +9,7 @@ declare(strict_types=1);
 
 namespace S2\AdminYard\Controller;
 
-class BadRequestException extends \RuntimeException
+class InvalidRequestException extends \RuntimeException
 {
 
 }

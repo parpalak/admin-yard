@@ -67,7 +67,8 @@ declare(strict_types=1);
                 <?php foreach ($header as $fieldName => $cell): ?>
                     <?php if (in_array($fieldName, $sortableFields, true)): ?>
                         <th class="field-<?= $entityName ?>-<?= $fieldName ?> <?= $fieldName === $sortField ? 'current-sort' : '' ?>">
-                            <a class="sort-link" href="?<?= http_build_query(['entity' => $entityName, 'action' => 'list', ...$filterData, 'sort_field' => $fieldName, 'sort_direction' => $sortDirection === 'asc' && $fieldName === $sortField ? 'desc' : 'asc']) ?>">
+                            <a class="sort-link"
+                               href="?<?= http_build_query(['entity' => $entityName, 'action' => 'list', ...$filterData, 'sort_field' => $fieldName, 'sort_direction' => $sortDirection === 'asc' && $fieldName === $sortField ? 'desc' : 'asc']) ?>">
                                 <?= htmlspecialchars($cell, ENT_QUOTES, 'UTF-8') ?><?= $fieldName === $sortField ? ($sortDirection === 'asc' ? ' ▴' : ' ▾') : '' ?>
                             </a>
                         </th>
@@ -82,7 +83,7 @@ declare(strict_types=1);
             </thead>
 
             <tbody>
-            <?php foreach ($rows as $row): ?>
+            <?php foreach ($rows as $rowIndex => $row): ?>
                 <tr>
                     <?php foreach ($row['cells'] as $fieldName => $cell): ?>
                         <td class="type-<?= $cell['type'] ?> field-<?= $entityName ?>-<?= $fieldName ?> <?= $fieldName === $sortField ? 'current-sort' : '' ?>">
@@ -90,16 +91,31 @@ declare(strict_types=1);
                         </td>
                     <?php endforeach; ?>
                     <?php if (!empty($rowActions)): ?>
-                        <td>
+                        <td class="row-actions">
                             <?php foreach ($rowActions as $action) {
                                 $queryParams = http_build_query(array_merge([
                                     'entity' => $entityName,
                                     'action' => $action['name']
                                 ], $row['primary_key']));
                                 ?>
-                                <a class="list-action-link list-action-link-<?= $action['name'] ?>"
-                                   title="<?= $trans($action['name']) ?>"
-                                   href="?<?= $queryParams ?>"><span><?= $trans($action['name']) ?></span></a>
+                                <?php if ($action['name'] === 'delete'): ?>
+                                    <a class="list-action-link list-action-link-<?= $action['name'] ?>" href="#"
+                                       onclick=" document.getElementById('delete<?= $rowIndex ?>').classList.toggle('hidden'); return false"><span><?= $trans($action['name']) ?></span></a>
+                                    <span id="delete<?= $rowIndex ?>" class="hidden list-action-delete-popup">
+                                        <a class="link-as-button danger list-action-link list-action-link-delete-confirm"
+                                           title="<?= $trans($action['name']) ?>"
+                                           href="?<?= $queryParams ?>"
+                                           onclick="fetch(this.href, {method: 'POST', body: new URLSearchParams('csrf_token=<?= $row['csrf_token'] ?>') }).then(function () { window.location.reload(); } ); return false;"><?= $trans('Confirm deletion') ?></a>
+                                        <a class="link-as-button list-action-link list-action-link-delete-cancel"
+                                           title="<?= $trans('Cancel') ?>"
+                                           href="#"
+                                           onclick=" document.getElementById('delete<?= $rowIndex ?>').classList.toggle('hidden'); return false;"><?= $trans('Cancel') ?></a>
+                                    </span>
+                                <?php else: ?>
+                                    <a class="list-action-link list-action-link-<?= $action['name'] ?>"
+                                       title="<?= $trans($action['name']) ?>"
+                                       href="?<?= $queryParams ?>"><span><?= $trans($action['name']) ?></span></a>
+                                <?php endif; ?>
                             <?php } ?>
                         </td>
                     <?php endif; ?>

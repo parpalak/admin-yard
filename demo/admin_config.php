@@ -128,6 +128,7 @@ $adminConfig
                     ->setDataType(FieldConfig::DATA_TYPE_TIMESTAMP)
                     ->setControl('datetime')
                     ->markAsFilterable(true)
+                    ->markAsSortable()
             )
             ->addField(
                 (new FieldConfig('updated_at'))
@@ -135,6 +136,7 @@ $adminConfig
                     ->setDataType(FieldConfig::DATA_TYPE_UNIXTIME)
                     ->setControl('datetime')
                     ->markAsFilterable(true)
+                    ->markAsSortable()
             )
             ->addField(
                 (new FieldConfig('comments'))

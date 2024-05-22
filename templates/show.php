@@ -7,6 +7,7 @@ declare(strict_types=1);
 /** @var string $entityName */
 /** @var array $header */
 /** @var array $row */
+/** @var string $csrfToken */
 /** @var array $primaryKey */
 /** @var array $actions */
 ?>
@@ -34,9 +35,16 @@ declare(strict_types=1);
             ...($action['name'] === 'edit' || $action['name'] === 'delete' ? $primaryKey : [])
         ]);
         ?>
-        <a class="link-as-button show-action-link show-action-link-<?= $action['name'] ?> <?= $action['name'] === 'delete' ? 'danger' : '' ?>"
-           title="<?= $trans($action['name']) ?>"
-           href="?<?= $queryParams ?>"><span><?= $trans($action['name']) ?></span></a>
+        <?php if ($action['name'] === 'delete'): ?>
+            <a class="link-as-button show-action-link show-action-link-delete danger"
+               title="<?= $trans($action['name']) ?>"
+               href="?<?= $queryParams ?>"
+               onclick="if (confirm('<?= $trans('Are you sure you want to delete?') ?>')) {fetch(this.href, {method: 'POST', body: new URLSearchParams('csrf_token=<?= $csrfToken ?>') }).then(function () { window.location = '?<?= http_build_query(['entity' => $entityName, 'action' => 'list']) ?>'; } );} return false;"><span><?= $trans($action['name']) ?></span></a>
+        <?php else: ?>
+            <a class="link-as-button show-action-link show-action-link-<?= $action['name'] ?>"
+               title="<?= $trans($action['name']) ?>"
+               href="?<?= $queryParams ?>"><span><?= $trans($action['name']) ?></span></a>
+        <?php endif; ?>
         <?php
     }
     ?>

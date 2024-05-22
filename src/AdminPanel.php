@@ -11,7 +11,7 @@ namespace S2\AdminYard;
 
 use S2\AdminYard\Config\AdminConfig;
 use S2\AdminYard\Config\FieldConfig;
-use S2\AdminYard\Controller\BadRequestException;
+use S2\AdminYard\Controller\InvalidRequestException;
 use S2\AdminYard\Controller\EntityController;
 use S2\AdminYard\Controller\NotFoundException;
 use S2\AdminYard\Database\PdoDataProvider;
@@ -88,8 +88,8 @@ readonly class AdminPanel
             $content = $controller->{$methodName}($request);
         } catch (NotFoundException $e) {
             return $this->errorResponse($request, $e->getMessage(), Response::HTTP_NOT_FOUND);
-        } catch (BadRequestException $e) {
-            return $this->errorResponse($request, $e->getMessage());
+        } catch (InvalidRequestException $e) {
+            return $this->errorResponse($request, $e->getMessage(), $e->getCode() ?: Response::HTTP_BAD_REQUEST);
         }
         if ($content instanceof Response) {
             return $content;

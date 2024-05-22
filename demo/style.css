@@ -5,14 +5,14 @@
     --color-text: #000;
     --color-error: #b7302c;
     --color-success: #3eb059;
-    --color-highlight: #eee;
+    --color-highlight: #f2f2f2;
     --color-warning: #ffb817;
     --color-secondary-text: #666;
     --color-muted: #999;
 
     --color-danger: red;
     --color-btn-primary: #00b648;
-    --color-btn-secondary: #9b9b9b;
+    --color-btn-secondary: #ccc;
 
     --table-border: #eee;
     --table-background: #fff;
@@ -112,6 +112,9 @@ section.list-header h1 {
     margin: 0;
 }
 
+td.row-actions {
+    position: relative;
+}
 .list-action-link {
     text-decoration: none;
     color: var(--color-secondary-text);
@@ -138,6 +141,17 @@ section.list-header h1 {
 .list-action-link-delete:before {
     color: var(--color-danger);
     content: '✗';
+}
+
+.list-action-delete-popup {
+    position: absolute;
+    top: 0;
+    right: 4px;
+    z-index: 1;
+    background: var(--table-background);
+    outline: 7px solid var(--table-background);
+    box-shadow: 0 1px 8px 4px rgba(0, 0, 0, 0.3);
+    font-size: 0.875em;
 }
 
 .entity-action-new:before {
@@ -168,6 +182,7 @@ article.error {
 .error-message-box {
     border: var(--border);
     border-color: var(--color-error);
+    border-radius: 0.25em;
     padding: 0 1em;
     margin: 0 0 1em;
     background: color-mix(in srgb, var(--color-error) 10%, var(--page-background) 90%);
@@ -195,19 +210,22 @@ section {
     --btn-color: var(--color-btn-secondary);
     display: inline-block;
     text-decoration: none;
-    border: 1px solid var(--btn-color);
+    border: 1px solid color-mix(in srgb, var(--btn-color) 75%, var(--color-text) 25%);
     padding: 0.125em 1em;
     margin: 0;
     line-height: 1.5;
     border-radius: 0.25em;
-    background: linear-gradient(to bottom, color-mix(in srgb, var(--btn-color) 17%, var(--page-background) 100%), color-mix(in srgb, var(--btn-color) 23%, var(--page-background) 90%));
-    color: color-mix(in srgb, var(--btn-color) 60%, var(--color-text) 100%);
+    background: linear-gradient(to bottom, color-mix(in srgb, var(--btn-color) 10%, var(--page-background) 100%), color-mix(in srgb, var(--btn-color) 20%, var(--page-background) 90%));
+    color: color-mix(in srgb, var(--btn-color) 50%, var(--color-text) 100%);
     box-shadow: 0 2px 3px -1px rgba(0, 0, 0, 0.1);
 }
 .link-as-button:hover, button[type=submit]:hover {
-    background: linear-gradient(to bottom, color-mix(in srgb, var(--btn-color) 12%, var(--page-background) 100%), color-mix(in srgb, var(--btn-color) 18%, var(--page-background) 90%));
+    background: linear-gradient(to bottom, color-mix(in srgb, var(--btn-color) 10%, var(--page-background) 100%), color-mix(in srgb, var(--btn-color) 10%, var(--page-background) 90%));
+    border: 1px solid color-mix(in srgb, var(--btn-color) 70%, var(--color-text) 30%);
+    box-shadow: 0 2px 3px -1px rgba(0, 0, 0, 0.15);
 }
 .link-as-button:active, button[type=submit]:active {
+    background: linear-gradient(to bottom, color-mix(in srgb, var(--btn-color) 20%, var(--page-background) 100%), color-mix(in srgb, var(--btn-color) 10%, var(--page-background) 90%));
     box-shadow: none;
 }
 
@@ -227,13 +245,16 @@ section {
 
 .flash-message {
     --msg-color: #888;
-    padding: 0.5em;
+    padding: 0.5em 2em 0.5em 0.75em;
     background: color-mix(in srgb, var(--msg-color) 10%, var(--page-background) 90%);
     color: color-mix(in srgb, var(--msg-color) 80%, var(--color-text) 80%);
     border: 1px solid var(--msg-color);
     border-radius: 0.25em;
     margin: 1em;
-    position: relative;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    box-shadow: 0 2px 7px -3px rgba(0, 0, 0, 0.2);
 }
 .flash-message.flash-error {
     --msg-color: var(--color-error);
@@ -256,4 +277,8 @@ button.flash-message-close {
     font-size: 1.75em;
     line-height: 1rem;
     cursor: pointer;
+}
+
+.hidden {
+    display: none !important;
 }

@@ -103,7 +103,6 @@ class PermissionsCest
         return [
             ['action' => 'show', 'code' => 404],
             ['action' => 'edit', 'code' => 404],
-            ['action' => 'delete', 'code' => 302], // allowed to delete a non-existing entity
         ];
     }
 }

@@ -12,6 +12,9 @@ namespace Tests\Integration;
 use Symfony\Component\HttpFoundation\Response;
 use Tests\Support\IntegrationTester;
 
+/**
+ * @group crud
+ */
 class CrudCest
 {
     public function crudTest(IntegrationTester $I): void
@@ -57,8 +60,20 @@ class CrudCest
         $I->see('Test title');
         $I->see('Test text');
 
-        $I->click('delete');
+        $tokenMatch = $I->grabAndMatch('a.show-action-link-delete', '#csrf_token=([0-9a-z]+)#');
+        $urlMatch   = $I->grabAndMatch('a.show-action-link-delete', '#href="([^"]+)"#');
+        $I->sendPost($urlMatch[1], [
+            'csrf_token' => $tokenMatch[1],
+        ]);
 
-        $I->seeResponseCodeIs(Response::HTTP_FOUND);
+        $I->seeResponseCodeIs(Response::HTTP_OK);
+        $I->see('Entity was deleted');
+
+        $I->sendPost($urlMatch[1], [
+            'csrf_token' => $tokenMatch[1],
+        ]);
+
+        $I->seeResponseCodeIs(Response::HTTP_NOT_FOUND);
+        $I->see('No entity was deleted');
     }
 }

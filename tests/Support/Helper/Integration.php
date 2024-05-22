@@ -86,7 +86,7 @@ class Integration extends Module
         }
         $condition = str_contains($content, $text) || str_contains($content, htmlspecialchars($text, ENT_QUOTES, 'UTF-8'));
         if (!$condition) {
-            codecept_debug($content);
+            $this->debug($content);
             $this->fail('Cannot see "' . $text . '" in response');
         }
         $this->assertTrue($condition);
@@ -108,7 +108,7 @@ class Integration extends Module
         }
         $condition = str_contains($content, $text) || str_contains($content, htmlspecialchars($text, ENT_QUOTES, 'UTF-8'));
         if ($condition) {
-            codecept_debug($content);
+            $this->debug($content);
             $this->fail('See "' . $text . '" in response');
         }
         $this->assertFalse($condition);
@@ -125,7 +125,7 @@ class Integration extends Module
     {
         $condition = $this->crawler->filter($selector)->count() > 0;
         if (!$condition) {
-            codecept_debug($this->response->getContent());
+            $this->debug($this->response->getContent());
             $this->fail('Cannot see "' . $selector . '" in response');
         }
         $this->assertTrue($condition);
@@ -201,10 +201,27 @@ class Integration extends Module
         return $this->crawler->filter($selector)->form()->getValues();
     }
 
+    public function grabAndMatch(string $selector, string $regex): ?array
+    {
+        $html = $this->crawler->filter($selector)->outerHtml();
+        if (preg_match($regex, $html, $matches)) {
+            return $matches;
+        }
+        return null;
+    }
+
     private function doRequest(Request $request): void
     {
         $request->setSession($this->session);
+        $this->debug(sprintf("%s %s", $request->getMethod(), $request->getUri()));
         $this->response = $this->adminPanel->handleRequest($request);
-        $this->crawler  = new Crawler($this->response->getContent(), 'http://localhost');
+        $content        = $this->response->getContent();
+        $this->debug(sprintf(
+            "Get %s response:\n%s\n\n%s",
+            $this->response->getStatusCode(),
+            $this->response->headers,
+            mb_substr($content, 0, 100)
+        ));
+        $this->crawler = new Crawler($content, 'http://localhost');
     }
 }
