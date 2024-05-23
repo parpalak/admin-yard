@@ -29,7 +29,8 @@
 }
 
 body {
-    background: var(--page-secondary-background);
+    background-color: var(--page-secondary-background);
+    background-image: url("data:image/svg+xml,%0A%3Csvg xmlns='http://www.w3.org/2000/svg' version='1.1' xmlns:xlink='http://www.w3.org/1999/xlink' viewBox='0 0 700 700' width='700' height='700' opacity='1'%3E%3Cdefs%3E%3Cfilter id='nnnoise-filter' x='-20%25' y='-20%25' width='140%25' height='140%25' filterUnits='objectBoundingBox' primitiveUnits='userSpaceOnUse' color-interpolation-filters='linearRGB'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.078' numOctaves='4' seed='15' stitchTiles='stitch' x='0%25' y='0%25' width='100%25' height='100%25' result='turbulence'%3E%3C/feTurbulence%3E%3CfeSpecularLighting surfaceScale='6' specularConstant='1.1' specularExponent='20' lighting-color='%23fff' x='0%25' y='0%25' width='100%25' height='100%25' in='turbulence' result='specularLighting'%3E%3CfeDistantLight azimuth='3' elevation='79'%3E%3C/feDistantLight%3E%3C/feSpecularLighting%3E%3C/filter%3E%3C/defs%3E%3Crect width='700' height='700' fill='transparent'%3E%3C/rect%3E%3Crect width='700' height='700' style='opacity:0.3;' filter='url(%23nnnoise-filter)'%3E%3C/rect%3E%3C/svg%3E");
     color: var(--color-text);
     margin: 0;
     padding: 0;
@@ -206,7 +207,7 @@ section {
 .validation-error {
     display: block;
     color: var(--color-error);
-    line-height: 1.25rem;
+    line-height: 1rem;
     font-size: 0.875rem;
 }
 
