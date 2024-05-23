@@ -3,12 +3,14 @@
 declare(strict_types=1);
 
 use S2\AdminYard\Config\AdminConfig;
+use S2\AdminYard\Config\DbColumnFieldType;
 use S2\AdminYard\Config\EntityConfig;
 use S2\AdminYard\Config\FieldConfig;
 use S2\AdminYard\Config\Filter;
 use S2\AdminYard\Config\FilterLinkTo;
-use S2\AdminYard\Config\LinkedBy;
+use S2\AdminYard\Config\LinkedByFieldType;
 use S2\AdminYard\Config\LinkTo;
+use S2\AdminYard\Config\VirtualFieldType;
 use S2\AdminYard\Validator\Length;
 use S2\AdminYard\Validator\NotBlank;
 
@@ -21,13 +23,12 @@ $postEntity = new EntityConfig('Post', 'posts');
 $commentConfig = (new EntityConfig('Comment', 'comments'))
     ->addField(new FieldConfig(
         name: 'id',
-        dataType: FieldConfig::DATA_TYPE_INT,
-        primaryKey: true,
+        type: new DbColumnFieldType(FieldConfig::DATA_TYPE_INT, true),
         useOnActions: []
     ))
     ->addField(($postIdField = new FieldConfig(
         name: 'post_id',
-        dataType: FieldConfig::DATA_TYPE_INT,
+        type: new DbColumnFieldType(FieldConfig::DATA_TYPE_INT),
         control: 'select',
         validators: [new NotBlank()],
         sortable: true,
@@ -50,16 +51,15 @@ $commentConfig = (new EntityConfig('Comment', 'comments'))
     ))
     ->addField(new FieldConfig(
         name: 'created_at',
-        dataType: FieldConfig::DATA_TYPE_TIMESTAMP,
+        type: new DbColumnFieldType(FieldConfig::DATA_TYPE_TIMESTAMP),
         control: 'datetime',
         sortable: true
     ))
     ->addField(new FieldConfig(
         name: 'status_code',
-        dataType: FieldConfig::DATA_TYPE_STRING,
+        type: new DbColumnFieldType(FieldConfig::DATA_TYPE_STRING, defaultValue: 'new'),
         control: 'radio',
         options: ['new' => 'Pending', 'approved' => 'Approved', 'rejected' => 'Rejected'],
-        defaultValue: 'new',
         useOnActions: [FieldConfig::ACTION_LIST, FieldConfig::ACTION_SHOW, FieldConfig::ACTION_EDIT]
     ))
     ->addFilter(new Filter(
@@ -100,8 +100,7 @@ $adminConfig
             ->addField(new FieldConfig(
                 name: 'id',
                 label: 'ID',
-                dataType: FieldConfig::DATA_TYPE_INT,
-                primaryKey: true,
+                type: new DbColumnFieldType(FieldConfig::DATA_TYPE_INT, true),
                 sortable: true,
                 useOnActions: [FieldConfig::ACTION_LIST, FieldConfig::ACTION_SHOW]
             ))
@@ -110,8 +109,13 @@ $adminConfig
                 control: 'input',
                 validators: [new Length(max: 80)],
                 sortable: true,
-                linkToAction: 'edit'
+                actionOnClick: 'edit'
             ))
+//            ->addField(new FieldConfig(
+//                name: 'tags',
+//                type: new VirtualFieldType('SELECT GROUP_CONCAT(t.name SEPARATOR ", ") FROM tags AS t JOIN posts_tags AS pt ON t.id = pt.tag_id WHERE pt.post_id = entity.id'),
+//                control: 'input',
+//            ))
             ->addField(new FieldConfig(
                 name: 'text',
                 control: 'textarea',
@@ -120,25 +124,25 @@ $adminConfig
             ->addField(new FieldConfig(
                 name: 'is_active',
                 label: 'Published',
-                dataType: FieldConfig::DATA_TYPE_BOOL,
+                type: new DbColumnFieldType(FieldConfig::DATA_TYPE_BOOL),
                 control: 'checkbox',
             ))
             ->addField(new FieldConfig(
                 name: 'created_at',
-                dataType: FieldConfig::DATA_TYPE_TIMESTAMP,
+                type: new DbColumnFieldType(FieldConfig::DATA_TYPE_TIMESTAMP),
                 control: 'datetime',
                 sortable: true
             ))
             ->addField(new FieldConfig(
                 name: 'updated_at',
-                dataType: FieldConfig::DATA_TYPE_UNIXTIME,
+                type: new DbColumnFieldType(FieldConfig::DATA_TYPE_UNIXTIME),
                 control: 'datetime',
                 sortable: true
             ))
             ->addField(new FieldConfig(
                 name: 'comments',
-                sortable: true,
-                linkedBy: new LinkedBy($commentConfig, 'CASE WHEN COUNT(*) > 0 THEN COUNT(*) ELSE NULL END', 'post_id')
+                type: new LinkedByFieldType($commentConfig, 'CASE WHEN COUNT(*) > 0 THEN COUNT(*) ELSE NULL END', 'post_id'),
+                sortable: true
             ))
             ->markAsDefault()
             ->addFilter(
@@ -185,8 +189,7 @@ $adminConfig
         (new EntityConfig('Tag', 'tags'))
             ->addField(new FieldConfig(
                 name: 'id',
-                dataType: FieldConfig::DATA_TYPE_INT,
-                primaryKey: true,
+                type: new DbColumnFieldType(FieldConfig::DATA_TYPE_INT, true),
                 useOnActions: []
             ))
             ->addField(new FieldConfig(
@@ -205,20 +208,18 @@ $adminConfig
         (new EntityConfig('CompositeKey', 'composite_key_table'))
             ->addField(new FieldConfig(
                 name: 'column1',
-                dataType: FieldConfig::DATA_TYPE_INT,
-                primaryKey: true,
+                type: new DbColumnFieldType(FieldConfig::DATA_TYPE_INT, true),
                 control: 'int_input',
-                linkToAction: 'edit'
+                actionOnClick: 'edit'
             ))
             ->addField(new FieldConfig(
                 name: 'column2',
-                primaryKey: true,
+                type: new DbColumnFieldType(FieldConfig::DATA_TYPE_STRING, true),
                 control: 'input',
             ))
             ->addField(new FieldConfig(
                 name: 'column3',
-                dataType: FieldConfig::DATA_TYPE_DATE,
-                primaryKey: true,
+                type: new DbColumnFieldType(FieldConfig::DATA_TYPE_DATE, true),
                 control: 'date',
             ))
     )
@@ -226,7 +227,7 @@ $adminConfig
         (new EntityConfig('Config', 'config'))
             ->addField(new FieldConfig(
                 name: 'name',
-                primaryKey: true,
+                type: new DbColumnFieldType(FieldConfig::DATA_TYPE_STRING, true),
                 control: 'input'  // TODO exception, only link is available
             ))
             ->addField(new FieldConfig(
@@ -239,8 +240,7 @@ $adminConfig
         (new EntityConfig('Sequence', 'sequence'))
             ->addField(new FieldConfig(
                 name: 'id',
-                dataType: FieldConfig::DATA_TYPE_INT,
-                primaryKey: true,
+                type: new DbColumnFieldType(FieldConfig::DATA_TYPE_INT, true),
                 useOnActions: []
             ))
     )

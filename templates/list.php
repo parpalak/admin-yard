@@ -42,11 +42,11 @@ declare(strict_types=1);
                         continue;
                     } ?>
                     <div
-                        class="filter-control filter-control-<?= strtolower(basename(strtr(get_class($control), ['\\' => '/']))) ?>">
+                        class="filter-control filter-control-<?= strtolower(basename(strtr(get_class($control), ['\\' => '/']))) ?> filter-<?= $entityName ?>-<?= $fieldName ?>">
                         <span class="filter-label">
                             <?= htmlspecialchars($filterLabels[$fieldName] ?? $header[$fieldName], ENT_QUOTES, 'UTF-8') ?>
                         </span>
-                        <span class="filter-wrapper filter-<?= $entityName ?>-<?= $fieldName ?>">
+                        <span class="filter-wrapper">
                         <?= $control->getHtml() ?>
                         </span>
                         <?php foreach ($control->getValidationErrors() as $error): ?>

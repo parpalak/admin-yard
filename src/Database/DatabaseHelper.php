@@ -10,31 +10,42 @@ declare(strict_types=1);
 namespace S2\AdminYard\Database;
 
 use S2\AdminYard\Config\EntityConfig;
-use S2\AdminYard\Config\FieldConfig;
+use S2\AdminYard\Config\LinkedByFieldType;
+use S2\AdminYard\Config\VirtualFieldType;
 
 class DatabaseHelper
 {
-    public static function getSqlExpressionsForAssociations(EntityConfig $entityConfig): array
+    public static function getSqlExpressionsForAssociations(EntityConfig $entityConfig, string $action): array
     {
-        // TODO: not all fields may be required for displaying
-        return array_merge(
-            array_map(static fn(FieldConfig $field) => sprintf(
-            // One-To-Many, aggregated info about "children"
-                '(SELECT %s FROM %s WHERE %s = entity.%s)',
-                $field->linkedBy->titleSqlExpression,
-                $field->linkedBy->foreignEntity->getTableName(),
-                $field->linkedBy->inverseFieldName,
-                $entityConfig->getFieldNamesOfPrimaryKey()[0]
-            ), $entityConfig->getOneToManyFields()),
+        $result = [];
+        foreach ($entityConfig->getFields($action) as $field) {
+            if ($field->type instanceof LinkedByFieldType) {
+                // One-To-Many, aggregated info about "children"
+                $result[$field->name] = sprintf(
+                    '(SELECT %s FROM %s WHERE %s = entity.%s)',
+                    $field->type->titleSqlExpression,
+                    $field->type->foreignEntity->getTableName(),
+                    $field->type->inverseFieldName,
+                    $entityConfig->getFieldNamesOfPrimaryKey()[0]
+                );
+            }
 
-            array_map(static fn(FieldConfig $field) => sprintf(
-            // Many-To-One, info about "parent"
-                '(SELECT %s FROM %s WHERE %s = entity.%s)',
-                $field->linkToEntity->titleSqlExpression,
-                $field->linkToEntity->foreignEntity->getTableName(),
-                $field->linkToEntity->foreignEntity->getFieldNamesOfPrimaryKey()[0],
-                $field->name
-            ), $entityConfig->getManyToOneFields())
-        );
+            if ($field->type instanceof VirtualFieldType) {
+                $result[$field->name] = '(' . $field->type->titleSqlExpression . ')';
+            }
+
+            if ($field->linkToEntity !== null) {
+                // Many-To-One, info about "parent"
+                $result[$field->name] = sprintf(
+                    '(SELECT %s FROM %s WHERE %s = entity.%s)',
+                    $field->linkToEntity->titleSqlExpression,
+                    $field->linkToEntity->foreignEntity->getTableName(),
+                    $field->linkToEntity->foreignEntity->getFieldNamesOfPrimaryKey()[0],
+                    $field->name
+                );
+            }
+        }
+
+        return $result;
     }
 }

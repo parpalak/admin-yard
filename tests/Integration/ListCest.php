@@ -185,9 +185,9 @@ class ListCest
         $I->amOnPage('?entity=Post&action=list&search=[]&is_active=invalid_field&modified_from=invalid_date&modified_to=invalid_date');
         $I->seeResponseCodeIs(200);
         $I->see('Post', 'h1');
-        $I->see('The value you selected is not a valid choice.', self::FILTER_FORM_SELECTOR . ' .field-Post-is_active');
-        $I->see('This value is not a valid date.', self::FILTER_FORM_SELECTOR . ' .field-Post-modified_from');
-        $I->see('This value is not a valid date.', self::FILTER_FORM_SELECTOR . ' .field-Post-modified_to');
+        $I->see('The value you selected is not a valid choice.', self::FILTER_FORM_SELECTOR . ' .filter-Post-is_active');
+        $I->see('This value is not a valid date.', self::FILTER_FORM_SELECTOR . ' .filter-Post-modified_from');
+        $I->see('This value is not a valid date.', self::FILTER_FORM_SELECTOR . ' .filter-Post-modified_to');
     }
 
     public function sortTest(IntegrationTester $I): void

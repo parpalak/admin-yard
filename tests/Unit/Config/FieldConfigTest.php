@@ -10,9 +10,10 @@ declare(strict_types=1);
 namespace Tests\Unit\Config;
 
 use Codeception\Test\Unit;
+use S2\AdminYard\Config\DbColumnFieldType;
 use S2\AdminYard\Config\EntityConfig;
 use S2\AdminYard\Config\FieldConfig;
-use S2\AdminYard\Config\LinkedBy;
+use S2\AdminYard\Config\LinkedByFieldType;
 use S2\AdminYard\Config\LinkTo;
 
 class FieldConfigTest extends Unit
@@ -21,7 +22,7 @@ class FieldConfigTest extends Unit
     {
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('Unknown data type');
-        $fieldConfig = new FieldConfig('test', dataType: 'invalid');
+        new DbColumnFieldType('invalid');
     }
 
     public function testGetLabel(): void
@@ -42,7 +43,7 @@ class FieldConfigTest extends Unit
         $this->expectExceptionMessage('Invalid linkToAction');
         $fieldConfig = new FieldConfig(
             name: 'test_field',
-            linkToAction: 'new',
+            actionOnClick: 'new',
         );
     }
 
@@ -53,8 +54,8 @@ class FieldConfigTest extends Unit
         $foreignEntity = new EntityConfig('test_entity');
         $fieldConfig   = new FieldConfig(
             name: 'test_field',
-            linkToEntity: new LinkTo($foreignEntity, 'title'),
-            linkedBy: new LinkedBy($foreignEntity, 'COUNT(*)', 'other_field')
+            type: new LinkedByFieldType($foreignEntity, 'COUNT(*)', 'other_field'),
+            linkToEntity: new LinkTo($foreignEntity, 'title')
         );
     }
 
@@ -65,8 +66,8 @@ class FieldConfigTest extends Unit
         $foreignEntity = new EntityConfig('test_entity');
         $fieldConfig   = new FieldConfig(
             name: 'test_field',
-            linkToAction: 'edit',
-            linkedBy: new LinkedBy($foreignEntity, 'COUNT(*)', 'other_field')
+            type: new LinkedByFieldType($foreignEntity, 'COUNT(*)', 'other_field'),
+            actionOnClick: 'edit'
         );
     }
 
@@ -77,7 +78,7 @@ class FieldConfigTest extends Unit
         $foreignEntity = new EntityConfig('test_entity');
         $fieldConfig   = new FieldConfig(
             name: 'test_field',
-            linkToAction: 'show',
+            actionOnClick: 'show',
             linkToEntity: new LinkTo($foreignEntity, 'title')
         );
     }

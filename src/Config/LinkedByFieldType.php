@@ -12,15 +12,16 @@ namespace S2\AdminYard\Config;
 /**
  * One-to-many association configuration.
  */
-readonly class LinkedBy
+readonly class LinkedByFieldType extends AbstractFieldType
 {
     /**
-     * Defines this field as a virtual field.
+     * Defines field as a virtual field.
      *
      * @param EntityConfig $foreignEntity      The config of entity which is pointing to this field.
-     * @param string       $titleSqlExpression Aggregate function to be applied for all foreign entities
-     *                                         on the list and show screens. Example: 'COUNT(*)'
-     *                                         Expression should return NULL if there is no associated entities.
+     * @param string       $titleSqlExpression Specifies an aggregate function that will be applied for all foreign
+     *                                         entities and its result will be displayed on the list and show screens.
+     *                                         Example: 'COUNT(*)'
+     *                                         Expression should return NULL if there are no associated entities.
      *                                         Otherwise, a link to filtered foreign entity list will be displayed.
      * @param string       $inverseFieldName   The column name of the foreign entity that is pointing to this field.
      */

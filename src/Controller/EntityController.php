@@ -9,9 +9,12 @@ declare(strict_types=1);
 
 namespace S2\AdminYard\Controller;
 
+use S2\AdminYard\Config\DbColumnFieldType;
 use S2\AdminYard\Config\EntityConfig;
 use S2\AdminYard\Config\FieldConfig;
 use S2\AdminYard\Config\Filter;
+use S2\AdminYard\Config\LinkedByFieldType;
+use S2\AdminYard\Config\VirtualFieldType;
 use S2\AdminYard\Database\DatabaseHelper;
 use S2\AdminYard\Database\DataProviderException;
 use S2\AdminYard\Database\PdoDataProvider;
@@ -95,7 +98,7 @@ readonly class EntityController
         $data = $this->dataProvider->getEntity(
             $this->entityConfig->getTableName(),
             $this->entityConfig->getFieldDataTypes(FieldConfig::ACTION_SHOW, true),
-            DatabaseHelper::getSqlExpressionsForAssociations($this->entityConfig),
+            DatabaseHelper::getSqlExpressionsForAssociations($this->entityConfig, FieldConfig::ACTION_SHOW),
             $primaryKey,
         );
 
@@ -315,7 +318,7 @@ readonly class EntityController
         return $this->dataProvider->getEntityList(
             $this->entityConfig->getTableName(),
             $this->entityConfig->getFieldDataTypes(FieldConfig::ACTION_LIST, true),
-            DatabaseHelper::getSqlExpressionsForAssociations($this->entityConfig),
+            DatabaseHelper::getSqlExpressionsForAssociations($this->entityConfig, FieldConfig::ACTION_LIST),
             $filters,
             $filterData,
             $sortField,
@@ -340,18 +343,20 @@ readonly class EntityController
 
         foreach ($this->entityConfig->getFields($actionForFieldRestriction) as $field) {
             $columnName = $field->name;
-            $dataType   = $field->dataType;
-            $cellValue  = $field->isVirtual()
-                ? null
-                : $this->viewTransformer->viewFromNormalized($row['field_' . $columnName], $dataType, $field->options);
+            $dataType   = $field->type instanceof DbColumnFieldType ? $field->type->dataType : 'virtual';
+            $cellValue  = match (\get_class($field->type)) {
+                DbColumnFieldType::class => $this->viewTransformer->viewFromNormalized($row['field_' . $columnName], $dataType, $field->options),
+                VirtualFieldType::class => $row['label_' . $columnName],
+                default => null,
+            };
 
             // Additional attributes to build a link to an associated entity.
             $additionalParams = $this->getLinkCellParamsForAssociations($field, $idValues, $row);
             $cellParams       = [
                 'value'        => $cellValue,
                 'type'         => $dataType,
-                'linkToAction' => $field->linkToAction,
-                ...$field->linkToAction !== null ? [
+                'linkToAction' => $field->actionOnClick,
+                ...$field->actionOnClick !== null ? [
                     'entity'     => $this->entityConfig->getName(),
                     'primaryKey' => $primaryKey
                 ] : [],
@@ -369,7 +374,7 @@ readonly class EntityController
 
     protected function getLinkCellParamsForAssociations(FieldConfig $currentField, array $idValues, array $row): array
     {
-        if ($currentField->linkedBy === null && $currentField->linkToEntity === null) {
+        if (!$currentField->type instanceof LinkedByFieldType && $currentField->linkToEntity === null) {
             return [];
         }
         $columnName = $currentField->name;
@@ -382,7 +387,7 @@ readonly class EntityController
         }
         $labelContent = (string)$row['label_' . $columnName];
 
-        if ($currentField->linkedBy !== null) {
+        if ($currentField->type instanceof LinkedByFieldType) {
             // One-To-Many, link to "children" entities
             if (\count($idValues) === 0) {
                 throw new \LogicException(sprintf(
@@ -391,8 +396,8 @@ readonly class EntityController
                 ));
             }
             return [
-                'foreign_entity' => $currentField->linkedBy->foreignEntity->getName(),
-                'inverse_column' => $currentField->linkedBy->inverseFieldName,
+                'foreign_entity' => $currentField->type->foreignEntity->getName(),
+                'inverse_column' => $currentField->type->inverseFieldName,
                 'inverse_id'     => $idValues[0],
                 'label'          => $labelContent,
             ];

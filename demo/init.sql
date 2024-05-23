@@ -82,9 +82,32 @@ CREATE TABLE IF NOT EXISTS tags
 
 
 INSERT INTO tags (name, description)
+VALUES ('HTML', 'HyperText Markup Language is the standard markup language for documents designed to be displayed in a web browser.'),
+       ('CSS', 'Cascading Style Sheets is a style sheet language used for describing the presentation of a document written in HTML.'),
+       ('JS', 'JavaScript is a programming language that is one of the core technologies of the World Wide Web, alongside HTML and CSS.'),
+       ('PHP', 'PHP is a server-side scripting language that is embedded in HTML.'),
+       ('SQL', 'Structured Query Language is used to access and manipulate databases.'),
+       ('MySQL', 'MySQL is a relational database management system.'),
+       ('PostgreSQL', 'PostgreSQL is a powerful, open source object-relational database system.'),
+       ('SQLite', 'SQLite is a cross-platform embedded database program. It is developed by SQLite AB and is released under the MIT license.'),
+       ('scrum', 'Agile software development is a method of software development that relies on the principles of the Scrum framework.'),
+       ('git', 'Git is a free and open source distributed version control system designed to handle everything from small to very large projects with speed and efficiency.'),
+       ('github', 'GitHub is a web-based hosting service for Git repositories.'),
+       ('docker', 'Docker is a tool for building and running applications in containers.')
+       ;
+
+DROP TABLE IF EXISTS posts_tags;
+CREATE TABLE IF NOT EXISTS posts_tags
+(
+    post_id INT NOT NULL,
+    tag_id  INT NOT NULL,
+    PRIMARY KEY (post_id, tag_id)
+);
+
+INSERT INTO posts_tags (post_id, tag_id)
 SELECT
-    CONCAT('Tag ', n) AS name,
-    CONCAT('Description for tag ', n) AS description
+    (n*13 + 11)%29 + 1 AS post_id,
+    (n*5 + 7)%12 + 1 AS tag_id
 FROM
     numbers
 LIMIT 50;

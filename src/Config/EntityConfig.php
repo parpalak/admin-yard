@@ -11,13 +11,7 @@ namespace S2\AdminYard\Config;
 
 class EntityConfig
 {
-    private const ALLOWED_ACTIONS = [
-        FieldConfig::ACTION_LIST,
-        FieldConfig::ACTION_SHOW,
-        FieldConfig::ACTION_NEW,
-        FieldConfig::ACTION_EDIT,
-        FieldConfig::ACTION_DELETE,
-    ];
+    private const ALLOWED_ACTIONS = FieldConfig::ALLOWED_ACTIONS;
     private readonly string $tableName;
 
     /**
@@ -72,11 +66,7 @@ class EntityConfig
      */
     public function getFields(string $action): array
     {
-        return array_filter($this->fields, static function (FieldConfig $field) use ($action) {
-            $allowedInConfig = $field->useOnActions === null || \in_array($action, $field->useOnActions, true);
-            $virtualOnForms  = $field->isVirtual() && \in_array($action, [FieldConfig::ACTION_NEW, FieldConfig::ACTION_EDIT], true);
-            return $allowedInConfig && !$virtualOnForms;
-        });
+        return array_filter($this->fields, static fn(FieldConfig $field) => $field->allowedOnAction($action));
     }
 
     public function setEnabledActions(array $enabledActions): static
@@ -108,16 +98,16 @@ class EntityConfig
         $dataTypes = [];
 
         foreach ($this->fields as $fieldName => $field) {
-            if ($field->isVirtual()) {
+            if (!$field->type instanceof DbColumnFieldType) {
                 continue;
             }
 
-            if ($includePrimaryKey && $field->primaryKey) {
-                $dataTypes[$fieldName] = $field->dataType;
-            } elseif ($includeDefault && $field->defaultValue !== null) {
-                $dataTypes[$fieldName] = $field->dataType;
-            } elseif ($field->useOnActions === null || \in_array($action, $field->useOnActions, true)) {
-                $dataTypes[$fieldName] = $field->dataType;
+            if (
+                ($includePrimaryKey && $field->type->primaryKey)
+                || ($includeDefault && $field->type->defaultValue !== null)
+                || $field->allowedOnAction($action)
+            ) {
+                $dataTypes[$fieldName] = $field->type->dataType;
             }
         }
 
@@ -131,7 +121,7 @@ class EntityConfig
     {
         $result = [];
         foreach ($this->fields as $field) {
-            if ($field->primaryKey) {
+            if ($field->type instanceof DbColumnFieldType && $field->type->primaryKey) {
                 $result[] = $field->name;
             }
         }
@@ -197,16 +187,6 @@ class EntityConfig
     /**
      * @return array<string,FieldConfig>
      */
-    public function getOneToManyFields(): array
-    {
-        return array_filter($this->fields, static function (FieldConfig $field) {
-            return $field->linkedBy !== null;
-        });
-    }
-
-    /**
-     * @return array<string,FieldConfig>
-     */
     public function getManyToOneFields(): array
     {
         return array_filter($this->fields, static function (FieldConfig $field) {
@@ -216,8 +196,12 @@ class EntityConfig
 
     public function getFieldDefaultValues(): array
     {
-        $defaultValues = array_map(static fn(FieldConfig $field) => $field->defaultValue, $this->fields);
-        $defaultValues = array_filter($defaultValues, static fn($value) => $value !== null);
+        $defaultValues = [];
+        foreach ($this->fields as $field) {
+            if ($field->type instanceof DbColumnFieldType && $field->type->defaultValue !== null) {
+                $defaultValues[$field->name] = $field->type->defaultValue;
+            }
+        }
 
         return $defaultValues;
     }
@@ -252,7 +236,7 @@ class EntityConfig
 
         foreach ($this->fields as $field) {
             if ($field->name === $sortField) {
-                return $field->linkedBy === null && $field->linkToEntity === null ? $sortField : 'label_' . $sortField;
+                return $field->type instanceof DbColumnFieldType && $field->linkToEntity === null ? $sortField : 'label_' . $sortField;
             }
         }
 
