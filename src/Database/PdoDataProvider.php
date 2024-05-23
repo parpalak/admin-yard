@@ -62,8 +62,8 @@ readonly class PdoDataProvider
 
             if (\is_array($filterValue)) {
                 $format = "$filterName IN (%s)";
-                if (isset($filters[$filterName]) && $filters[$filterName]->sqlExprPattern !== null) {
-                    $format = $filters[$filterName]->sqlExprPattern;
+                if (isset($filters[$filterName]) && $filters[$filterName]->whereSqlExprPattern !== null) {
+                    $format = $filters[$filterName]->whereSqlExprPattern;
                 }
                 $arrayParamNames = [];
                 foreach (array_values($filterValue) as $i => $value) {

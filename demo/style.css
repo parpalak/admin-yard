@@ -52,23 +52,32 @@ body, button, input, select, textarea {
 .admin-content th {
     padding: 0 0.5em;
     text-align: left;
+}
+.admin-content tbody tr {
     background: var(--table-background);
-    border-bottom: 1px solid var(--table-border);
+}
+.admin-content tr:hover td {
+    background: transparent;
 }
 .admin-content th {
     border-color: var(--table-header-border);
+    font-weight: normal;
+    backdrop-filter: saturate(3) contrast(0.85);
 }
 .admin-content th a.sort-link {
     color: var(--color-text);
 }
-.admin-content th.current-sort,
 .admin-content td.current-sort {
-    background: var(--color-highlight);
+    backdrop-filter: contrast(0.9);
+}
+.admin-content th.current-sort {
+    backdrop-filter: saturate(4) contrast(0.7);
 }
 .admin-content .list-content .table-wrapper {
     overflow-x: auto;
 }
-.admin-content .list-content td {
+.admin-content .list-content td,
+.admin-content .list-content th {
     white-space: nowrap;
 }
 
@@ -86,11 +95,12 @@ nav {
     background: linear-gradient(180deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.15));
     padding: 0 0.5em;
 }
-nav ul {
+nav ul.main-menu-list {
     list-style: none;
     margin: 0;
     padding: 0;
     display: flex;
+    flex-wrap: wrap;
 }
 nav a.main-menu-link {
     color: var(--color-text);
@@ -281,4 +291,51 @@ button.flash-message-close {
 
 .hidden {
     display: none !important;
+}
+
+.filter-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5em 1em;
+    margin: 1em 0;
+}
+.filter-controls .filter-label, .filter-controls label {
+    user-select: none;
+    white-space: nowrap;
+}
+.filter-control {
+    max-width: min-content;
+}
+.filter-wrapper {
+    display: block;
+}
+.filter-control-input {
+    flex: 0 1 calc(280px + 1em);
+    min-width: 140px;
+    max-width: none;
+}
+.filter-control-input input[type="text"] {
+    width: 100%;
+    box-sizing: border-box;
+}
+.filter-control-date input[type="date"],
+.filter-control-select select
+{
+    box-sizing: border-box;
+    min-width: 140px;
+}
+.filter-control-radio .filter-wrapper,
+.filter-control-checkboxarray .filter-wrapper {
+    padding: 0.1875em 0 0;
+    width: max-content;
+    max-width: 280px;
+}
+.filter-control-radio .filter-wrapper label,
+.filter-control-checkboxarray .filter-wrapper label {
+    margin-right: 0.5em;
+    position: relative;
+    left: -3px;
+}
+.filter-control-button {
+    margin: 20px 0 0;
 }

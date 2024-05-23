@@ -6,6 +6,7 @@ use S2\AdminYard\Config\AdminConfig;
 use S2\AdminYard\Config\EntityConfig;
 use S2\AdminYard\Config\FieldConfig;
 use S2\AdminYard\Config\Filter;
+use S2\AdminYard\Config\FilterLinkTo;
 use S2\AdminYard\Config\LinkedBy;
 use S2\AdminYard\Config\LinkTo;
 use S2\AdminYard\Validator\Length;
@@ -24,7 +25,7 @@ $commentConfig = (new EntityConfig('Comment', 'comments'))
         primaryKey: true,
         useOnActions: []
     ))
-    ->addField((new FieldConfig(
+    ->addField(($postIdField = new FieldConfig(
         name: 'post_id',
         dataType: FieldConfig::DATA_TYPE_INT,
         control: 'select',
@@ -67,6 +68,10 @@ $commentConfig = (new EntityConfig('Comment', 'comments'))
         'input',
         'name LIKE %1$s OR email LIKE %1$s OR comment_text LIKE %1$s',
         fn(string $value) => $value !== '' ? '%' . $value . '%' : null
+    ))
+    ->addFilter(new FilterLinkTo(
+        $postIdField,
+        'Post',
     ))
     ->addFilter(new Filter(
         'created_from',

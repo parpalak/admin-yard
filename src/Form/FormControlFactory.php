@@ -18,6 +18,7 @@ class FormControlFactory implements FormControlFactoryInterface
         return match ($control) {
             'input' => new Input($fieldName),
             'int_input' => new IntInput($fieldName),
+            'hidden_input' => new HiddenInput($fieldName),
             'textarea' => new Textarea($fieldName),
             'select' => new Select($fieldName),
             'multiselect' => new MultiSelect($fieldName),

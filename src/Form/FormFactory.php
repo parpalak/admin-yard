@@ -11,6 +11,7 @@ namespace S2\AdminYard\Form;
 
 use Random\RandomException;
 use S2\AdminYard\Config\EntityConfig;
+use S2\AdminYard\Config\FilterLinkTo;
 use S2\AdminYard\Database\PdoDataProvider;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -88,39 +89,50 @@ readonly class FormFactory
     {
         $form = new Form($this->translator);
 
-        // 1. Add external references to the filter form
-        // TODO move to config
-        foreach ($entityConfig->getManyToOneFields() as $field) {
-            if ($field->linkToEntity === null) {
-                // @codeCoverageIgnoreStart
-                throw new \LogicException(sprintf(
-                    'Field "%s" for entity "%s" must have a foreign entity since it is a many-to-one association.',
-                    $field->name,
-                    $entityConfig->getName()
-                ));
-                // @codeCoverageIgnoreEnd
-            }
-            /** @var Select $select */
-            $select = $this->formControlFactory->create('select', $field->name);
+        $linkToFields = $entityConfig->getManyToOneFields();
 
-            // TODO: Implement some kind of ajax autocomplete for large tables.
-            $options = $this->dataProvider->getLabelsFromTable(
-                $field->linkToEntity->foreignEntity->getTableName(),
-                $field->linkToEntity->foreignEntity->getFieldNamesOfPrimaryKey(),
-                $field->linkToEntity->titleSqlExpression
-            );
-
-            $options[''] = '–';
-
-            $select->setOptions($options);
-            $form->addControl($select, $field->name);
-        }
-
-        // 2. Add filters from configuration.
+        // 1. Add filters from configuration.
         foreach ($entityConfig->getFilters() as $filter) {
             $filterName = $filter->name;
             $control    = $this->formControlFactory->create($filter->control, $filterName);
-            if ($control instanceof OptionsInterface) {
+            if ($filter instanceof FilterLinkTo) {
+                if (!$control instanceof OptionsInterface) {
+                    throw new \LogicException(sprintf(
+                        'Filter "%s" for entity "%s" of type "LinkTo" must have a control configured as OptionsInterface, "%s" given.',
+                        $filterName,
+                        $entityConfig->getName(),
+                        $filter->control
+                    ));
+                }
+                if (!isset($linkToFields[$filterName])) {
+                    throw new \DomainException(sprintf(
+                        'Filter "%s" for entity "%s" of type "LinkTo" cannot be applied since there is no such field.',
+                        $filterName,
+                        $entityConfig->getName()
+                    ));
+                }
+                $field = $linkToFields[$filter->name];
+                if ($field->linkToEntity->foreignEntity !== $filter->foreignEntity) {
+                    throw new \DomainException(sprintf(
+                        'Filter "%s" for entity "%s" of type "LinkTo" cannot be applied since it is not pointing to the same entity as corresponding field.',
+                        $filterName,
+                        $entityConfig->getName()
+                    ));
+                }
+
+                // TODO: Implement some kind of ajax autocomplete for large tables.
+                $options = $this->dataProvider->getLabelsFromTable(
+                    $field->linkToEntity->foreignEntity->getTableName(),
+                    $field->linkToEntity->foreignEntity->getFieldNamesOfPrimaryKey(),
+                    $field->linkToEntity->titleSqlExpression
+                );
+
+                $options[''] = '–';
+
+                $control->setOptions($options);
+                unset($linkToFields[$filterName]);
+
+            } elseif ($control instanceof OptionsInterface) {
                 $options = $filter->options;
                 if ($options === null) {
                     throw new \DomainException(sprintf(
@@ -133,6 +145,12 @@ readonly class FormFactory
                 $control->setOptions($options);
             }
             $form->addControl($control, $filterName);
+        }
+
+        // 2. Add external references to the filter form as hidden fields if there were no corresponding filters.
+        foreach ($linkToFields as $field) {
+            $hidden = $this->formControlFactory->create('hidden_input', $field->name);
+            $form->addControl($hidden, $field->name);
         }
 
         return $form;

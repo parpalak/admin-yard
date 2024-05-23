@@ -36,26 +36,31 @@ declare(strict_types=1);
         <form method="GET" action="?">
             <input type="hidden" name="entity" value="<?= $entityName ?>">
             <input type="hidden" name="action" value="list">
-            <table>
-                <tbody>
+            <div class="filter-controls">
                 <?php foreach ($filterControls as $fieldName => $control): ?>
-                    <tr>
-                        <td class="field-name"><?= htmlspecialchars($filterLabels[$fieldName] ?? $header[$fieldName], ENT_QUOTES, 'UTF-8') ?></td>
-                        <td class="field-<?= $entityName ?>-<?= $fieldName ?>">
-                            <?= $control->getHtml() ?>
-                            <?php foreach ($control->getValidationErrors() as $error): ?>
-                                <span
-                                    class="validation-error"><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></span>
-                            <?php endforeach; ?>
-                        </td>
-                    </tr>
+                    <?php if ($control instanceof \S2\AdminYard\Form\HiddenInput) {
+                        continue;
+                    } ?>
+                    <div
+                        class="filter-control filter-control-<?= strtolower(basename(strtr(get_class($control), ['\\' => '/']))) ?>">
+                        <span class="filter-label">
+                            <?= htmlspecialchars($filterLabels[$fieldName] ?? $header[$fieldName], ENT_QUOTES, 'UTF-8') ?>
+                        </span>
+                        <span class="filter-wrapper filter-<?= $entityName ?>-<?= $fieldName ?>">
+                        <?= $control->getHtml() ?>
+                        </span>
+                        <?php foreach ($control->getValidationErrors() as $error): ?>
+                            <span class="filter-validation-error validation-error">
+                                <?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?>
+                            </span>
+                        <?php endforeach; ?>
+                    </div>
                 <?php endforeach; ?>
-                </tbody>
-            </table>
-            <p>
-                <button class="secondary filter-button" type="submit" name="apply_filter"
-                        value="1"><?= $trans('Filter') ?></button>
-            </p>
+                <div class="filter-control-button">
+                    <button class="secondary filter-button" type="submit" name="apply_filter"
+                            value="1"><?= $trans('Filter') ?></button>
+                </div>
+            </div>
         </form>
     </section>
 <?php endif; ?>
