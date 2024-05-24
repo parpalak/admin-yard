@@ -17,13 +17,16 @@ use S2\AdminYard\Config\LinkedByFieldType;
 use S2\AdminYard\Config\VirtualFieldType;
 use S2\AdminYard\Database\DatabaseHelper;
 use S2\AdminYard\Database\DataProviderException;
+use S2\AdminYard\Database\Key;
 use S2\AdminYard\Database\PdoDataProvider;
-use S2\AdminYard\Database\PrimaryKey;
+use S2\AdminYard\Event\AfterSaveEvent;
+use S2\AdminYard\Event\BeforeSaveEvent;
 use S2\AdminYard\Form\Form;
 use S2\AdminYard\Form\FormFactory;
 use S2\AdminYard\TemplateRenderer;
 use S2\AdminYard\Transformer\ViewTransformer;
 use S2\AdminYard\Translator;
+use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\HttpFoundation\Exception\BadRequestException;
 use Symfony\Component\HttpFoundation\Exception\SuspiciousOperationException;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -34,6 +37,7 @@ readonly class EntityController
 {
     public function __construct(
         protected EntityConfig     $entityConfig,
+        protected EventDispatcher  $eventDispatcher,
         protected PdoDataProvider  $dataProvider,
         protected ViewTransformer  $viewTransformer,
         protected Translator       $translator,
@@ -142,6 +146,13 @@ readonly class EntityController
             if ($form->isValid()) {
                 $data = $form->getData();
 
+                $context = [];
+                $this->eventDispatcher->dispatch(
+                    $event = new BeforeSaveEvent($data, $context),
+                    'adminyard.' . $this->entityConfig->getName() . '.' . EntityConfig::EVENT_BEFORE_UPDATE
+                );
+                $data = $event->data;
+
                 try {
                     $this->dataProvider->updateEntity(
                         $this->entityConfig->getTableName(),
@@ -152,6 +163,11 @@ readonly class EntityController
                 } catch (DataProviderException $e) {
                     $errorMessages[] = $this->translator->trans($e->getMessage());
                 }
+
+                $this->eventDispatcher->dispatch(
+                    new AfterSaveEvent($this->dataProvider, $primaryKey, $context),
+                    'adminyard.' . $this->entityConfig->getName() . '.' . EntityConfig::EVENT_AFTER_UPDATE
+                );
 
                 if ($errorMessages === []) {
                     // Update primary key for correct URL in form
@@ -168,13 +184,13 @@ readonly class EntityController
             $data = $this->dataProvider->getEntity(
                 $this->entityConfig->getTableName(),
                 $this->entityConfig->getFieldDataTypes(FieldConfig::ACTION_EDIT),
-                [],
+                DatabaseHelper::getSqlExpressionsForAssociations($this->entityConfig, FieldConfig::ACTION_EDIT),
                 $primaryKey,
             );
             if ($data === null) {
                 throw new NotFoundException(sprintf($this->translator->trans('%s with %s not found.'), $this->entityConfig->getName(), $primaryKey->toString()));
             }
-            $form->fillFromArray($data, 'field_');
+            $form->fillFromArray($data, ['field_', 'label_']);
         }
 
         return $this->templateRenderer->render(
@@ -205,6 +221,13 @@ readonly class EntityController
             if ($form->isValid()) {
                 $data = $form->getData();
 
+                $context = [];
+                $this->eventDispatcher->dispatch(
+                    $event = new BeforeSaveEvent($data, $context),
+                    'adminyard.' . $this->entityConfig->getName() . '.' . EntityConfig::EVENT_BEFORE_CREATE
+                );
+                $data = $event->data;
+
                 try {
                     $lastInsertId = $this->dataProvider->createEntity(
                         $this->entityConfig->getTableName(),
@@ -216,34 +239,29 @@ readonly class EntityController
                 }
 
                 if ($errorMessages === []) {
-                    $primaryKeyFieldNames = $this->entityConfig->getFieldNamesOfPrimaryKey();
-                    if (is_numeric($lastInsertId) && (int)$lastInsertId > 0 && \count($primaryKeyFieldNames) === 1) {
-                        // We have detected an assigned value of usual auto-increment ID
+                    $newPrimaryKey = $this->detectNewPrimaryKey($lastInsertId, $data);
+
+                    $this->eventDispatcher->dispatch(
+                        new AfterSaveEvent($this->dataProvider, $newPrimaryKey, $context),
+                        'adminyard.' . $this->entityConfig->getName() . '.' . EntityConfig::EVENT_AFTER_CREATE
+                    );
+
+                    if ($newPrimaryKey === null) {
+                        $this->addFlashMessage($request, 'success', sprintf(
+                            $this->translator->trans('%s created successfully.'),
+                            $this->entityConfig->getName()
+                        ));
+
                         return new RedirectResponse('?' . http_build_query([
-                                'entity'                 => $this->entityConfig->getName(),
-                                'action'                 => 'edit',
-                                $primaryKeyFieldNames[0] => $lastInsertId
+                                'entity' => $this->entityConfig->getName(),
+                                'action' => 'list',
                             ]));
                     }
 
-                    $postPrimaryKey = [];
-                    foreach ($primaryKeyFieldNames as $primaryKeyFieldName) {
-                        if (!isset($data[$primaryKeyFieldName])) {
-                            // We do not know some part of primary key. Redirecting to the list page.
-
-                            $this->addFlashMessage($request, 'success', sprintf($this->translator->trans('%s created successfully.'), $this->entityConfig->getName()));
-
-                            return new RedirectResponse('?' . http_build_query([
-                                    'entity' => $this->entityConfig->getName(),
-                                    'action' => 'list',
-                                ]));
-                        }
-                        $postPrimaryKey[$primaryKeyFieldName] = $data[$primaryKeyFieldName];
-                    }
                     return new RedirectResponse('?' . http_build_query([
                             'entity' => $this->entityConfig->getName(),
                             'action' => 'edit',
-                            ...$postPrimaryKey
+                            ...$newPrimaryKey->toArray(),
                         ]));
                 }
             }
@@ -482,7 +500,7 @@ readonly class EntityController
      * @throws InvalidRequestException
      * @throws BadRequestException
      */
-    protected function getEntityPrimaryKeyFromRequest(Request $request): PrimaryKey
+    protected function getEntityPrimaryKeyFromRequest(Request $request): Key
     {
         $fieldNamesOfPrimaryKey = $this->entityConfig->getFieldNamesOfPrimaryKey();
         if ($fieldNamesOfPrimaryKey === []) {
@@ -497,6 +515,27 @@ readonly class EntityController
             $values[$fieldName] = $request->query->get($fieldName);
         }
 
-        return new PrimaryKey($values);
+        return new Key($values);
+    }
+
+    private function detectNewPrimaryKey(?string $lastInsertId, array $postData): ?Key
+    {
+        $pkFieldNames = $this->entityConfig->getFieldNamesOfPrimaryKey();
+        if (is_numeric($lastInsertId) && (int)$lastInsertId > 0 && \count($pkFieldNames) === 1) {
+            // We have detected an assigned value of usual auto-increment ID
+            return new Key([$pkFieldNames[0] => (int)$lastInsertId]);
+        }
+
+        // No PK detected from auto-increment. Check if we have all columns of PK submitted.
+        $postPrimaryKey = [];
+        foreach ($pkFieldNames as $pkFieldName) {
+            if (!isset($postData[$pkFieldName])) {
+                // We do not know some part of primary key.
+                return null;
+            }
+            $postPrimaryKey[$pkFieldName] = $postData[$pkFieldName];
+        }
+
+        return new Key($postPrimaryKey);
     }
 }

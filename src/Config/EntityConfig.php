@@ -11,7 +11,13 @@ namespace S2\AdminYard\Config;
 
 class EntityConfig
 {
+    public const EVENT_BEFORE_UPDATE = 'before_update';
+    public const EVENT_AFTER_UPDATE  = 'after_update';
+    public const EVENT_BEFORE_CREATE = 'before_create';
+    public const EVENT_AFTER_CREATE  = 'after_create';
+
     private const ALLOWED_ACTIONS = FieldConfig::ALLOWED_ACTIONS;
+
     private readonly string $tableName;
 
     /**
@@ -34,6 +40,11 @@ class EntityConfig
     private string $showTemplate = __DIR__ . '/../../templates/show.php';
     private string $newTemplate = __DIR__ . '/../../templates/new.php';
     private string $editTemplate = __DIR__ . '/../../templates/edit.php';
+
+    /**
+     * @var array<string,callable>
+     */
+    private array $listeners = [];
 
     public function __construct(
         private readonly string $name,
@@ -249,5 +260,22 @@ class EntityConfig
             $this->fields,
             static fn(FieldConfig $fieldConfig) => $fieldConfig->sortable
         ));
+    }
+
+    public function addListener(string|array $eventNames, callable $listener): static
+    {
+        foreach ((array)$eventNames as $eventName) {
+            $this->listeners[$this->name . '.' . $eventName] = $listener;
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return array<string,callable>
+     */
+    public function getListeners(): array
+    {
+        return $this->listeners;
     }
 }

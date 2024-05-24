@@ -124,13 +124,18 @@ class Form
         }
     }
 
-    public function fillFromArray(array $data, string $fieldPrefix = ''): void
+    public function fillFromArray(array $data, array $fieldPrefixes = ['']): void
     {
         foreach ($this->controls as $fieldName => $control) {
-            if ($fieldName === self::CSRF_FIELD_NAME || !\array_key_exists($fieldPrefix . $fieldName, $data)) {
+            if ($fieldName === self::CSRF_FIELD_NAME) {
                 continue;
             }
-            $control->setValue($data[$fieldPrefix . $fieldName]);
+            foreach ($fieldPrefixes as $fieldPrefix) {
+                if (\array_key_exists($fieldPrefix . $fieldName, $data)) {
+                    $control->setValue($data[$fieldPrefix . $fieldName]);
+                    break;
+                }
+            }
         }
     }
 

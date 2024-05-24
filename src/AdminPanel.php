@@ -18,6 +18,7 @@ use S2\AdminYard\Controller\NotFoundException;
 use S2\AdminYard\Database\PdoDataProvider;
 use S2\AdminYard\Form\FormFactory;
 use S2\AdminYard\Transformer\ViewTransformer;
+use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\HttpFoundation\Exception\SessionNotFoundException;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -26,6 +27,7 @@ readonly class AdminPanel
 {
     public function __construct(
         private AdminConfig      $config,
+        private EventDispatcher  $eventDispatcher,
         private PdoDataProvider  $dataProvider,
         private ViewTransformer  $dataTransformer,
         private MenuGenerator    $menuGenerator,
@@ -70,6 +72,7 @@ readonly class AdminPanel
         $controllerClass = $entityConfig->getControllerClass() ?? EntityController::class;
         $controller      = new $controllerClass(
             $entityConfig,
+            $this->eventDispatcher,
             $this->dataProvider,
             $this->dataTransformer,
             $this->translator,

@@ -9,7 +9,11 @@ declare(strict_types=1);
 
 namespace S2\AdminYard\Database;
 
-readonly class PrimaryKey
+/**
+ * Contains a set of column names and values.
+ * Can be used as a primary key (composite primary key) or a condition wrapper.
+ */
+readonly class Key
 {
     public function __construct(protected array $columns)
     {
@@ -26,7 +30,7 @@ readonly class PrimaryKey
         return array_keys($this->columns);
     }
 
-    public function prepend(string $keyPrefix): static
+    public function prependColumnNames(string $keyPrefix): static
     {
         return new static(array_combine(array_map(static fn($key) => $keyPrefix . $key, $this->getColumnNames()), array_values($this->columns)));
     }

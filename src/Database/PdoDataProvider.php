@@ -37,13 +37,13 @@ readonly class PdoDataProvider
     public function getEntityList(
         string  $tableName,
         array   $dataTypes,
-        array   $labels,
-        array   $filters,
-        array   $filterData,
-        ?string $sortField,
-        string  $sortDirection,
-        ?int    $limit,
-        int     $offset
+        array   $labels = [],
+        array   $filters = [],
+        array   $filterData = [],
+        ?string $sortField = null,
+        string  $sortDirection = 'asc',
+        ?int    $limit = null,
+        int     $offset = 0
     ): array {
         $sql = "SELECT " . $this->getAliasesForSelect($dataTypes, $labels) . " FROM $tableName AS entity";
 
@@ -108,7 +108,7 @@ readonly class PdoDataProvider
         return $rows;
     }
 
-    public function getEntity(string $tableName, array $dataTypes, array $labels, PrimaryKey $primaryKey): ?array
+    public function getEntity(string $tableName, array $dataTypes, array $labels, Key $primaryKey): ?array
     {
         $sql = "SELECT " . $this->getAliasesForSelect($dataTypes, $labels) . " FROM $tableName AS entity WHERE " . implode(' AND ', array_map(
                 static fn($key) => "$key = :$key", $primaryKey->getColumnNames()
@@ -132,7 +132,7 @@ readonly class PdoDataProvider
     /**
      * @throws DataProviderException
      */
-    public function updateEntity(string $tableName, array $dataTypes, PrimaryKey $primaryKey, array $data): void
+    public function updateEntity(string $tableName, array $dataTypes, Key $condition, array $data): void
     {
         if (\count($data) < 1) {
             return;
@@ -145,12 +145,12 @@ readonly class PdoDataProvider
         $sql = "UPDATE $tableName SET " . implode(', ', array_map(
                 static fn($key) => "$key = :$key", array_keys($data)
             )) . " WHERE " . implode(' AND ', array_map(
-                static fn($key) => "$key = :pk_$key", $primaryKey->getColumnNames()
+                static fn($key) => "$key = :pk_$key", $condition->getColumnNames()
             ));
 
         $stmt = $this->pdo->prepare($sql);
         try {
-            $stmt->execute(array_merge($data, $primaryKey->prepend('pk_')->toArray()));
+            $stmt->execute(array_merge($data, $condition->prependColumnNames('pk_')->toArray()));
         } catch (\PDOException $e) {
             // TODO checks not only for MySQL
             if ($e->errorInfo[1] === 1062) {
@@ -193,19 +193,19 @@ readonly class PdoDataProvider
     /**
      * @throws \PDOException
      */
-    public function deleteEntity(string $tableName, PrimaryKey $primaryKey): int
+    public function deleteEntity(string $tableName, Key $condition): int
     {
         $criteria  = implode(' AND ', array_map(
-            static fn($key) => "$key = :$key", $primaryKey->getColumnNames()
+            static fn($key) => "$key = :$key", $condition->getColumnNames()
         ));
         $selectSql = "SELECT COUNT(*) FROM $tableName WHERE " . $criteria;
         $stmt      = $this->pdo->prepare($selectSql);
-        $stmt->execute($primaryKey->toArray());
+        $stmt->execute($condition->toArray());
         $oldCount = $stmt->fetchColumn();
 
         $deleteSql = "DELETE FROM $tableName WHERE " . $criteria;
         $stmt      = $this->pdo->prepare($deleteSql);
-        $stmt->execute($primaryKey->toArray());
+        $stmt->execute($condition->toArray());
 
         $reportedCount = $stmt->rowCount();
         if ($reportedCount > 0) {
@@ -213,7 +213,7 @@ readonly class PdoDataProvider
         }
 
         $stmt = $this->pdo->prepare($selectSql);
-        $stmt->execute($primaryKey->toArray());
+        $stmt->execute($condition->toArray());
         $newCount = $stmt->fetchColumn();
 
         return $newCount - $oldCount;

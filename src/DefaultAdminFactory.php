@@ -15,6 +15,7 @@ use S2\AdminYard\Database\TypeTransformer;
 use S2\AdminYard\Form\FormControlFactory;
 use S2\AdminYard\Form\FormFactory;
 use S2\AdminYard\Transformer\ViewTransformer;
+use Symfony\Component\EventDispatcher\EventDispatcher;
 
 /**
  * Example of AdminYard factory. Feel free to create your own or use DI instead.
@@ -31,8 +32,16 @@ class DefaultAdminFactory
         $templateRenderer = new TemplateRenderer($translator);
         $dataProvider     = new PdoDataProvider($pdo, new TypeTransformer());
 
+        $eventDispatcher = new EventDispatcher();
+        foreach ($adminConfig->getEntities() as $entityConfig) {
+            foreach ($entityConfig->getListeners() as $eventName => $listener) {
+                $eventDispatcher->addListener('adminyard.' . $eventName, $listener);
+            }
+        }
+
         return new AdminPanel(
             $adminConfig,
+            $eventDispatcher,
             $dataProvider,
             new ViewTransformer(),
             new MenuGenerator($adminConfig, $templateRenderer),
