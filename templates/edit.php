@@ -33,49 +33,47 @@ $errorMessages = array_merge($errorMessages, $form->getGlobalFormErrors());
         </div>
     <?php endif; ?>
     <form method="POST" action="?<?= $formQueryParams ?>">
-        <table>
-            <tbody>
-            <?php foreach ($form->getVisibleControls() as $fieldName => $control): ?>
-                <tr>
-                    <td class="field-name"><?= htmlspecialchars($header[$fieldName], ENT_QUOTES, 'UTF-8') ?></td>
-                    <td class="field-<?= $entityName ?>-<?= $fieldName ?>">
-                        <?= $control->getHtml() ?>
-                        <?php foreach ($control->getValidationErrors() as $error): ?>
-                            <span class="validation-error"><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></span>
-                        <?php endforeach; ?>
-                    </td>
-                </tr>
-            <?php endforeach; ?>
-            </tbody>
-        </table>
         <?php foreach ($form->getHiddenControls() as $control): ?>
             <?= $control->getHtml() ?>
         <?php endforeach; ?>
-        <div class="form-buttons">
-            <button type="submit"><?= $trans('Save') ?></button>
+        <div class="form-wrapper">
+            <?php foreach ($form->getVisibleControls() as $fieldName => $control): ?>
+                <label class="field-name"
+                       for="id-<?= $fieldName ?>"><?= htmlspecialchars($header[$fieldName], ENT_QUOTES, 'UTF-8') ?></label>
+                <div
+                    class="form-control-<?= strtolower(basename(strtr(get_class($control), ['\\' => '/']))) ?> field-<?= $entityName ?>-<?= $fieldName ?>">
+                    <?= $control->getHtml('id-' . $fieldName) ?>
+                    <?php foreach ($control->getValidationErrors() as $error): ?>
+                        <span class="validation-error"><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></span>
+                    <?php endforeach; ?>
+                </div>
+            <?php endforeach; ?>
+            <div class="form-buttons">
+                <button type="submit"><?= $trans('Save') ?></button>
+                <span>
+                <?php
+                foreach ($actions as $action) {
+                    $queryParams = http_build_query([
+                        'entity' => $entityName,
+                        'action' => $action['name'],
+                        ...($action['name'] === 'show' || $action['name'] === 'delete' ? $primaryKey : [])
+                    ]);
+                    ?>
+                    <?php if ($action['name'] === 'delete'): ?>
+                        <a class="link-as-button edit-action-link edit-action-link-delete danger"
+                           title="<?= $trans($action['name']) ?>"
+                           href="?<?= $queryParams ?>"
+                           onclick="if (confirm('<?= $trans('Are you sure you want to delete?') ?>')) {fetch(this.href, {method: 'POST', body: new URLSearchParams('csrf_token=<?= $csrfToken ?>')}).then(function () { window.location = '?<?= http_build_query(['entity' => $entityName, 'action' => 'list']) ?>'; } );} return false;"><span><?= $trans($action['name']) ?></span></a>
+                    <?php else: ?>
+                        <a class="link-as-button edit-action-link edit-action-link-<?= $action['name'] ?>"
+                           title="<?= $trans($action['name']) ?>"
+                           href="?<?= $queryParams ?>"><span><?= $trans($action['name']) ?></span></a>
+                    <?php endif; ?>
+                    <?php
+                }
+                ?>
+                </span>
+            </div>
         </div>
     </form>
-</section>
-<section class="edit-actions">
-    <?php
-    foreach ($actions as $action) {
-        $queryParams = http_build_query([
-            'entity' => $entityName,
-            'action' => $action['name'],
-            ...($action['name'] === 'show' || $action['name'] === 'delete' ? $primaryKey : [])
-        ]);
-        ?>
-        <?php if ($action['name'] === 'delete'): ?>
-            <a class="link-as-button edit-action-link edit-action-link-delete danger"
-               title="<?= $trans($action['name']) ?>"
-               href="?<?= $queryParams ?>"
-               onclick="if (confirm('<?= $trans('Are you sure you want to delete?') ?>')) {fetch(this.href, {method: 'POST', body: new URLSearchParams('csrf_token=<?= $csrfToken ?>')}).then(function () { window.location = '?<?= http_build_query(['entity' => $entityName, 'action' => 'list']) ?>'; } );} return false;"><span><?= $trans($action['name']) ?></span></a>
-        <?php else: ?>
-            <a class="link-as-button edit-action-link edit-action-link-<?= $action['name'] ?>"
-               title="<?= $trans($action['name']) ?>"
-               href="?<?= $queryParams ?>"><span><?= $trans($action['name']) ?></span></a>
-        <?php endif; ?>
-        <?php
-    }
-    ?>
 </section>

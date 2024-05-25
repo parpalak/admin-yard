@@ -40,7 +40,7 @@ class MultiSelect implements FormControlInterface, OptionsInterface
         return $this->setValue($value);
     }
 
-    public function getHtml(): string
+    public function getHtml(?string $id = null): string
     {
         $options = '';
         if (isset($this->options[''])) {
@@ -53,9 +53,10 @@ class MultiSelect implements FormControlInterface, OptionsInterface
             $options .= $this->getOptionHtml($key, $value);
         }
         return sprintf(
-            '<select name="%s" multiple>%s</select>',
-            $this->fieldName . '[]',
-            $options
+            '<select name="%s" multiple%s>%s</select>',
+            htmlspecialchars($this->fieldName . '[]', ENT_QUOTES, 'UTF-8'),
+            $id !== null ? ' id="' . $id . '"' : '',
+            $options,
         );
     }
 
@@ -69,7 +70,7 @@ class MultiSelect implements FormControlInterface, OptionsInterface
         /** @noinspection HtmlUnknownAttribute */
         return sprintf(
             '<option value="%s" %s>%s</option>',
-            $key,
+            htmlspecialchars((string)$key, ENT_QUOTES, 'UTF-8'),
             $this->isCurrentOption($key) ? 'selected' : '',
             htmlspecialchars($value, ENT_QUOTES, 'UTF-8')
         );

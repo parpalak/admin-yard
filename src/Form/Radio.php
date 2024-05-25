@@ -13,15 +13,15 @@ use S2\AdminYard\Validator\Choice;
 
 class Radio extends Select
 {
-    public function getHtml(): string
+    public function getHtml(?string $id = null): string
     {
         $options = '';
         foreach ($this->options as $key => $value) {
             /** @noinspection HtmlUnknownAttribute */
             $options .= sprintf(
                 '<label><input type="radio" name="%s" value="%s" %s>%s</label>',
-                $this->fieldName,
-                $key,
+                htmlspecialchars($this->fieldName, ENT_QUOTES, 'UTF-8'),
+                htmlspecialchars((string)$key, ENT_QUOTES, 'UTF-8'),
                 $this->isCurrentOption($key) ? 'checked' : '',
                 htmlspecialchars($value, ENT_QUOTES, 'UTF-8')
             );

@@ -36,10 +36,15 @@ class Checkbox implements FormControlInterface
         return $this->setValue($value !== null);
     }
 
-    public function getHtml(): string
+    public function getHtml(?string $id = null): string
     {
         /** @noinspection HtmlUnknownAttribute */
-        return sprintf('<input type="checkbox" name="%s" %s>', $this->fieldName, $this->value ? 'checked' : '');
+        return sprintf(
+            '<input type="checkbox" name="%s"%s%s>',
+            htmlspecialchars($this->fieldName, ENT_QUOTES, 'UTF-8'),
+            $this->value ? ' checked' : '',
+            $id ? ' id="' . $id . '"' : ''
+        );
     }
 
     public function getValue(): bool

@@ -44,6 +44,9 @@ class Form
         return $this->controls;
     }
 
+    /**
+     * @return array<string, FormControlInterface>
+     */
     public function getVisibleControls(): array
     {
         return array_filter($this->controls, static fn(FormControlInterface $control) => !$control instanceof HiddenInput);

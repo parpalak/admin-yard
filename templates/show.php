@@ -18,9 +18,7 @@ declare(strict_types=1);
         <?php foreach ($row['cells'] as $fieldName => $cell): ?>
             <tr>
                 <td class="field-name"><?= htmlspecialchars($header[$fieldName], ENT_QUOTES, 'UTF-8') ?></td>
-                <td class="type-<?= $cell['type'] ?> field-<?= $entityName ?>-<?= $fieldName ?>">
-                    <?= $cell['content'] ?>
-                </td>
+                <td class="type-<?= $cell['type'] ?> field-<?= $entityName ?>-<?= $fieldName ?>"><?= $cell['content'] ?></td>
             </tr>
         <?php endforeach; ?>
         </tbody>

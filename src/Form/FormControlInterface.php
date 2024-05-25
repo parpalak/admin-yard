@@ -37,5 +37,5 @@ interface FormControlInterface extends ValidatableInterface
     /**
      * @return string HTML markup of form control with current value.
      */
-    public function getHtml(): string;
+    public function getHtml(?string $id = null): string;
 }

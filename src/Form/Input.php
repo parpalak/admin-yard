@@ -33,9 +33,14 @@ class Input implements FormControlInterface
         return $this->setValue($value);
     }
 
-    public function getHtml(): string
+    public function getHtml(?string $id = null): string
     {
-        return sprintf('<input type="text" name="%s" value="%s">', $this->fieldName, $this->value);
+        return sprintf(
+            '<input type="text" name="%s" value="%s"%s>',
+            htmlspecialchars($this->fieldName, ENT_QUOTES, 'UTF-8'),
+            htmlspecialchars($this->value, ENT_QUOTES, 'UTF-8'),
+            $id !== null ? ' id="' . $id . '"' : ''
+        );
     }
 
     public function getValue(): string

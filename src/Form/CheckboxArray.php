@@ -11,15 +11,15 @@ namespace S2\AdminYard\Form;
 
 class CheckboxArray extends MultiSelect
 {
-    public function getHtml(): string
+    public function getHtml(?string $id = null): string
     {
         $options = '';
         foreach ($this->options as $key => $value) {
             /** @noinspection HtmlUnknownAttribute */
             $options .= sprintf(
                 '<label><input type="checkbox" name="%s" value="%s" %s>%s</label>',
-                $this->fieldName . '[]',
-                $key,
+                htmlspecialchars($this->fieldName . '[]', ENT_QUOTES, 'UTF-8'),
+                htmlspecialchars((string)$key, ENT_QUOTES, 'UTF-8'),
                 $this->isCurrentOption($key) ? 'checked' : '',
                 htmlspecialchars($value, ENT_QUOTES, 'UTF-8')
             );

@@ -40,7 +40,7 @@ class Datetime implements FormControlInterface
         return $this;
     }
 
-    public function getHtml(): string
+    public function getHtml(?string $id = null): string
     {
         if ($this->value === null) {
             $formattedValue = '';
@@ -49,7 +49,12 @@ class Datetime implements FormControlInterface
         } else {
             $formattedValue = $this->value;
         }
-        return sprintf('<input type="datetime-local" name="%s" value="%s">', $this->fieldName, $formattedValue);
+        return sprintf(
+            '<input type="datetime-local" name="%s" value="%s"%s>',
+            htmlspecialchars($this->fieldName, ENT_QUOTES, 'UTF-8'),
+            htmlspecialchars($formattedValue, ENT_QUOTES, 'UTF-8'),
+            $id !== null ? ' id="' . $id . '"' : ''
+        );
     }
 
     public function getInternalValue(): \DateTimeImmutable|string|null

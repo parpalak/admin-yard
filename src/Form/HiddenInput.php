@@ -11,8 +11,13 @@ namespace S2\AdminYard\Form;
 
 class HiddenInput extends Input
 {
-    public function getHtml(): string
+    public function getHtml(?string $id = null): string
     {
-        return sprintf('<input type="hidden" name="%s" value="%s">', $this->fieldName, $this->value);
+        return sprintf(
+            '<input type="hidden" name="%s" value="%s"%s>',
+            htmlspecialchars($this->fieldName, ENT_QUOTES, 'UTF-8'),
+            htmlspecialchars($this->value, ENT_QUOTES, 'UTF-8'),
+            $id !== null ? ' id="' . $id . '"' : ''
+        );
     }
 }
