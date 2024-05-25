@@ -22,7 +22,7 @@ class TypeTransformer implements TypeTransformerInterface
             FieldConfig::DATA_TYPE_DATE,
             FieldConfig::DATA_TYPE_INT,
             FieldConfig::DATA_TYPE_FLOAT => (string)$value,
-            FieldConfig::DATA_TYPE_BOOL => $value === 1 || $value === '1',
+            FieldConfig::DATA_TYPE_BOOL => $value === 1 || $value === '1' || $value === true,
             FieldConfig::DATA_TYPE_TIMESTAMP => $value !== null ? new DateTimeImmutable($value) : null,
             FieldConfig::DATA_TYPE_UNIXTIME => $value === 0 ? null : new DateTimeImmutable('@' . $value),
             default => throw new InvalidArgumentException(sprintf('Unknown data type "%s".', $dataType)),

@@ -36,8 +36,15 @@ class Integration extends Module
      */
     public function _initialize(): void
     {
-        shell_exec('mysql -u root ' . (getenv('DB_PASSWORD') ? '-p' . getenv('DB_PASSWORD') : '') . ' --database adminyard_test < ' . __DIR__ . '/../../../demo/init.sql');
-        $this->pdo = new \PDO('mysql:host=127.0.0.1;dbname=adminyard_test;', 'root', getenv('DB_PASSWORD') ?: '');
+        switch (getenv('APP_DB_TYPE')) {
+            case 'pgsql':
+                shell_exec('sudo -u postgres psql adminyard_test < ' . __DIR__ . '/../../../demo/init_pgsql.sql');
+                $this->pdo = new \PDO('pgsql:host=localhost;dbname=adminyard_test', 'postgres', '12345');
+                break;
+            default:
+                shell_exec('mysql -u root ' . (getenv('DB_PASSWORD') ? '-p' . getenv('DB_PASSWORD') : '') . ' --database adminyard_test < ' . __DIR__ . '/../../../demo/init_mysql.sql');
+                $this->pdo = new \PDO('mysql:host=127.0.0.1;dbname=adminyard_test;', 'root', getenv('DB_PASSWORD') ?: '');
+        }
 
         $adminConfig      = require __DIR__ . '/../../../demo/admin_config.php';
         $this->adminPanel = $this->createAdminPanel($adminConfig, $this->pdo);
@@ -149,7 +156,7 @@ class Integration extends Module
     public function seeFlashMessage(string $check): void
     {
         $flashMessages = $this->session->getFlashBag()->peekAll();
-        $condition = false;
+        $condition     = false;
         foreach ($flashMessages as $type => $messages) {
             foreach ($messages as $message) {
                 if (str_contains($message, $check)) {

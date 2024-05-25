@@ -15,8 +15,9 @@ class EntityConfig
     public const EVENT_AFTER_UPDATE  = 'after_update';
     public const EVENT_BEFORE_CREATE = 'before_create';
     public const EVENT_AFTER_CREATE  = 'after_create';
+    public const EVENT_BEFORE_DELETE = 'before_delete';
 
-    private const ALLOWED_ACTIONS = FieldConfig::ALLOWED_ACTIONS;
+    private const ALLOWED_ACTIONS     = FieldConfig::ALLOWED_ACTIONS;
 
     private readonly string $tableName;
 

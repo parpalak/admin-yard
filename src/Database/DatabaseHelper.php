@@ -32,7 +32,7 @@ class DatabaseHelper
 
             if ($field->type instanceof VirtualFieldType) {
                 // NOTE: should virtual fields have a data type other than string?
-                $result[$field->name] = 'COALESCE((' . $field->type->titleSqlExpression . '), "")';
+                $result[$field->name] = "COALESCE((" . $field->type->titleSqlExpression . "), '')";
             }
 
             if ($field->linkToEntity !== null) {

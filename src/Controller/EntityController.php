@@ -20,6 +20,7 @@ use S2\AdminYard\Database\DataProviderException;
 use S2\AdminYard\Database\Key;
 use S2\AdminYard\Database\PdoDataProvider;
 use S2\AdminYard\Event\AfterSaveEvent;
+use S2\AdminYard\Event\BeforeDeleteEvent;
 use S2\AdminYard\Event\BeforeSaveEvent;
 use S2\AdminYard\Form\Form;
 use S2\AdminYard\Form\FormFactory;
@@ -304,7 +305,17 @@ readonly class EntityController
             return new Response('CSRF token mismatch', Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
-        $deletedRows = $this->dataProvider->deleteEntity($this->entityConfig->getTableName(), $primaryKey);
+        $this->eventDispatcher->dispatch(
+            new BeforeDeleteEvent($this->dataProvider, $primaryKey),
+            'adminyard.' . $this->entityConfig->getName() . '.' . EntityConfig::EVENT_BEFORE_DELETE
+        );
+        try {
+            $deletedRows = $this->dataProvider->deleteEntity($this->entityConfig->getTableName(), $primaryKey);
+        } catch (DataProviderException $e) {
+            $this->addFlashMessage($request, 'error', $this->translator->trans($e->getMessage()));
+            return new Response('Unable to delete entity', Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
+
         if ($deletedRows === 0) {
             $this->addFlashMessage($request, 'warning', sprintf(
                 $this->translator->trans('%s was not deleted.'),
@@ -536,6 +547,6 @@ readonly class EntityController
             $postPrimaryKey[$pkFieldName] = $postData[$pkFieldName];
         }
 
-        return new Key($postPrimaryKey);
+        return $postPrimaryKey !== [] ? new Key($postPrimaryKey) : null;
     }
 }

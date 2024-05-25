@@ -13,6 +13,7 @@ use S2\AdminYard\Config\LinkTo;
 use S2\AdminYard\Config\VirtualFieldType;
 use S2\AdminYard\Database\Key;
 use S2\AdminYard\Event\AfterSaveEvent;
+use S2\AdminYard\Event\BeforeDeleteEvent;
 use S2\AdminYard\Event\BeforeSaveEvent;
 use S2\AdminYard\Validator\Length;
 use S2\AdminYard\Validator\NotBlank;
@@ -36,7 +37,7 @@ $commentConfig = (new EntityConfig('Comment', 'comments'))
         control: 'select',
         validators: [new NotBlank()],
         sortable: true,
-        linkToEntity: new LinkTo($postEntity, 'CONCAT("#", id, " ", title)'),
+        linkToEntity: new LinkTo($postEntity, "CONCAT('#', id, ' ', title)"),
         useOnActions: [FieldConfig::ACTION_LIST, FieldConfig::ACTION_SHOW, FieldConfig::ACTION_NEW])
     ))
     ->addField(new FieldConfig(
@@ -107,7 +108,7 @@ function tagIdsFromTags(\S2\AdminYard\Database\PdoDataProvider $dataProvider, ar
     $existingTags = $dataProvider->getEntityList('tags', [
         'name' => FieldConfig::DATA_TYPE_STRING,
         'id'   => FieldConfig::DATA_TYPE_INT,
-    ], filterData: ['name' => $tags]);
+    ], filterData: ['LOWER(name)' => array_map(fn(string $tag) => mb_strtolower($tag), $tags)]);
 
     $existingTagsMap = array_column($existingTags, 'field_name', 'field_id');
     $existingTagsMap = array_map(static fn(string $tag) => mb_strtolower($tag), $existingTagsMap);
@@ -146,7 +147,10 @@ $adminConfig
             ))
             ->addField(new FieldConfig(
                 name: 'tags',
-                type: new VirtualFieldType('SELECT GROUP_CONCAT(t.name SEPARATOR ", ") FROM tags AS t JOIN posts_tags AS pt ON t.id = pt.tag_id WHERE pt.post_id = entity.id'),
+                type: match (getenv('APP_DB_TYPE')) {
+                    'pgsql' => new VirtualFieldType("SELECT STRING_AGG(t.name, ', ') FROM tags AS t JOIN posts_tags AS pt ON t.id = pt.tag_id WHERE pt.post_id = entity.id"),
+                    default => new VirtualFieldType('SELECT GROUP_CONCAT(t.name SEPARATOR ", ") FROM tags AS t JOIN posts_tags AS pt ON t.id = pt.tag_id WHERE pt.post_id = entity.id'),
+                },
                 control: 'input',
                 validators: [
                     (static function () {
@@ -212,12 +216,24 @@ $adminConfig
                     }
                 }
             })
+            ->addListener(EntityConfig::EVENT_BEFORE_DELETE, function (BeforeDeleteEvent $event) {
+                $event->dataProvider->deleteEntity('posts_tags', new Key(['post_id' => $event->primaryKey->toArray()['id']]));
+            })
             ->addFilter(
                 new Filter(
                     'search',
                     'Fulltext Search',
                     'input',
                     'title LIKE %1$s OR text LIKE %1$s',
+                    fn(string $value) => $value !== '' ? '%' . $value . '%' : null
+                )
+            )
+            ->addFilter(
+                new Filter(
+                    'tags',
+                    'Tags',
+                    'input',
+                    'id IN (SELECT pt.post_id FROM posts_tags AS pt JOIN tags AS t ON t.id = pt.tag_id WHERE t.name LIKE %1$s)',
                     fn(string $value) => $value !== '' ? '%' . $value . '%' : null
                 )
             )
@@ -275,7 +291,7 @@ $adminConfig
             ))
             ->addField(new FieldConfig(
                 name: 'used_in_posts',
-                type: new VirtualFieldType('SELECT COUNT(*) FROM posts_tags AS pt WHERE pt.tag_id = entity.id'),
+                type: new VirtualFieldType('SELECT CAST(COUNT(*) AS CHAR) FROM posts_tags AS pt WHERE pt.tag_id = entity.id'),
                 useOnActions: [FieldConfig::ACTION_LIST]
             ))
             ->addField(new FieldConfig(

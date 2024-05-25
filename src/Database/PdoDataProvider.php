@@ -67,8 +67,9 @@ readonly class PdoDataProvider
                 }
                 $arrayParamNames = [];
                 foreach (array_values($filterValue) as $i => $value) {
-                    $arrayParamNames[]              = ':' . $filterName . '_' . $i;
-                    $params[$filterName . '_' . $i] = $value;
+                    $paramName          = strtr($filterName, '()', '__') . '_' . $i;
+                    $arrayParamNames[]  = ':' . $paramName;
+                    $params[$paramName] = $value;
                 }
                 $criteria[] = sprintf($format, implode(', ', $arrayParamNames));
                 continue;
@@ -87,6 +88,13 @@ readonly class PdoDataProvider
         }
 
         if ($sortField !== null) {
+            if ($this->driverIs('pgsql')) {
+                $sortDirection = match (strtolower($sortDirection)) {
+                    'asc' => 'ASC NULLS FIRST',
+                    'desc' => 'DESC NULLS LAST',
+                    default => throw new \InvalidArgumentException(sprintf('Invalid sort direction "%s".', $sortDirection)),
+                };
+            }
             $sql .= " ORDER BY $sortField $sortDirection";
         }
 
@@ -152,8 +160,7 @@ readonly class PdoDataProvider
         try {
             $stmt->execute(array_merge($data, $condition->prependColumnNames('pk_')->toArray()));
         } catch (\PDOException $e) {
-            // TODO checks not only for MySQL
-            if ($e->errorInfo[1] === 1062) {
+            if (($e->errorInfo[1] === 1062 && $this->driverIs('mysql')) || ($e->errorInfo[0] === '25P02' && $this->driverIs('pgsql'))) {
                 throw new DataProviderException('The entity with same parameters already exists.', 0, $e);
             }
             throw new DataProviderException('Cannot save entity to database', 0, $e);
@@ -176,8 +183,7 @@ readonly class PdoDataProvider
         try {
             $stmt->execute(array_filter($data, static fn($value) => $value !== null));
         } catch (\PDOException $e) {
-            // TODO checks not only for MySQL
-            if ($e->errorInfo[1] === 1062) {
+            if (($e->errorInfo[1] === 1062 && $this->driverIs('mysql')) || ($e->errorInfo[0] === '23505' && $this->driverIs('pgsql'))) {
                 throw new DataProviderException('The entity with same parameters already exists.', 0, $e);
             }
             throw new DataProviderException('Cannot save entity to database', 0, $e);
@@ -191,6 +197,7 @@ readonly class PdoDataProvider
     }
 
     /**
+     * @throws DataProviderException
      * @throws \PDOException
      */
     public function deleteEntity(string $tableName, Key $condition): int
@@ -205,7 +212,14 @@ readonly class PdoDataProvider
 
         $deleteSql = "DELETE FROM $tableName WHERE " . $criteria;
         $stmt      = $this->pdo->prepare($deleteSql);
-        $stmt->execute($condition->toArray());
+        try {
+            $stmt->execute($condition->toArray());
+        } catch (\PDOException $e) {
+            if (($this->driverIs('mysql') && $e->errorInfo[1] === 1451) || ($this->driverIs('pgsql') && $e->errorInfo[0] === '23503')) {
+                throw new DataProviderException('Cannot delete entity because it is used in other entities.', 0, $e);
+            }
+            throw new DataProviderException('Cannot delete entity from database', 0, $e);
+        }
 
         $reportedCount = $stmt->rowCount();
         if ($reportedCount > 0) {
@@ -242,5 +256,17 @@ readonly class PdoDataProvider
     {
         $sql = "SELECT $primaryKeyColumnNames[0], $titleSqlExpression AS label FROM $tableName";
         return $this->pdo->query($sql)->fetchAll(\PDO::FETCH_KEY_PAIR);
+    }
+
+    /**
+     * @throws DataProviderException
+     */
+    private function driverIs(string $driverName): bool
+    {
+        $supportedDrivers = ['mysql', 'pgsql'];
+        if (!\in_array($driverName, $supportedDrivers, true)) {
+            throw new DataProviderException(sprintf("Unsupported driver: %s. Supported drivers: [%s].", $driverName, implode(', ', $supportedDrivers)));
+        }
+        return $this->pdo->getAttribute(\PDO::ATTR_DRIVER_NAME) === $driverName;
     }
 }
