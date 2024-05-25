@@ -160,7 +160,7 @@ readonly class PdoDataProvider
         try {
             $stmt->execute(array_merge($data, $condition->prependColumnNames('pk_')->toArray()));
         } catch (\PDOException $e) {
-            if (($e->errorInfo[1] === 1062 && $this->driverIs('mysql')) || ($e->errorInfo[0] === '25P02' && $this->driverIs('pgsql'))) {
+            if (($e->errorInfo[1] === 1062 && $this->driverIs('mysql')) || ($e->errorInfo[0] === '23505' && $this->driverIs('pgsql'))) {
                 throw new DataProviderException('The entity with same parameters already exists.', 0, $e);
             }
             throw new DataProviderException('Cannot save entity to database', 0, $e);
@@ -170,7 +170,7 @@ readonly class PdoDataProvider
     /**
      * @throws DataProviderException
      */
-    public function createEntity(string $tableName, array $dataTypes, array $data): ?string
+    public function createEntity(string $tableName, array $dataTypes, array $data): void
     {
         foreach ($dataTypes as $key => $type) {
             $data[$key] = $this->typeTransformer->dbFromNormalized($data[$key], $type);
@@ -188,10 +188,13 @@ readonly class PdoDataProvider
             }
             throw new DataProviderException('Cannot save entity to database', 0, $e);
         }
+    }
 
+    public function lastInsertId(): ?string
+    {
         try {
             return $this->pdo->lastInsertId() ?: null;
-        } catch (\PDOException) {
+        } catch (\PDOException $e) {
             return null;
         }
     }

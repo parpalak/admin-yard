@@ -141,6 +141,23 @@ class EntityConfig
         return $result;
     }
 
+    public function primaryKeyIsInt(): bool
+    {
+        $intCount = 0;
+        foreach ($this->fields as $field) {
+            if ($field->type instanceof DbColumnFieldType && $field->type->primaryKey) {
+                if ($field->type->dataType === FieldConfig::DATA_TYPE_INT) {
+                    $intCount++;
+                }
+                else {
+                    return false;
+                }
+            }
+        }
+
+        return $intCount === 1;
+    }
+
     public function isDefault(): bool
     {
         return $this->default;

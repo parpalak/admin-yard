@@ -230,7 +230,7 @@ readonly class EntityController
                 $data = $event->data;
 
                 try {
-                    $lastInsertId = $this->dataProvider->createEntity(
+                    $this->dataProvider->createEntity(
                         $this->entityConfig->getTableName(),
                         $this->entityConfig->getFieldDataTypes(FieldConfig::ACTION_NEW, includeDefault: true),
                         array_merge($this->entityConfig->getFieldDefaultValues(), $data)
@@ -240,7 +240,7 @@ readonly class EntityController
                 }
 
                 if ($errorMessages === []) {
-                    $newPrimaryKey = $this->detectNewPrimaryKey($lastInsertId, $data);
+                    $newPrimaryKey = $this->detectNewPrimaryKey($data);
 
                     $this->eventDispatcher->dispatch(
                         new AfterSaveEvent($this->dataProvider, $newPrimaryKey, $context),
@@ -529,12 +529,26 @@ readonly class EntityController
         return new Key($values);
     }
 
-    private function detectNewPrimaryKey(?string $lastInsertId, array $postData): ?Key
+    private function detectNewPrimaryKey(array $postData): ?Key
     {
         $pkFieldNames = $this->entityConfig->getFieldNamesOfPrimaryKey();
-        if (is_numeric($lastInsertId) && (int)$lastInsertId > 0 && \count($pkFieldNames) === 1) {
-            // We have detected an assigned value of usual auto-increment ID
-            return new Key([$pkFieldNames[0] => (int)$lastInsertId]);
+
+        /**
+         * Trying not to call lastInsertId on every insert.
+         *
+         * In PostgreSQL, if there was no actual nextval() call, we have the following error
+         * that corrupts a possible transaction:
+         *
+         * SQLSTATE[55000]: Object not in prerequisite state: 7 ERROR: lastval is not yet defined in this session
+         *
+         * So, if primary key does not seem to be auto-increment, we skip lastInsertId call.
+         */
+        if ($this->entityConfig->primaryKeyIsInt()) {
+            $lastInsertId = $this->dataProvider->lastInsertId();
+            if (is_numeric($lastInsertId) && (int)$lastInsertId > 0 && \count($pkFieldNames) === 1) {
+                // We have detected an assigned value of usual auto-increment ID
+                return new Key([$pkFieldNames[0] => (int)$lastInsertId]);
+            }
         }
 
         // No PK detected from auto-increment. Check if we have all columns of PK submitted.

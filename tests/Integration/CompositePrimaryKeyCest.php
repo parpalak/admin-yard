@@ -75,7 +75,7 @@ class CompositePrimaryKeyCest
         $I->see('Entity was deleted');
     }
 
-    public function uniqueKeyViolationTest(IntegrationTester $I): void
+    public function uniqueKeyViolationOnNewTest(IntegrationTester $I): void
     {
         $I->amOnPage('?entity=CompositeKey&action=new');
         $I->submitForm('form', [
@@ -86,6 +86,34 @@ class CompositePrimaryKeyCest
         $I->seeResponseCodeIs(Response::HTTP_FOUND);
 
         $I->amOnPage('?entity=CompositeKey&action=new');
+        $I->submitForm('form', [
+            'column1' => 1,
+            'column2' => 'Test title',
+            'column3' => '2020-01-01',
+        ]);
+        // $I->seeResponseCodeIs(Response::HTTP_CONFLICT); // TODO implementation required
+        $I->see('The entity with same parameters already exists.');
+    }
+
+    public function uniqueKeyViolationOnEditTest(IntegrationTester $I): void
+    {
+        $I->amOnPage('?entity=CompositeKey&action=new');
+        $I->submitForm('form', [
+            'column1' => 1,
+            'column2' => 'Test title',
+            'column3' => '2020-01-01',
+        ]);
+        $I->seeResponseCodeIs(Response::HTTP_FOUND);
+
+        $I->amOnPage('?entity=CompositeKey&action=new');
+        $I->submitForm('form', [
+            'column1' => 2,
+            'column2' => 'Test title',
+            'column3' => '2020-01-01',
+        ]);
+        $I->seeResponseCodeIs(Response::HTTP_FOUND);
+
+        $I->amOnPage('?entity=CompositeKey&action=edit&column1=2&column2=Test+title&column3=2020-01-01');
         $I->submitForm('form', [
             'column1' => 1,
             'column2' => 'Test title',

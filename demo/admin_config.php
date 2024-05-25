@@ -117,8 +117,8 @@ function tagIdsFromTags(\S2\AdminYard\Database\PdoDataProvider $dataProvider, ar
     $tagIds = [];
     foreach ($tags as $tag) {
         if (!isset($existingTagsMap[mb_strtolower($tag)])) {
-            $newTagId = $dataProvider->createEntity('tags', ['name' => FieldConfig::DATA_TYPE_STRING], ['name' => $tag]);
-            // TODO: check if lastInsertId fails
+            $dataProvider->createEntity('tags', ['name' => FieldConfig::DATA_TYPE_STRING], ['name' => $tag]);
+            $newTagId = $dataProvider->lastInsertId();
         } else {
             $newTagId = $existingTagsMap[mb_strtolower($tag)];
         }
