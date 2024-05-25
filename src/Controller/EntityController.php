@@ -13,7 +13,6 @@ use S2\AdminYard\Config\DbColumnFieldType;
 use S2\AdminYard\Config\EntityConfig;
 use S2\AdminYard\Config\FieldConfig;
 use S2\AdminYard\Config\Filter;
-use S2\AdminYard\Config\LinkedByFieldType;
 use S2\AdminYard\Config\VirtualFieldType;
 use S2\AdminYard\Database\DatabaseHelper;
 use S2\AdminYard\Database\DataProviderException;
@@ -380,20 +379,16 @@ readonly class EntityController
             };
 
             // Additional attributes to build a link to an associated entity.
-            $additionalParams = $this->getLinkCellParamsForAssociations($field, $idValues, $row);
-            $cellParams       = [
-                'value'        => $cellValue,
-                'type'         => $dataType,
-                'linkToAction' => $field->actionOnClick,
-                ...$field->actionOnClick !== null ? [
-                    'entity'     => $this->entityConfig->getName(),
-                    'primaryKey' => $primaryKey
-                ] : [],
-                ... $additionalParams,
+            $linkCellParams = $this->getLinkCellParams($field, new Key($primaryKey), $row);
+            $cellParams     = [
+                'value'      => $cellValue,
+                'label'      => (string)($row['label_' . $columnName] ?? $cellValue),
+                'type'       => $dataType,
+                'linkParams' => $linkCellParams,
             ];
 
             $result['cells'][$columnName] = [
-                'type'    => $additionalParams === [] ? $dataType : FieldConfig::DATA_TYPE_STRING, // string for int IDs converted to links
+                'type'    => $linkCellParams === [] ? $dataType : FieldConfig::DATA_TYPE_STRING, // string for int IDs converted to links
                 'content' => $this->templateRenderer->render($field->viewTemplate, $cellParams),
             ];
         }
@@ -401,37 +396,49 @@ readonly class EntityController
         return $result;
     }
 
-    protected function getLinkCellParamsForAssociations(FieldConfig $currentField, array $idValues, array $row): array
+    protected function getLinkCellParams(FieldConfig $currentField, Key $primaryKey, array $row): ?array
     {
-        if (!$currentField->type instanceof LinkedByFieldType && $currentField->linkToEntity === null) {
-            return [];
-        }
         $columnName = $currentField->name;
-        if (!\array_key_exists('label_' . $columnName, $row)) {
-            throw new \LogicException(sprintf('Row data array for entity "%s" must have a "label_%s" key.', $this->entityConfig->getName(), $columnName));
-        }
-        if ($row['label_' . $columnName] === null) {
-            // Label is NULL so there will be no link to associated entity
-            return [];
-        }
-        $labelContent = (string)$row['label_' . $columnName];
-
-        if ($currentField->type instanceof LinkedByFieldType) {
-            // One-To-Many, link to "children" entities
-            if (\count($idValues) === 0) {
-                throw new \LogicException(sprintf(
-                    'Entity "%s" has no primary key configured and it cannot be used in a one-to-many relationship.',
-                    $this->entityConfig->getName()
-                ));
-            }
+        if ($currentField->actionOnClick !== null) {
             return [
-                'foreign_entity' => $currentField->type->foreignEntity->getName(),
-                'inverse_column' => $currentField->type->inverseFieldName,
-                'inverse_id'     => $idValues[0],
-                'label'          => $labelContent,
+                'action' => $currentField->actionOnClick,
+                'entity' => $this->entityConfig->getName(),
+                ... $primaryKey->toArray(),
             ];
         }
+
+        if ($currentField->type instanceof VirtualFieldType) {
+            if ($currentField->type->linkToEntityParams === null) {
+                return null;
+            }
+            $externalEntityName        = $currentField->type->linkToEntityParams->entityName;
+            $externalFilterColumnNames = $currentField->type->linkToEntityParams->filterColumnNames;
+            $valueColumns              = $currentField->type->linkToEntityParams->valueColumnNamesOfFilters;
+
+            if (!\array_key_exists('label_' . $columnName, $row)) {
+                throw new \LogicException(sprintf('Row data array for entity "%s" must have a "label_%s" key.', $this->entityConfig->getName(), $columnName));
+            }
+            if ($row['label_' . $columnName] === null) {
+                // Label is NULL so there will be no link to associated entities
+                return null;
+            }
+
+            return [
+                'entity' => $externalEntityName,
+                'action' => 'list',
+                ... array_combine($externalFilterColumnNames, array_map(static fn(string $columnName) => $row['field_' . $columnName], $valueColumns)),
+            ];
+        }
+
         if ($currentField->linkToEntity !== null) {
+            if (!\array_key_exists('label_' . $columnName, $row)) {
+                throw new \LogicException(sprintf('Row data array for entity "%s" must have a "label_%s" key.', $this->entityConfig->getName(), $columnName));
+            }
+            if ($row['label_' . $columnName] === null) {
+                // Label is NULL so there will be no link to associated entity
+                return null;
+            }
+
             // Many-To-One, link to "parent" entity
             $foreignEntity          = $currentField->linkToEntity->foreignEntity;
             $fieldNamesOfPrimaryKey = $foreignEntity->getFieldNamesOfPrimaryKey();
@@ -440,14 +447,15 @@ readonly class EntityController
             }
 
             return [
-                'foreign_entity'    => $foreignEntity->getName(),
+                'entity'                   => $foreignEntity->getName(),
+                'action'                   => 'show',
                 // NOTE: think about how to handle primary keys with more than one field.
                 //       For now, we just take the first field. It's ok for usual ID fields.
-                'foreign_id_column' => $fieldNamesOfPrimaryKey[0],
-                'label'             => $labelContent,
+                $fieldNamesOfPrimaryKey[0] => $row['field_' . $currentField->name],
             ];
         }
-        throw new \LogicException('Unreachable code.');
+
+        return null;
     }
 
     protected function addFlashMessage(Request $request, string $type, string $message): void

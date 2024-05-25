@@ -51,7 +51,7 @@ class FieldConfig
      * @param string|null          $label         Field label in the interface. If not set, column name will be used as
      *                                            a label.
      * @param AbstractFieldType    $type          Behavior of this field. Either DbColumnFieldType for usual columns or
-     *                                            LinkedByFieldType for one-to-many associations.
+     *                                            VirtualFieldType for fields that are not present in the database.
      * @param string|null          $control       What control should be used for this field in the new and edit forms.
      * @param array|null           $options       Selection options for select and radio controls. Also used to convert
      *                                            the values from the normalized internal representation for

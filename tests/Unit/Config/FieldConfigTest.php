@@ -47,11 +47,23 @@ class FieldConfigTest extends Unit
         );
     }
 
+    public function testLinkedByFieldTypeWithoutPk(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('must have exactly one primary key column to be used in the LinkedByFieldType');
+        $foreignEntity = (new EntityConfig('test_entity'));
+        $fieldConfig   = new FieldConfig(
+            name: 'test_field',
+            type: new LinkedByFieldType($foreignEntity, 'COUNT(*)', 'other_field'),
+            linkToEntity: new LinkTo($foreignEntity, 'title')
+        );
+    }
+
     public function testLinkConflict1(): void
     {
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('Only one of');
-        $foreignEntity = new EntityConfig('test_entity');
+        $foreignEntity = (new EntityConfig('test_entity'))->addField(new FieldConfig('id', type: new DbColumnFieldType(FieldConfig::DATA_TYPE_INT, true)));
         $fieldConfig   = new FieldConfig(
             name: 'test_field',
             type: new LinkedByFieldType($foreignEntity, 'COUNT(*)', 'other_field'),
@@ -63,7 +75,7 @@ class FieldConfigTest extends Unit
     {
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('Only one of');
-        $foreignEntity = new EntityConfig('test_entity');
+        $foreignEntity = (new EntityConfig('test_entity'))->addField(new FieldConfig('id', type: new DbColumnFieldType(FieldConfig::DATA_TYPE_INT, true)));
         $fieldConfig   = new FieldConfig(
             name: 'test_field',
             type: new LinkedByFieldType($foreignEntity, 'COUNT(*)', 'other_field'),

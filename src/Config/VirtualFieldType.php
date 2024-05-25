@@ -14,11 +14,20 @@ readonly class VirtualFieldType extends AbstractFieldType
     /**
      * Defines this field as a virtual field.
      *
-     * @param string $titleSqlExpression Subquery that fetches data for the field.
-     *                                   Example: 'SELECT GROUP_CONCAT(title) FROM books WHERE author_id = entity.id'
+     * @param string              $titleSqlSubQuery   Sub query that fetches data for the field.
+     *                                                Example: 'SELECT GROUP_CONCAT(title) FROM books WHERE author_id =
+     *                                                entity.id'
+     * @param ?LinkToEntityParams $linkToEntityParams
      */
     public function __construct(
-        public string $titleSqlExpression
+        protected string           $titleSqlSubQuery,
+        public ?LinkToEntityParams $linkToEntityParams = null
     ) {
+    }
+
+    public function getTitleSqlSubQuery(): string
+    {
+        // NOTE: should virtual fields have a data type other than string?
+        return sprintf("COALESCE((%s), '')", $this->titleSqlSubQuery);
     }
 }

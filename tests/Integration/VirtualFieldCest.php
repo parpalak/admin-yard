@@ -114,6 +114,18 @@ class VirtualFieldCest
         $I->see('Entity was deleted');
     }
 
+    public function linkToEntityParamsCest(IntegrationTester $I): void
+    {
+        $I->amOnPage('?entity=Tag&action=show&id=1');
+        $I->click('5');
+        $I->seeResponseCodeIs(200);
+        $I->see('Post', 'h1');
+        $postIds = $I->grabMultiple(self::ENTITY_ROW_SELECTOR . ' .field-Post-id');
+        sort($postIds);
+        $I->assertEquals([7, 11, 18, 25, 29], $postIds);
+    }
+
+
     private function getValidationErrorSelector(string $entity, string $field): string
     {
         return '.field-' . $entity . '-' . $field . ' .validation-error';

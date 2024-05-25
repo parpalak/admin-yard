@@ -12,7 +12,7 @@ namespace S2\AdminYard\Config;
 /**
  * One-to-many association configuration.
  */
-readonly class LinkedByFieldType extends AbstractFieldType
+readonly class LinkedByFieldType extends VirtualFieldType
 {
     /**
      * Defines field as a virtual field.
@@ -26,9 +26,31 @@ readonly class LinkedByFieldType extends AbstractFieldType
      * @param string       $inverseFieldName   The column name of the foreign entity that is pointing to this field.
      */
     public function __construct(
-        public EntityConfig $foreignEntity,
-        public string       $titleSqlExpression,
-        public string       $inverseFieldName
+        EntityConfig $foreignEntity,
+        string       $titleSqlExpression,
+        string       $inverseFieldName
     ) {
+        $fieldNamesOfPrimaryKey = $foreignEntity->getFieldNamesOfPrimaryKey();
+        if (\count($fieldNamesOfPrimaryKey) !== 1) {
+            throw new \InvalidArgumentException(sprintf(
+                'Entity "%s" must have exactly one primary key column to be used in the LinkedByFieldType.',
+                $foreignEntity->getName()
+            ));
+        }
+        parent::__construct(sprintf(
+            '(SELECT %s FROM %s WHERE %s = entity.id)',
+            $titleSqlExpression,
+            $foreignEntity->getTableName(),
+            $inverseFieldName,
+        ), new LinkToEntityParams(
+            $foreignEntity->getName(),
+            [$inverseFieldName],
+            [$fieldNamesOfPrimaryKey[0]]
+        ));
+    }
+
+    public function getTitleSqlSubQuery(): string
+    {
+        return $this->titleSqlSubQuery;
     }
 }

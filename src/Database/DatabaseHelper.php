@@ -10,7 +10,6 @@ declare(strict_types=1);
 namespace S2\AdminYard\Database;
 
 use S2\AdminYard\Config\EntityConfig;
-use S2\AdminYard\Config\LinkedByFieldType;
 use S2\AdminYard\Config\VirtualFieldType;
 
 class DatabaseHelper
@@ -19,20 +18,8 @@ class DatabaseHelper
     {
         $result = [];
         foreach ($entityConfig->getFields($action) as $field) {
-            if ($field->type instanceof LinkedByFieldType) {
-                // One-To-Many, aggregated info about "children"
-                $result[$field->name] = sprintf(
-                    '(SELECT %s FROM %s WHERE %s = entity.%s)',
-                    $field->type->titleSqlExpression,
-                    $field->type->foreignEntity->getTableName(),
-                    $field->type->inverseFieldName,
-                    $entityConfig->getFieldNamesOfPrimaryKey()[0]
-                );
-            }
-
             if ($field->type instanceof VirtualFieldType) {
-                // NOTE: should virtual fields have a data type other than string?
-                $result[$field->name] = "COALESCE((" . $field->type->titleSqlExpression . "), '')";
+                $result[$field->name] = "(" . $field->type->getTitleSqlSubQuery() . ")";
             }
 
             if ($field->linkToEntity !== null) {

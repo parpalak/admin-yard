@@ -10,6 +10,7 @@ use S2\AdminYard\Config\Filter;
 use S2\AdminYard\Config\FilterLinkTo;
 use S2\AdminYard\Config\LinkedByFieldType;
 use S2\AdminYard\Config\LinkTo;
+use S2\AdminYard\Config\LinkToEntityParams;
 use S2\AdminYard\Config\VirtualFieldType;
 use S2\AdminYard\Database\Key;
 use S2\AdminYard\Event\AfterSaveEvent;
@@ -291,8 +292,11 @@ $adminConfig
             ))
             ->addField(new FieldConfig(
                 name: 'used_in_posts',
-                type: new VirtualFieldType('SELECT CAST(COUNT(*) AS CHAR) FROM posts_tags AS pt WHERE pt.tag_id = entity.id'),
-                useOnActions: [FieldConfig::ACTION_LIST]
+                type: new VirtualFieldType(
+                    'SELECT CAST(COUNT(*) AS CHAR) FROM posts_tags AS pt WHERE pt.tag_id = entity.id',
+                    new LinkToEntityParams('Post', ['tags'], ['name' /* tags.name */])
+                ),
+                useOnActions: [FieldConfig::ACTION_LIST, FieldConfig::ACTION_SHOW]
             ))
             ->addField(new FieldConfig(
                 name: 'description',
