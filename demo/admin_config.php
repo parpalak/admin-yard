@@ -38,7 +38,7 @@ $commentConfig = (new EntityConfig('Comment', 'comments'))
         control: 'select',
         validators: [new NotBlank()],
         sortable: true,
-        linkToEntity: new LinkTo($postEntity, "CONCAT('#', id, ' ', title)"),
+        linkToEntity: new LinkTo($postEntity, match (getenv('APP_DB_TYPE')) { 'sqlite' => "'#' || id || ' ' || title", default => "CONCAT('#', id, ' ', title)"}),
         useOnActions: [FieldConfig::ACTION_LIST, FieldConfig::ACTION_SHOW, FieldConfig::ACTION_NEW])
     ))
     ->addField(new FieldConfig(
@@ -150,6 +150,7 @@ $adminConfig
                 name: 'tags',
                 type: match (getenv('APP_DB_TYPE')) {
                     'pgsql' => new VirtualFieldType("SELECT STRING_AGG(t.name, ', ') FROM tags AS t JOIN posts_tags AS pt ON t.id = pt.tag_id WHERE pt.post_id = entity.id"),
+                    'sqlite' => new VirtualFieldType("SELECT GROUP_CONCAT(t.name, ', ') FROM tags AS t JOIN posts_tags AS pt ON t.id = pt.tag_id WHERE pt.post_id = entity.id"),
                     default => new VirtualFieldType('SELECT GROUP_CONCAT(t.name SEPARATOR ", ") FROM tags AS t JOIN posts_tags AS pt ON t.id = pt.tag_id WHERE pt.post_id = entity.id'),
                 },
                 control: 'input',

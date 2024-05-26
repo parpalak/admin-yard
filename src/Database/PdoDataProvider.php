@@ -160,7 +160,11 @@ readonly class PdoDataProvider
         try {
             $stmt->execute(array_merge($data, $condition->prependColumnNames('pk_')->toArray()));
         } catch (\PDOException $e) {
-            if (($e->errorInfo[1] === 1062 && $this->driverIs('mysql')) || ($e->errorInfo[0] === '23505' && $this->driverIs('pgsql'))) {
+            if (
+                ($e->errorInfo[1] === 1062 && $this->driverIs('mysql'))
+                || ($e->errorInfo[0] === '23505' && $this->driverIs('pgsql'))
+                || ($e->errorInfo[1] === 19 && $this->driverIs('sqlite'))
+            ) {
                 throw new DataProviderException('The entity with same parameters already exists.', 0, $e);
             }
             throw new DataProviderException('Cannot save entity to database', 0, $e);
@@ -183,7 +187,11 @@ readonly class PdoDataProvider
         try {
             $stmt->execute(array_filter($data, static fn($value) => $value !== null));
         } catch (\PDOException $e) {
-            if (($e->errorInfo[1] === 1062 && $this->driverIs('mysql')) || ($e->errorInfo[0] === '23505' && $this->driverIs('pgsql'))) {
+            if (
+                ($e->errorInfo[1] === 1062 && $this->driverIs('mysql'))
+                || ($e->errorInfo[0] === '23505' && $this->driverIs('pgsql'))
+                || ($e->errorInfo[1] === 19 && $this->driverIs('sqlite'))
+            ) {
                 throw new DataProviderException('The entity with same parameters already exists.', 0, $e);
             }
             throw new DataProviderException('Cannot save entity to database', 0, $e);
@@ -218,7 +226,11 @@ readonly class PdoDataProvider
         try {
             $stmt->execute($condition->toArray());
         } catch (\PDOException $e) {
-            if (($this->driverIs('mysql') && $e->errorInfo[1] === 1451) || ($this->driverIs('pgsql') && $e->errorInfo[0] === '23503')) {
+            if (
+                ($this->driverIs('mysql') && $e->errorInfo[1] === 1451)
+                || ($this->driverIs('pgsql') && $e->errorInfo[0] === '23503')
+                || ($this->driverIs('sqlite') && $e->errorInfo[1] === 19)
+            ) {
                 throw new DataProviderException('Cannot delete entity because it is used in other entities.', 0, $e);
             }
             throw new DataProviderException('Cannot delete entity from database', 0, $e);
@@ -266,7 +278,7 @@ readonly class PdoDataProvider
      */
     private function driverIs(string $driverName): bool
     {
-        $supportedDrivers = ['mysql', 'pgsql'];
+        $supportedDrivers = ['mysql', 'pgsql', 'sqlite'];
         if (!\in_array($driverName, $supportedDrivers, true)) {
             throw new DataProviderException(sprintf("Unsupported driver: %s. Supported drivers: [%s].", $driverName, implode(', ', $supportedDrivers)));
         }

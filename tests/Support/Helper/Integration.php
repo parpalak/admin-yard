@@ -41,6 +41,11 @@ class Integration extends Module
                 shell_exec('sudo -u postgres psql adminyard_test < ' . __DIR__ . '/../../../demo/init_pgsql.sql');
                 $this->pdo = new \PDO('pgsql:host=localhost;dbname=adminyard_test', 'postgres', '12345');
                 break;
+            case 'sqlite':
+                shell_exec('pwd; sqlite3 adminyard_test.db < ' . __DIR__ . '/../../../demo/init_sqlite.sql');
+                $this->pdo = new \PDO('sqlite:adminyard_test.db', '', '');
+                $this->pdo->exec('PRAGMA foreign_keys = ON;');
+                break;
             default:
                 shell_exec('mysql -u root ' . (getenv('DB_PASSWORD') ? '-p' . getenv('DB_PASSWORD') : '') . ' --database adminyard_test < ' . __DIR__ . '/../../../demo/init_mysql.sql');
                 $this->pdo = new \PDO('mysql:host=127.0.0.1;dbname=adminyard_test;', 'root', getenv('DB_PASSWORD') ?: '');

@@ -7,7 +7,7 @@ use Symfony\Component\HttpFoundation\Session\Session;
 
 error_reporting(E_ALL);
 
-// putenv('APP_DB_TYPE=pgsql');
+putenv('APP_DB_TYPE=sqlite');
 
 require '../vendor/autoload.php';
 
@@ -17,6 +17,11 @@ $adminConfig = require 'admin_config.php';
 
 $pdo = match (getenv('APP_DB_TYPE')) {
     'pgsql' => new PDO('pgsql:host=localhost;dbname=adminyard', 'postgres', '12345'),
+    'sqlite' => (static function () {
+        $pdo = new PDO('sqlite:db.sqlite', '', '');
+        $pdo->exec('PRAGMA foreign_keys = ON;');
+        return $pdo;
+    })(),
     default => new PDO('mysql:host=localhost;dbname=adminyard', 'root', ''),
 };
 

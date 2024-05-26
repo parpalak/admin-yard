@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS posts
     is_active BOOLEAN NOT NULL DEFAULT true,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at INT NOT NULL
-    );
+);
 
 INSERT INTO posts (title, text, is_active, created_at, updated_at)
 SELECT
@@ -28,7 +28,7 @@ SELECT
     NOW() - INTERVAL '1 day' * FLOOR(RANDOM() * 365) AS created_at,
     (EXTRACT(EPOCH FROM NOW()) - RANDOM() * 365 * 86400) AS updated_at
 FROM numbers
-    LIMIT 50;
+LIMIT 50;
 
 CREATE TABLE IF NOT EXISTS comments
 (
