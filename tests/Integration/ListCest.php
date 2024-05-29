@@ -132,11 +132,11 @@ class ListCest
             'search'  => 'post 10',
         ]);
         $I->seeResponseCodeIs(200);
-        $I->assertCount(3, $I->grabMultiple(self::ENTITY_ROW_SELECTOR));
+        $I->assertCount(11, $I->grabMultiple(self::ENTITY_ROW_SELECTOR));
 
         // Check that filters were stored in session
         $I->amOnPage('?entity=Comment&action=list');
-        $I->assertCount(3, $I->grabMultiple(self::ENTITY_ROW_SELECTOR));
+        $I->assertCount(11, $I->grabMultiple(self::ENTITY_ROW_SELECTOR));
         $filterFormData = $I->grabFormValues(self::FILTER_FORM_SELECTOR);
         $I->assertEquals('10', $filterFormData['post_id']);
         $I->assertEquals('post 10', $filterFormData['search']);
@@ -173,10 +173,10 @@ class ListCest
             ['statuses' => ['new', 'approved'], 'expectedCount' => 6],
             ['statuses' => ['new'], 'expectedCount' => 4],
             ['statuses' => ['approved'], 'expectedCount' => 2],
-            ['statuses' => ['rejected'], 'expectedCount' => 0],
-            ['statuses' => ['new', 'approved', 'rejected'], 'expectedCount' => 6],
-            ['statuses' => ['approved', 'rejected'], 'expectedCount' => 2],
-            ['statuses' => [], 'expectedCount' => 6],
+            ['statuses' => ['rejected'], 'expectedCount' => 8],
+            ['statuses' => ['new', 'approved', 'rejected'], 'expectedCount' => 14],
+            ['statuses' => ['approved', 'rejected'], 'expectedCount' => 10],
+            ['statuses' => [], 'expectedCount' => 14],
         ];
     }
 
@@ -215,10 +215,10 @@ class ListCest
 
         // Sort one-to-many
         $I->click('section.list-content th.field-Post-comments a');
-        $I->assertEquals(['null', 'null', 'null', 'null', 'null', 'null', 'null', 'null', 'null', '3', '3'], $I->grabMultiple(self::ENTITY_ROW_SELECTOR . ' .field-Post-comments'));
+        $I->assertEquals(['null', 'null', 'null', 'null', 'null', 'null', 'null', 'null', 'null', '3', '11'], $I->grabMultiple(self::ENTITY_ROW_SELECTOR . ' .field-Post-comments'));
 
         $I->click('section.list-content th.field-Post-comments a');
-        $I->assertEquals(['3', '3', 'null', 'null', 'null', 'null', 'null', 'null', 'null', 'null', 'null'], $I->grabMultiple(self::ENTITY_ROW_SELECTOR . ' .field-Post-comments'));
+        $I->assertEquals(['11', '3', 'null', 'null', 'null', 'null', 'null', 'null', 'null', 'null', 'null'], $I->grabMultiple(self::ENTITY_ROW_SELECTOR . ' .field-Post-comments'));
 
         // Sort many-to-one
         $I->amOnPage('?entity=Comment&action=list');
@@ -228,6 +228,14 @@ class ListCest
             '#1 Post 1',
             '#1 Post 1',
             '#1 Post 1',
+            '#10 Post 10',
+            '#10 Post 10',
+            '#10 Post 10',
+            '#10 Post 10',
+            '#10 Post 10',
+            '#10 Post 10',
+            '#10 Post 10',
+            '#10 Post 10',
             '#10 Post 10',
             '#10 Post 10',
             '#10 Post 10',

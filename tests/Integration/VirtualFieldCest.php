@@ -125,6 +125,15 @@ class VirtualFieldCest
         $I->assertEquals([7, 11, 18, 25, 29], $postIds);
     }
 
+    public function sortVirtualFieldsCest(IntegrationTester $I): void
+    {
+        $I->amOnPage('?entity=Post&action=list&sort_field=comments&sort_direction=desc');
+        $I->seeResponseCodeIs(200);
+        $I->see('Post', 'h1');
+        $comments = $I->grabMultiple(self::ENTITY_ROW_SELECTOR . ' .field-Post-comments');
+        $I->assertEquals(['11', '3', '3', '3', '3', '3', '3', '3', '3', '3', ...array_fill(0, 40, 'null')], $comments);
+    }
+
 
     private function getValidationErrorSelector(string $entity, string $field): string
     {

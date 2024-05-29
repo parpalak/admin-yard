@@ -1,8 +1,8 @@
 <?php
 /**
  * @copyright 2024 Roman Parpalak
- * @license http://opensource.org/licenses/MIT MIT
- * @package AdminYard
+ * @license   http://opensource.org/licenses/MIT MIT
+ * @package   AdminYard
  */
 
 declare(strict_types=1);
@@ -32,8 +32,8 @@ class TypeTransformer implements TypeTransformerInterface
     public function dbFromNormalized(mixed $value, string $dataType): mixed
     {
         return match ($dataType) {
-            FieldConfig::DATA_TYPE_STRING,
-            FieldConfig::DATA_TYPE_DATE => (string)$value,
+            FieldConfig::DATA_TYPE_STRING => (string)$value,
+            FieldConfig::DATA_TYPE_DATE => $value !== null && $value !== '' ? (string)$value : null,
             FieldConfig::DATA_TYPE_INT => (int)$value,
             FieldConfig::DATA_TYPE_FLOAT => (float)$value,
             FieldConfig::DATA_TYPE_BOOL => $value ? 1 : 0,

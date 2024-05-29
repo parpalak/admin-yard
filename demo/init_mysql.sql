@@ -3,8 +3,21 @@ INSERT INTO numbers (n) VALUES (1),(2),(3),(4),(5),(6),(7),(8),(9),(10),(11),(12
 
 DROP TABLE IF EXISTS comments;
 DROP TABLE IF EXISTS posts_tags;
-
 DROP TABLE IF EXISTS posts;
+DROP TABLE IF EXISTS users;
+
+CREATE TABLE IF NOT EXISTS users
+(
+    id    INT AUTO_INCREMENT PRIMARY KEY,
+    login VARCHAR(255) NOT NULL,
+    name  VARCHAR(255) DEFAULT NULL
+);
+
+INSERT INTO users (login, name)
+VALUES ('admin', NULL),
+       ('user', 'John Smith')
+;
+
 CREATE TABLE IF NOT EXISTS posts
 (
     id         INT AUTO_INCREMENT PRIMARY KEY,
@@ -12,16 +25,19 @@ CREATE TABLE IF NOT EXISTS posts
     text       TEXT             NOT NULL,
     is_active  BOOLEAN          NOT NULL DEFAULT true,
     created_at TIMESTAMP                 DEFAULT CURRENT_TIMESTAMP,
-    updated_at INT(11) UNSIGNED NOT NULL
+    updated_at INT(11) UNSIGNED NOT NULL,
+    user_id    INT              NULL,
+    FOREIGN KEY (user_id) REFERENCES users (id)
 );
 
-INSERT INTO posts (title, text, is_active, created_at, updated_at)
+INSERT INTO posts (title, text, is_active, created_at, updated_at, user_id)
 SELECT
     CONCAT('Post ', n) AS title,
     CONCAT('Text for post ', n) AS text,
     IF(MOD(n, 2) = 0, true, false) AS is_active,
     NOW() - INTERVAL FLOOR(RAND() * 365) DAY AS created_at,
-    UNIX_TIMESTAMP() - RAND() * 365 * 86400 AS updated_at
+    UNIX_TIMESTAMP() - RAND() * 365 * 86400 AS updated_at,
+    CASE WHEN n % 3 = 0 THEN 1 WHEN n % 3 = 1 THEN 2 ELSE NULL END AS user_id
 FROM
     numbers
 LIMIT 50;
@@ -69,7 +85,15 @@ VALUES
     (9, 'Sarah Lee', 's@l.com', 'This is the third comment for post 9.', NOW(), 'new'),
     (10, 'David Kim', 'd@k.com', 'This is the first comment for post 10.', NOW(), 'approved'),
     (10, 'Emily Chen', 'e@c.com', 'This is the second comment for post 10.', NOW(), 'new'),
-    (10, 'Tom Johnson', 't@j.com', 'This is the third comment for post 10.', NOW(), 'new')
+    (10, 'Tom Johnson', 't@j.com', 'This is the third comment for post 10.', NOW(), 'new'),
+    (10, 'David Kim', 'd@k.com', 'This is the fourth comment for post 10.', NOW(), 'rejected'),
+    (10, 'Emily Chen', 'e@c.com', 'This is the fifth comment for post 10.', NOW(), 'rejected'),
+    (10, 'Tom Johnson', 't@j.com', 'This is the sixth comment for post 10.', NOW(), 'rejected'),
+    (10, 'David Kim', 'd@k.com', 'This is the seventh comment for post 10.', NOW(), 'rejected'),
+    (10, 'Emily Chen', 'e@c.com', 'This is the eighth comment for post 10.', NOW(), 'rejected'),
+    (10, 'Tom Johnson', 't@j.com', 'This is the ninth comment for post 10.', NOW(), 'rejected'),
+    (10, 'David Kim', 'd@k.com', 'This is the tenth comment for post 10.', NOW(), 'rejected'),
+    (10, 'Emily Chen', 'e@c.com', 'This is the eleventh comment for post 10.', NOW(), 'rejected')
     ;
 
 DROP TABLE IF EXISTS tags;

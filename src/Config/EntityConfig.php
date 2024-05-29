@@ -16,8 +16,9 @@ class EntityConfig
     public const EVENT_BEFORE_CREATE = 'before_create';
     public const EVENT_AFTER_CREATE  = 'after_create';
     public const EVENT_BEFORE_DELETE = 'before_delete';
+    public const EVENT_BEFORE_EDIT   = 'before_edit';
 
-    private const ALLOWED_ACTIONS     = FieldConfig::ALLOWED_ACTIONS;
+    private const ALLOWED_ACTIONS = FieldConfig::ALLOWED_ACTIONS;
 
     private readonly string $tableName;
 
@@ -148,8 +149,7 @@ class EntityConfig
             if ($field->type instanceof DbColumnFieldType && $field->type->primaryKey) {
                 if ($field->type->dataType === FieldConfig::DATA_TYPE_INT) {
                     $intCount++;
-                }
-                else {
+                } else {
                     return false;
                 }
             }

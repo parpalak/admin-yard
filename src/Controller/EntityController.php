@@ -20,6 +20,7 @@ use S2\AdminYard\Database\Key;
 use S2\AdminYard\Database\PdoDataProvider;
 use S2\AdminYard\Event\AfterSaveEvent;
 use S2\AdminYard\Event\BeforeDeleteEvent;
+use S2\AdminYard\Event\BeforeEditEvent;
 use S2\AdminYard\Event\BeforeSaveEvent;
 use S2\AdminYard\Form\Form;
 use S2\AdminYard\Form\FormFactory;
@@ -70,7 +71,7 @@ readonly class EntityController
                 'title'      => $this->entityConfig->getName(),
                 'entityName' => $this->entityConfig->getName(),
 
-                'filterControls' => $filterForm->getControls(),
+                'filterControls' => $filterForm->getVisibleControls(), // Hidden controls on the list page are only for processing extra query parameters, they should not be in the form data since it's impossible to clear them.
                 'filterLabels'   => array_map(static fn(Filter $filter) => $filter->label, $filters),
                 'filterData'     => array_map(static fn($value) => $value ?? '', $filterData),
 
@@ -156,7 +157,7 @@ readonly class EntityController
                 try {
                     $this->dataProvider->updateEntity(
                         $this->entityConfig->getTableName(),
-                        $this->entityConfig->getFieldDataTypes(FieldConfig::ACTION_EDIT),
+                        $this->entityConfig->getFieldDataTypes(FieldConfig::ACTION_EDIT, includePrimaryKey: true),
                         $primaryKey,
                         $data
                     );
@@ -183,10 +184,15 @@ readonly class EntityController
         } else {
             $data = $this->dataProvider->getEntity(
                 $this->entityConfig->getTableName(),
-                $this->entityConfig->getFieldDataTypes(FieldConfig::ACTION_EDIT),
+                $this->entityConfig->getFieldDataTypes(FieldConfig::ACTION_EDIT, includePrimaryKey: true),
                 DatabaseHelper::getSqlExpressionsForAssociations($this->entityConfig, FieldConfig::ACTION_EDIT),
                 $primaryKey,
             );
+            $this->eventDispatcher->dispatch(
+                $event = new BeforeEditEvent($data),
+                'adminyard.' . $this->entityConfig->getName() . '.' . EntityConfig::EVENT_BEFORE_EDIT
+            );
+            $data = $event->data;
             if ($data === null) {
                 throw new NotFoundException(sprintf($this->translator->trans('%s with %s not found.'), $this->entityConfig->getName(), $primaryKey->toString()));
             }
@@ -201,7 +207,7 @@ readonly class EntityController
                 'errorMessages' => $errorMessages,
                 'primaryKey'    => $primaryKey->toArray(),
                 'csrfToken'     => $this->getDeleteCsrfToken($primaryKey->toArray(), $request),
-                'header'        => $this->entityConfig->getLabels(FieldConfig::ACTION_SHOW),
+                'header'        => $this->entityConfig->getLabels(FieldConfig::ACTION_EDIT),
                 'form'          => $form,
                 'actions'       => array_map(static fn(string $action) => [
                     'name' => $action,
@@ -273,7 +279,7 @@ readonly class EntityController
                 'title'         => $this->entityConfig->getName(),
                 'entityName'    => $this->entityConfig->getName(),
                 'errorMessages' => $errorMessages,
-                'header'        => $this->entityConfig->getLabels(FieldConfig::ACTION_SHOW),
+                'header'        => $this->entityConfig->getLabels(FieldConfig::ACTION_NEW),
                 'form'          => $form,
                 'actions'       => array_map(static fn(string $action) => [
                     'name' => $action,
@@ -309,7 +315,11 @@ readonly class EntityController
             'adminyard.' . $this->entityConfig->getName() . '.' . EntityConfig::EVENT_BEFORE_DELETE
         );
         try {
-            $deletedRows = $this->dataProvider->deleteEntity($this->entityConfig->getTableName(), $primaryKey);
+            $deletedRows = $this->dataProvider->deleteEntity(
+                $this->entityConfig->getTableName(),
+                $this->entityConfig->getFieldDataTypes(FieldConfig::ACTION_DELETE, includePrimaryKey: true),
+                $primaryKey
+            );
         } catch (DataProviderException $e) {
             $this->addFlashMessage($request, 'error', $this->translator->trans($e->getMessage()));
             return new Response('Unable to delete entity', Response::HTTP_INTERNAL_SERVER_ERROR);
@@ -388,7 +398,7 @@ readonly class EntityController
             ];
 
             $result['cells'][$columnName] = [
-                'type'    => $linkCellParams === [] ? $dataType : FieldConfig::DATA_TYPE_STRING, // string for int IDs converted to links
+                'type'    => $linkCellParams === null ? $dataType : FieldConfig::DATA_TYPE_STRING, // string for int IDs converted to links
                 'content' => $this->templateRenderer->render($field->viewTemplate, $cellParams),
             ];
         }
@@ -477,12 +487,13 @@ readonly class EntityController
         // Then we overwrite with the new values if there are any
         $filterFormWasSubmitted = $request->get('apply_filter') !== null;
         $filterForm->submit($request, $filterFormWasSubmitted);
-        $filterData = $filterForm->getData();
 
         if ($filterFormWasSubmitted) {
+            // Skip data in hidden input fields since they cannot be updated via the filter form, only via the URL
+            $visibleFilterData = $filterForm->getData(includeHidden: false);
             // Update filter state in the session to current state for the next request
-            if ($filterData !== []) {
-                $session->set('filter_' . $this->entityConfig->getName(), array_filter($filterData, static fn($value) => $value !== null));
+            if ($visibleFilterData !== []) {
+                $session->set('filter_' . $this->entityConfig->getName(), array_filter($visibleFilterData, static fn($value) => $value !== null));
             } else {
                 $session->remove('filter_' . $this->entityConfig->getName());
             }

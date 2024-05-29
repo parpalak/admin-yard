@@ -57,10 +57,13 @@ class Form
         return array_filter($this->controls, static fn(FormControlInterface $control) => $control instanceof HiddenInput);
     }
 
-    public function getData(): array
+    public function getData(bool $includeHidden = true): array
     {
         $result = [];
         foreach ($this->controls as $fieldName => $control) {
+            if (!$includeHidden && $control instanceof HiddenInput) {
+                continue;
+            }
             if ($fieldName !== self::CSRF_FIELD_NAME && $control->getValidationErrors() === []) {
                 $result[$fieldName] = $control->getValue();
             }

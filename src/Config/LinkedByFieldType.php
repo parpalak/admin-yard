@@ -38,7 +38,7 @@ readonly class LinkedByFieldType extends VirtualFieldType
             ));
         }
         parent::__construct(sprintf(
-            '(SELECT %s FROM %s WHERE %s = entity.id)',
+            'SELECT %s FROM %s WHERE %s = entity.id',
             $titleSqlExpression,
             $foreignEntity->getTableName(),
             $inverseFieldName,
@@ -47,10 +47,5 @@ readonly class LinkedByFieldType extends VirtualFieldType
             [$inverseFieldName],
             [$fieldNamesOfPrimaryKey[0]]
         ));
-    }
-
-    public function getTitleSqlSubQuery(): string
-    {
-        return $this->titleSqlSubQuery;
     }
 }

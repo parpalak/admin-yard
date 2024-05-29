@@ -38,9 +38,6 @@ declare(strict_types=1);
             <input type="hidden" name="action" value="list">
             <div class="filter-controls">
                 <?php foreach ($filterControls as $fieldName => $control): ?>
-                    <?php if ($control instanceof \S2\AdminYard\Form\HiddenInput) {
-                        continue;
-                    } ?>
                     <div
                         class="filter-control filter-control-<?= strtolower(basename(strtr(get_class($control), ['\\' => '/']))) ?> filter-<?= $entityName ?>-<?= $fieldName ?>">
                         <span class="filter-label">

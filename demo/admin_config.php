@@ -13,8 +13,10 @@ use S2\AdminYard\Config\LinkTo;
 use S2\AdminYard\Config\LinkToEntityParams;
 use S2\AdminYard\Config\VirtualFieldType;
 use S2\AdminYard\Database\Key;
+use S2\AdminYard\Database\PdoDataProvider;
 use S2\AdminYard\Event\AfterSaveEvent;
 use S2\AdminYard\Event\BeforeDeleteEvent;
+use S2\AdminYard\Event\BeforeEditEvent;
 use S2\AdminYard\Event\BeforeSaveEvent;
 use S2\AdminYard\Validator\Length;
 use S2\AdminYard\Validator\NotBlank;
@@ -23,6 +25,22 @@ use S2\AdminYard\Validator\Regex;
 // Example of admin config for demo and tests
 
 $adminConfig = new AdminConfig();
+
+$userEntity = (new EntityConfig('User', 'users'))
+    ->addField(new FieldConfig(
+        name: 'id',
+        type: new DbColumnFieldType(FieldConfig::DATA_TYPE_INT, true),
+        useOnActions: [FieldConfig::ACTION_LIST, FieldConfig::ACTION_SHOW]
+    ))
+    ->addField(new FieldConfig(
+        name: 'login',
+        control: 'input',
+    ))
+    ->addField(new FieldConfig(
+        name: 'name',
+        control: 'input',
+    ))
+;
 
 $postEntity = new EntityConfig('Post', 'posts');
 
@@ -38,7 +56,10 @@ $commentConfig = (new EntityConfig('Comment', 'comments'))
         control: 'select',
         validators: [new NotBlank()],
         sortable: true,
-        linkToEntity: new LinkTo($postEntity, match (getenv('APP_DB_TYPE')) { 'sqlite' => "'#' || id || ' ' || title", default => "CONCAT('#', id, ' ', title)"}),
+        linkToEntity: new LinkTo($postEntity, match (getenv('APP_DB_TYPE')) {
+            'sqlite' => "'#' || id || ' ' || title",
+            default => "CONCAT('#', id, ' ', title)"
+        }),
         useOnActions: [FieldConfig::ACTION_LIST, FieldConfig::ACTION_SHOW, FieldConfig::ACTION_NEW])
     ))
     ->addField(new FieldConfig(
@@ -104,12 +125,12 @@ $commentConfig = (new EntityConfig('Comment', 'comments'))
  * @throws \S2\AdminYard\Database\DataProviderException
  * @throws PDOException
  */
-function tagIdsFromTags(\S2\AdminYard\Database\PdoDataProvider $dataProvider, array $tags): array
+function tagIdsFromTags(PdoDataProvider $dataProvider, array $tags): array
 {
     $existingTags = $dataProvider->getEntityList('tags', [
         'name' => FieldConfig::DATA_TYPE_STRING,
         'id'   => FieldConfig::DATA_TYPE_INT,
-    ], filterData: ['LOWER(name)' => array_map(fn(string $tag) => mb_strtolower($tag), $tags)]);
+    ], filterData: ['LOWER(name)' => array_map(static fn(string $tag) => mb_strtolower($tag), $tags)]);
 
     $existingTagsMap = array_column($existingTags, 'field_name', 'field_id');
     $existingTagsMap = array_map(static fn(string $tag) => mb_strtolower($tag), $existingTagsMap);
@@ -186,16 +207,36 @@ $adminConfig
                 sortable: true
             ))
             ->addField(new FieldConfig(
+                name: 'user_id',
+                type: new DbColumnFieldType(FieldConfig::DATA_TYPE_INT),
+                control: 'select',
+                linkToEntity: new LinkTo($userEntity, 'COALESCE(name, login)'),
+            ))
+            ->addField(new FieldConfig(
                 name: 'comments',
                 type: new LinkedByFieldType($commentConfig, 'CASE WHEN COUNT(*) > 0 THEN COUNT(*) ELSE NULL END', 'post_id'),
                 sortable: true
             ))
             ->markAsDefault()
+            /**
+             * Field 'tags' is declared as virtual. It has no corresponding column in the database,
+             * its values are evaluated in runtime.
+             *
+             * We have to define some listeners to handle its value on form submission.
+             */
+            ->addListener([EntityConfig::EVENT_BEFORE_EDIT], function (BeforeEditEvent $event) {
+                if (\is_array($event->data)) {
+                    // Convert NULL to an empty string when the edit form is filled with current data
+                    $event->data['label_tags'] = (string)$event->data['label_tags'];
+                }
+            })
             ->addListener([EntityConfig::EVENT_BEFORE_UPDATE, EntityConfig::EVENT_BEFORE_CREATE], function (BeforeSaveEvent $event) {
+                // Save the tags to context for later use and remove before updating and inserting.
                 $event->context['tags'] = $event->data['tags'];
                 unset($event->data['tags']);
             })
             ->addListener([EntityConfig::EVENT_AFTER_UPDATE, EntityConfig::EVENT_AFTER_CREATE], function (AfterSaveEvent $event) {
+                // Process the saved tags. Convert the comma-separated string to an array to store in the many-to-many relation.
                 $tagStr = $event->context['tags'];
                 $tags   = array_map(static fn(string $tag) => trim($tag), explode(',', $tagStr));
                 $tags   = array_filter($tags, static fn(string $tag) => $tag !== '');
@@ -209,7 +250,7 @@ $adminConfig
 
                 $existingTagIds = array_column($existingLinks, 'field_tag_id');
                 if (implode(',', $existingTagIds) !== implode(',', $newTagIds)) {
-                    $event->dataProvider->deleteEntity('posts_tags', new Key(['post_id' => $event->primaryKey->toArray()['id']]));
+                    $event->dataProvider->deleteEntity('posts_tags', ['post_id' => FieldConfig::DATA_TYPE_INT], new Key(['post_id' => $event->primaryKey->toArray()['id']]));
                     foreach ($newTagIds as $tagId) {
                         $event->dataProvider->createEntity('posts_tags', [
                             'post_id' => FieldConfig::DATA_TYPE_INT,
@@ -219,7 +260,7 @@ $adminConfig
                 }
             })
             ->addListener(EntityConfig::EVENT_BEFORE_DELETE, function (BeforeDeleteEvent $event) {
-                $event->dataProvider->deleteEntity('posts_tags', new Key(['post_id' => $event->primaryKey->toArray()['id']]));
+                $event->dataProvider->deleteEntity('posts_tags', ['post_id' => FieldConfig::DATA_TYPE_INT], new Key(['post_id' => $event->primaryKey->toArray()['id']]));
             })
             ->addFilter(
                 new Filter(
@@ -348,6 +389,7 @@ $adminConfig
     ->addEntity(
         (new EntityConfig('Empty', 'sequence'))
     )
+    ->addEntity($userEntity)
 ;
 
 return $adminConfig;

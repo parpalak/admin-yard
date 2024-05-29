@@ -116,14 +116,19 @@ readonly class PdoDataProvider
         return $rows;
     }
 
+    /**
+     * @throws DataProviderException
+     * @throws \PDOException
+     */
     public function getEntity(string $tableName, array $dataTypes, array $labels, Key $primaryKey): ?array
     {
         $sql = "SELECT " . $this->getAliasesForSelect($dataTypes, $labels) . " FROM $tableName AS entity WHERE " . implode(' AND ', array_map(
-                static fn($key) => "$key = :$key", $primaryKey->getColumnNames()
+                fn($key) => sprintf('%1$s %2$s :%1$s', $key, $this->eqOp()), $primaryKey->getColumnNames()
             ));
 
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute($primaryKey->toArray());
+        $stmt   = $this->pdo->prepare($sql);
+        $params = $this->getTransformedKeyParams($primaryKey, $dataTypes);
+        $stmt->execute($params);
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);
 
         if ($row === false) {
@@ -146,19 +151,25 @@ readonly class PdoDataProvider
             return;
         }
 
-        foreach ($dataTypes as $key => $type) {
-            $data[$key] = $this->typeTransformer->dbFromNormalized($data[$key], $type);
+        foreach ($data as $key => $value) {
+            if (isset($dataTypes[$key])) {
+                $data[$key] = $this->typeTransformer->dbFromNormalized($value, $dataTypes[$key]);
+            }
         }
 
         $sql = "UPDATE $tableName SET " . implode(', ', array_map(
                 static fn($key) => "$key = :$key", array_keys($data)
             )) . " WHERE " . implode(' AND ', array_map(
-                static fn($key) => "$key = :pk_$key", $condition->getColumnNames()
+                fn($key) => sprintf('%1$s %2$s :pk_%1$s', $key, $this->eqOp()), $condition->getColumnNames()
             ));
+
+        $keyParams = $this->getTransformedKeyParams($condition, $dataTypes);
+        $keyParams = (new Key($keyParams))->prependColumnNames('pk_')->toArray();
+        $params    = array_merge($data, $keyParams);
 
         $stmt = $this->pdo->prepare($sql);
         try {
-            $stmt->execute(array_merge($data, $condition->prependColumnNames('pk_')->toArray()));
+            $stmt->execute($params);
         } catch (\PDOException $e) {
             if (
                 ($e->errorInfo[1] === 1062 && $this->driverIs('mysql'))
@@ -211,20 +222,22 @@ readonly class PdoDataProvider
      * @throws DataProviderException
      * @throws \PDOException
      */
-    public function deleteEntity(string $tableName, Key $condition): int
+    public function deleteEntity(string $tableName, array $dataTypes, Key $condition): int
     {
         $criteria  = implode(' AND ', array_map(
-            static fn($key) => "$key = :$key", $condition->getColumnNames()
+            fn($key) => sprintf('%1$s %2$s :%1$s', $key, $this->eqOp()), $condition->getColumnNames()
         ));
         $selectSql = "SELECT COUNT(*) FROM $tableName WHERE " . $criteria;
         $stmt      = $this->pdo->prepare($selectSql);
-        $stmt->execute($condition->toArray());
+        $params    = $this->getTransformedKeyParams($condition, $dataTypes);
+
+        $stmt->execute($params);
         $oldCount = $stmt->fetchColumn();
 
         $deleteSql = "DELETE FROM $tableName WHERE " . $criteria;
         $stmt      = $this->pdo->prepare($deleteSql);
         try {
-            $stmt->execute($condition->toArray());
+            $stmt->execute($params);
         } catch (\PDOException $e) {
             if (
                 ($this->driverIs('mysql') && $e->errorInfo[1] === 1451)
@@ -242,7 +255,7 @@ readonly class PdoDataProvider
         }
 
         $stmt = $this->pdo->prepare($selectSql);
-        $stmt->execute($condition->toArray());
+        $stmt->execute($params);
         $newCount = $stmt->fetchColumn();
 
         return $newCount - $oldCount;
@@ -283,5 +296,36 @@ readonly class PdoDataProvider
             throw new DataProviderException(sprintf("Unsupported driver: %s. Supported drivers: [%s].", $driverName, implode(', ', $supportedDrivers)));
         }
         return $this->pdo->getAttribute(\PDO::ATTR_DRIVER_NAME) === $driverName;
+    }
+
+    private function getTransformedKeyParams(Key $key, array $dataTypes): array
+    {
+        $result = [];
+        foreach ($key->toArray() as $columnName => $value) {
+            if (!isset($dataTypes[$columnName])) {
+                throw new \LogicException(sprintf('Data type of key field "%s" must be specified', $columnName));
+            }
+            $result[$columnName] = $this->typeTransformer->dbFromNormalized($value, $dataTypes[$columnName]);
+        }
+
+        return $result;
+    }
+
+    /**
+     * @throws DataProviderException
+     */
+    private function eqOp(): string
+    {
+        if ($this->driverIs('mysql')) {
+            return '<=>';
+        }
+        if ($this->driverIs('pgsql')) {
+            return 'IS NOT DISTINCT FROM';
+        }
+        if ($this->driverIs('sqlite')) {
+            return 'IS';
+        }
+
+        throw new DataProviderException('Unsupported driver.');
     }
 }

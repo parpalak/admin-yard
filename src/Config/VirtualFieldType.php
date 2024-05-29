@@ -27,7 +27,6 @@ readonly class VirtualFieldType extends AbstractFieldType
 
     public function getTitleSqlSubQuery(): string
     {
-        // NOTE: should virtual fields have a data type other than string?
-        return sprintf("COALESCE((%s), '')", $this->titleSqlSubQuery);
+        return $this->titleSqlSubQuery;
     }
 }
