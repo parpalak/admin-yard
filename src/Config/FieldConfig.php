@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace S2\AdminYard\Config;
 
 use InvalidArgumentException;
+use S2\AdminYard\Validator\NotBlank;
 use S2\AdminYard\Validator\ValidatorInterface;
 
 class FieldConfig
@@ -125,5 +126,17 @@ class FieldConfig
         $oneToManyOnForms = $this->type instanceof LinkedByFieldType && \in_array($action, [self::ACTION_NEW, self::ACTION_EDIT], true);
 
         return $allowedInConfig && !$oneToManyOnForms;
+    }
+
+    public function canBeEmpty(): bool
+    {
+        // NOTE: maybe it would be better to add a flag to DbColumnFieldType
+        foreach ($this->validators as $validator) {
+            if ($validator instanceof NotBlank) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

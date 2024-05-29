@@ -14,7 +14,9 @@ DROP TABLE IF EXISTS users;
 CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     login TEXT NOT NULL,
-    name TEXT DEFAULT NULL
+    name TEXT DEFAULT NULL,
+    birthdate DATE DEFAULT NULL,
+    UNIQUE (login)
 );
 
 INSERT INTO users (login, name) VALUES

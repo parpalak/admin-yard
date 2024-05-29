@@ -14,12 +14,14 @@ DROP TABLE IF EXISTS users;
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
     login VARCHAR(255) NOT NULL,
-    name VARCHAR(255) DEFAULT NULL
+    name VARCHAR(255) DEFAULT NULL,
+    birthdate DATE DEFAULT NULL,
+    UNIQUE (login)
 );
 
 INSERT INTO users (login, name) VALUES
     ('admin', NULL),
-    ('user', 'User')
+    ('user', 'John Smith')
 ;
 
 CREATE TABLE IF NOT EXISTS posts

@@ -174,7 +174,7 @@ readonly class PdoDataProvider
             if (
                 ($e->errorInfo[1] === 1062 && $this->driverIs('mysql'))
                 || ($e->errorInfo[0] === '23505' && $this->driverIs('pgsql'))
-                || ($e->errorInfo[1] === 19 && $this->driverIs('sqlite'))
+                || ($e->errorInfo[1] === 19 && $this->driverIs('sqlite') && str_contains($e->getMessage(), 'UNIQUE'))
             ) {
                 throw new DataProviderException('The entity with same parameters already exists.', 0, $e);
             }
@@ -201,7 +201,7 @@ readonly class PdoDataProvider
             if (
                 ($e->errorInfo[1] === 1062 && $this->driverIs('mysql'))
                 || ($e->errorInfo[0] === '23505' && $this->driverIs('pgsql'))
-                || ($e->errorInfo[1] === 19 && $this->driverIs('sqlite'))
+                || ($e->errorInfo[1] === 19 && $this->driverIs('sqlite') && str_contains($e->getMessage(), 'UNIQUE'))
             ) {
                 throw new DataProviderException('The entity with same parameters already exists.', 0, $e);
             }

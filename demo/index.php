@@ -7,7 +7,7 @@ use Symfony\Component\HttpFoundation\Session\Session;
 
 error_reporting(E_ALL);
 
-putenv('APP_DB_TYPE=sqlite');
+putenv('APP_DB_TYPE=mysql');
 
 require '../vendor/autoload.php';
 

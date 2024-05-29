@@ -27,6 +27,9 @@ class Select implements FormControlInterface, OptionsInterface
 
     public function setValue($value): static
     {
+        if ($value === null) {
+            $value = '';
+        }
         if (!\is_string($value)) {
             throw new \InvalidArgumentException(sprintf('Value must be a string, "%s" given.', \gettype($value)));
         }

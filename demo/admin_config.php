@@ -35,10 +35,17 @@ $userEntity = (new EntityConfig('User', 'users'))
     ->addField(new FieldConfig(
         name: 'login',
         control: 'input',
+        validators: [new NotBlank()],
+        sortable: true
     ))
     ->addField(new FieldConfig(
         name: 'name',
         control: 'input',
+    ))
+    ->addField(new FieldConfig(
+        name: 'birthdate',
+        type: new DbColumnFieldType(FieldConfig::DATA_TYPE_DATE),
+        control: 'date',
     ))
 ;
 

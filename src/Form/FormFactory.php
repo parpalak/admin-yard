@@ -18,6 +18,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 readonly class FormFactory
 {
+    private const EMPTY_SELECT_LABEL = '–';
+
     public function __construct(
         private FormControlFactoryInterface $formControlFactory,
         private TranslatorInterface         $translator,
@@ -59,11 +61,15 @@ readonly class FormFactory
                     ));
                 }
                 // TODO: Implement some kind of ajax autocomplete for large tables.
-                $control->setOptions($this->dataProvider->getLabelsFromTable(
+                $options = $this->dataProvider->getLabelsFromTable(
                     $foreignEntity->getTableName(),
                     $foreignEntity->getFieldNamesOfPrimaryKey(),
                     $field->linkToEntity->titleSqlExpression
-                ));
+                );
+                if ($field->canBeEmpty()) {
+                    $options[''] = self::EMPTY_SELECT_LABEL;
+                }
+                $control->setOptions($options);
             } elseif ($control instanceof OptionsInterface) {
                 $options = $field->options;
                 if ($options === null) {
@@ -127,7 +133,7 @@ readonly class FormFactory
                     $field->linkToEntity->titleSqlExpression
                 );
 
-                $options[''] = '–';
+                $options[''] = self::EMPTY_SELECT_LABEL;
 
                 $control->setOptions($options);
                 unset($linkToFields[$filterName]);

@@ -19,9 +19,9 @@ class TypeTransformer implements TypeTransformerInterface
     {
         return match ($dataType) {
             FieldConfig::DATA_TYPE_STRING,
-            FieldConfig::DATA_TYPE_DATE,
-            FieldConfig::DATA_TYPE_INT,
             FieldConfig::DATA_TYPE_FLOAT => (string)$value,
+            FieldConfig::DATA_TYPE_INT,
+            FieldConfig::DATA_TYPE_DATE => $value !== null ? (string)$value : null,
             FieldConfig::DATA_TYPE_BOOL => $value === 1 || $value === '1' || $value === true,
             FieldConfig::DATA_TYPE_TIMESTAMP => $value !== null ? new DateTimeImmutable($value) : null,
             FieldConfig::DATA_TYPE_UNIXTIME => $value === 0 ? null : new DateTimeImmutable('@' . $value),
@@ -33,9 +33,9 @@ class TypeTransformer implements TypeTransformerInterface
     {
         return match ($dataType) {
             FieldConfig::DATA_TYPE_STRING => (string)$value,
-            FieldConfig::DATA_TYPE_DATE => $value !== null && $value !== '' ? (string)$value : null,
-            FieldConfig::DATA_TYPE_INT => (int)$value,
             FieldConfig::DATA_TYPE_FLOAT => (float)$value,
+            FieldConfig::DATA_TYPE_INT => $value !== null && $value !== '' ? (int)$value : null,
+            FieldConfig::DATA_TYPE_DATE => $value !== null && $value !== '' ? (string)$value : null,
             FieldConfig::DATA_TYPE_BOOL => $value ? 1 : 0,
             FieldConfig::DATA_TYPE_TIMESTAMP => $value?->format('Y-m-d H:i:s'),
             FieldConfig::DATA_TYPE_UNIXTIME => $value?->getTimestamp() ?? 0, // TODO how to configure default value?

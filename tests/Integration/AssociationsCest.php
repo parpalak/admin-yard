@@ -45,4 +45,34 @@ class AssociationsCest
         $I->see('Test comment text');
         $I->see('2020-01-01');
     }
+
+    public function nullableManyToOneFieldTest(IntegrationTester $I): void
+    {
+        $I->amOnPage('?entity=Post&action=show&id=1');
+        $I->seeResponseCodeIs(200);
+        $I->see('Post', 'h1');
+        $I->see('John Smith', '.field-Post-user_id');
+
+        $I->amOnPage('?entity=Post&action=edit&id=1');
+        $I->submitForm('form', [
+            'user_id' => '',
+        ]);
+        $I->seeResponseCodeIs(302);
+
+        $I->amOnPage('?entity=Post&action=show&id=1');
+        $I->seeResponseCodeIs(200);
+        $I->see('Post', 'h1');
+        $I->see('null', '.field-Post-user_id');
+
+        $I->amOnPage('?entity=Post&action=edit&id=1');
+        $I->submitForm('form', [
+            'user_id' => '1',
+        ]);
+        $I->seeResponseCodeIs(302);
+
+        $I->amOnPage('?entity=Post&action=show&id=1');
+        $I->seeResponseCodeIs(200);
+        $I->see('Post', 'h1');
+        $I->see('admin', '.field-Post-user_id');
+    }
 }

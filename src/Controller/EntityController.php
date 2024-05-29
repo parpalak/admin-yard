@@ -398,7 +398,7 @@ readonly class EntityController
             ];
 
             $result['cells'][$columnName] = [
-                'type'    => $linkCellParams === null ? $dataType : FieldConfig::DATA_TYPE_STRING, // string for int IDs converted to links
+                'type'    => $linkCellParams === null && $field->linkToEntity === null ? $dataType : FieldConfig::DATA_TYPE_STRING, // string for int IDs converted to links
                 'content' => $this->templateRenderer->render($field->viewTemplate, $cellParams),
             ];
         }

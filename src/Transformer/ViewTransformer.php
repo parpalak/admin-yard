@@ -27,7 +27,7 @@ class ViewTransformer
         return match ($dataType) {
             FieldConfig::DATA_TYPE_STRING,
             FieldConfig::DATA_TYPE_DATE => $value,
-            FieldConfig::DATA_TYPE_INT => number_format((int)$value, 0, '.', ' '),
+            FieldConfig::DATA_TYPE_INT => $value !== null ? number_format((int)$value, 0, '.', ' ') : null,
             FieldConfig::DATA_TYPE_FLOAT => (string)$value,
             FieldConfig::DATA_TYPE_BOOL => $value ? 'TRUE' : 'FALSE',
             FieldConfig::DATA_TYPE_TIMESTAMP,

@@ -8,9 +8,11 @@ DROP TABLE IF EXISTS users;
 
 CREATE TABLE IF NOT EXISTS users
 (
-    id    INT AUTO_INCREMENT PRIMARY KEY,
-    login VARCHAR(255) NOT NULL,
-    name  VARCHAR(255) DEFAULT NULL
+    id        INT AUTO_INCREMENT PRIMARY KEY,
+    login     VARCHAR(255) NOT NULL,
+    name      VARCHAR(255) DEFAULT NULL,
+    birthdate DATE         DEFAULT NULL,
+    UNIQUE KEY (login)
 );
 
 INSERT INTO users (login, name)
