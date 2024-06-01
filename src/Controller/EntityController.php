@@ -367,7 +367,7 @@ readonly class EntityController
             ));
         }
 
-        $query = $request->query->getString('query');
+        $query   = $request->query->getString('query');
         $results = $this->dataProvider->getAutocompleteResults(
             $this->entityConfig->getTableName(),
             $this->entityConfig->getFieldNamesOfPrimaryKey()[0],
@@ -434,6 +434,7 @@ readonly class EntityController
                 'label'      => (string)($row['label_' . $columnName] ?? $cellValue),
                 'type'       => $dataType,
                 'linkParams' => $linkCellParams,
+                'row'        => $row,
             ];
 
             $result['cells'][$columnName] = [

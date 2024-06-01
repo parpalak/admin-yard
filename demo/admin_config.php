@@ -172,7 +172,8 @@ $adminConfig
                 control: 'input',
                 validators: [new Length(max: 80)],
                 sortable: true,
-                actionOnClick: 'edit'
+                actionOnClick: 'edit',
+                viewTemplate: __DIR__ . '/templates/post_view_title.php'
             ))
             ->addField(new FieldConfig(
                 name: 'tags',
