@@ -286,6 +286,33 @@ readonly class PdoDataProvider
         return $this->pdo->query($sql)->fetchAll(\PDO::FETCH_KEY_PAIR);
     }
 
+    public function getAutocompleteResults(
+        string $tableName,
+        string $idColumn,
+        string $autocompleteSqlExpression,
+        string $query,
+        ?int   $additionalId,
+    ): array {
+        // NOTE: Maybe it's worth to search over each column separately to improve performance?
+        // And to control over '%foo%' or 'foo%' to be searched?
+        $sql  = <<<SQL
+SELECT
+    $idColumn AS value,
+    $autocompleteSqlExpression AS text
+FROM $tableName
+WHERE LOWER($autocompleteSqlExpression) LIKE :query OR $idColumn = :additionalId
+ORDER BY $autocompleteSqlExpression
+LIMIT 20
+SQL;
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([
+            'query'        => '%' . mb_strtolower($query) . '%',
+            'additionalId' => $additionalId
+        ]);
+
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    }
+
     /**
      * @throws DataProviderException
      */

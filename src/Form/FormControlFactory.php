@@ -18,6 +18,10 @@ class FormControlFactory implements FormControlFactoryInterface
         return match ($control) {
             'input' => new Input($fieldName),
             'int_input' => new IntInput($fieldName),
+            'float_input' => new FloatInput($fieldName),
+            'search_input' => new SearchInput($fieldName),
+            'email_input' => new EmailInput($fieldName),
+            'color_input' => new ColorInput($fieldName),
             'hidden_input' => new HiddenInput($fieldName),
             'textarea' => new Textarea($fieldName),
             'select' => new Select($fieldName),
@@ -27,6 +31,7 @@ class FormControlFactory implements FormControlFactoryInterface
             'checkbox_array' => new CheckboxArray($fieldName),
             'datetime' => new Datetime($fieldName),
             'date' => new Date($fieldName),
+            'autocomplete' => new Autocomplete($fieldName),
             default => throw new InvalidArgumentException(sprintf('Unknown control type "%s".', $control)),
         };
     }

@@ -30,6 +30,7 @@ use S2\AdminYard\Translator;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\HttpFoundation\Exception\BadRequestException;
 use Symfony\Component\HttpFoundation\Exception\SuspiciousOperationException;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -338,6 +339,44 @@ readonly class EntityController
             $this->entityConfig->getName()
         ));
         return new Response('Entity was deleted', Response::HTTP_OK);
+    }
+
+    /**
+     * @throws InvalidRequestException
+     * @throws BadRequestException
+     */
+    public function autocompleteAction(Request $request): Response
+    {
+        $hash = $request->query->get('hash');
+        if ($hash === null) {
+            throw new InvalidRequestException('Autocomplete action must be called via GET request with a hash parameter.');
+        }
+
+        $autocompleteSqlExpression = $this->entityConfig->getAutocompleteSqlExpression($hash);
+        if ($autocompleteSqlExpression === null) {
+            throw new InvalidRequestException(sprintf(
+                'Entity "%s" must have an autocompleteSqlExpression configured compatible with the hash provided.',
+                $this->entityConfig->getName()
+            ));
+        }
+
+        if (!$this->entityConfig->primaryKeyIsInt()) {
+            throw new \DomainException(sprintf(
+                'Entity "%s" must have an int primary key for autocomplete.',
+                $this->entityConfig->getName()
+            ));
+        }
+
+        $query = $request->query->getString('query');
+        $results = $this->dataProvider->getAutocompleteResults(
+            $this->entityConfig->getTableName(),
+            $this->entityConfig->getFieldNamesOfPrimaryKey()[0],
+            $autocompleteSqlExpression,
+            $query,
+            (int)$request->query->get('additional')
+        );
+
+        return new JsonResponse($results);
     }
 
     /**

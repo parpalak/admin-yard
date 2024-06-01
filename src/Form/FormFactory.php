@@ -18,7 +18,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 readonly class FormFactory
 {
-    private const EMPTY_SELECT_LABEL = '–';
+    public const EMPTY_SELECT_LABEL = '–';
 
     public function __construct(
         private FormControlFactoryInterface $formControlFactory,
@@ -28,8 +28,8 @@ readonly class FormFactory
     }
 
     /**
-     * @throws \DomainException in case of incorrect entity configuration, may be visible during AdminYard integration.
-     * @throws \LogicException if a violation of invariants is detected, may be visible in case of AdminYard bugs.
+     * @throws \DomainException if entities are not configured correctly, may appear during AdminYard integration.
+     * @throws \LogicException if a violation of invariants is detected, may appear in case of AdminYard bugs.
      */
     public function createEntityForm(EntityConfig $entityConfig, string $action, Request $request): Form
     {
@@ -53,23 +53,39 @@ readonly class FormFactory
             // Dealing with options
             if ($field->linkToEntity !== null) {
                 $foreignEntity = $field->linkToEntity->foreignEntity;
-                if (!$control instanceof OptionsInterface) {
+
+                if ($control instanceof OptionsInterface) {
+                    $options = $this->dataProvider->getLabelsFromTable(
+                        $foreignEntity->getTableName(),
+                        $foreignEntity->getFieldNamesOfPrimaryKey(),
+                        $field->linkToEntity->titleSqlExpression
+                    );
+                    if ($field->canBeEmpty()) {
+                        $options[''] = self::EMPTY_SELECT_LABEL;
+                    }
+                    $control->setOptions($options);
+
+                } elseif ($control instanceof Autocomplete) {
+                    $control->setAutocompleteParams(
+                        $foreignEntity->getName(),
+                        md5($field->linkToEntity->titleSqlExpression),
+                        fn(string $value) => $this->dataProvider->getAutocompleteResults(
+                            $foreignEntity->getTableName(),
+                            $foreignEntity->getFieldNamesOfPrimaryKey()[0],
+                            $field->linkToEntity->titleSqlExpression,
+                            '',
+                            (int)$value,
+                        ),
+                        $field->canBeEmpty()
+                    );
+
+                } else {
                     throw new \DomainException(sprintf(
-                        'Field "%s" for entity "%s" must have a control configured as OptionsInterface.',
+                        'Field "%s" for entity "%s" must have a control configured as OptionsInterface or Autocomplete.',
                         $columnName,
                         $entityConfig->getName()
                     ));
                 }
-                // TODO: Implement some kind of ajax autocomplete for large tables.
-                $options = $this->dataProvider->getLabelsFromTable(
-                    $foreignEntity->getTableName(),
-                    $foreignEntity->getFieldNamesOfPrimaryKey(),
-                    $field->linkToEntity->titleSqlExpression
-                );
-                if ($field->canBeEmpty()) {
-                    $options[''] = self::EMPTY_SELECT_LABEL;
-                }
-                $control->setOptions($options);
             } elseif ($control instanceof OptionsInterface) {
                 $options = $field->options;
                 if ($options === null) {
@@ -102,14 +118,6 @@ readonly class FormFactory
             $filterName = $filter->name;
             $control    = $this->formControlFactory->create($filter->control, $filterName);
             if ($filter instanceof FilterLinkTo) {
-                if (!$control instanceof OptionsInterface) {
-                    throw new \LogicException(sprintf(
-                        'Filter "%s" for entity "%s" of type "LinkTo" must have a control configured as OptionsInterface, "%s" given.',
-                        $filterName,
-                        $entityConfig->getName(),
-                        $filter->control
-                    ));
-                }
                 if (!isset($linkToFields[$filterName])) {
                     throw new \DomainException(sprintf(
                         'Filter "%s" for entity "%s" of type "LinkTo" cannot be applied since there is no such field.',
@@ -126,16 +134,39 @@ readonly class FormFactory
                     ));
                 }
 
-                // TODO: Implement some kind of ajax autocomplete for large tables.
-                $options = $this->dataProvider->getLabelsFromTable(
-                    $field->linkToEntity->foreignEntity->getTableName(),
-                    $field->linkToEntity->foreignEntity->getFieldNamesOfPrimaryKey(),
-                    $field->linkToEntity->titleSqlExpression
-                );
+                if ($control instanceof OptionsInterface) {
+                    $options = $this->dataProvider->getLabelsFromTable(
+                        $field->linkToEntity->foreignEntity->getTableName(),
+                        $field->linkToEntity->foreignEntity->getFieldNamesOfPrimaryKey(),
+                        $field->linkToEntity->titleSqlExpression
+                    );
 
-                $options[''] = self::EMPTY_SELECT_LABEL;
+                    $options[''] = self::EMPTY_SELECT_LABEL;
+                    $control->setOptions($options);
 
-                $control->setOptions($options);
+                } elseif ($control instanceof Autocomplete) {
+                    $control->setAutocompleteParams(
+                        $field->linkToEntity->foreignEntity->getName(),
+                        md5($field->linkToEntity->titleSqlExpression),
+                        fn(string $value) => $this->dataProvider->getAutocompleteResults(
+                            $field->linkToEntity->foreignEntity->getTableName(),
+                            $field->linkToEntity->foreignEntity->getFieldNamesOfPrimaryKey()[0],
+                            $field->linkToEntity->titleSqlExpression,
+                            '',
+                            (int)$value
+                        ),
+                        true
+                    );
+
+                } else {
+                    throw new \LogicException(sprintf(
+                        'Filter "%s" for entity "%s" of type "LinkTo" must have a control configured as OptionsInterface or Autocomplete, "%s" given.',
+                        $filterName,
+                        $entityConfig->getName(),
+                        $filter->control
+                    ));
+                }
+
                 unset($linkToFields[$filterName]);
 
             } elseif ($control instanceof OptionsInterface) {

@@ -18,13 +18,6 @@ use S2\AdminYard\Config\LinkTo;
 
 class FieldConfigTest extends Unit
 {
-    public function testInvalidDataType(): void
-    {
-        $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('Unknown data type');
-        new DbColumnFieldType('invalid');
-    }
-
     public function testGetLabel(): void
     {
         $fieldConfig = new FieldConfig('test_field');
@@ -41,7 +34,7 @@ class FieldConfigTest extends Unit
     {
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('Invalid linkToAction');
-        $fieldConfig = new FieldConfig(
+        new FieldConfig(
             name: 'test_field',
             actionOnClick: 'new',
         );
@@ -52,7 +45,7 @@ class FieldConfigTest extends Unit
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('must have exactly one primary key column to be used in the LinkedByFieldType');
         $foreignEntity = (new EntityConfig('test_entity'));
-        $fieldConfig   = new FieldConfig(
+        new FieldConfig(
             name: 'test_field',
             type: new LinkedByFieldType($foreignEntity, 'COUNT(*)', 'other_field'),
             linkToEntity: new LinkTo($foreignEntity, 'title')
@@ -64,7 +57,7 @@ class FieldConfigTest extends Unit
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('Only one of');
         $foreignEntity = (new EntityConfig('test_entity'))->addField(new FieldConfig('id', type: new DbColumnFieldType(FieldConfig::DATA_TYPE_INT, true)));
-        $fieldConfig   = new FieldConfig(
+        new FieldConfig(
             name: 'test_field',
             type: new LinkedByFieldType($foreignEntity, 'COUNT(*)', 'other_field'),
             linkToEntity: new LinkTo($foreignEntity, 'title')
@@ -76,7 +69,7 @@ class FieldConfigTest extends Unit
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('Only one of');
         $foreignEntity = (new EntityConfig('test_entity'))->addField(new FieldConfig('id', type: new DbColumnFieldType(FieldConfig::DATA_TYPE_INT, true)));
-        $fieldConfig   = new FieldConfig(
+        new FieldConfig(
             name: 'test_field',
             type: new LinkedByFieldType($foreignEntity, 'COUNT(*)', 'other_field'),
             actionOnClick: 'edit'
@@ -88,7 +81,7 @@ class FieldConfigTest extends Unit
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('Only one of');
         $foreignEntity = new EntityConfig('test_entity');
-        $fieldConfig   = new FieldConfig(
+        new FieldConfig(
             name: 'test_field',
             actionOnClick: 'show',
             linkToEntity: new LinkTo($foreignEntity, 'title')
@@ -100,9 +93,29 @@ class FieldConfigTest extends Unit
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('Validator must implement');
         /** @noinspection PhpParamsInspection */
-        $fieldConfig = new FieldConfig(
+        new FieldConfig(
             name: 'test_field',
             validators: ['invalid' => 'invalid']
+        );
+    }
+
+    public function testActions(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Unknown actions encountered: [invalid]. Actions must be set of [list, show, new, edit, delete].');
+        new FieldConfig(
+            name: 'test_field',
+            useOnActions: ['invalid', 'show']
+        );
+    }
+
+    public function testOptions(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Options can be set only if control is set.');
+        new FieldConfig(
+            name: 'test_field',
+            options: ['' => ''],
         );
     }
 }

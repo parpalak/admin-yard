@@ -82,6 +82,15 @@ class Integration extends Module
         return $this->response->getContent();
     }
 
+    /**
+     * @throws \JsonException
+     */
+    public function grabJson(): ?array
+    {
+        $content = $this->response->getContent();
+        return json_decode($content, true, 512, JSON_THROW_ON_ERROR);
+    }
+
     public function see(string $text, ?string $selector = null): void
     {
         if ($selector !== null) {

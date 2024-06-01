@@ -48,6 +48,11 @@ class EntityConfig
      */
     private array $listeners = [];
 
+    /**
+     * @var string[]
+     */
+    private array $autocompleteSqlExpression = [];
+
     public function __construct(
         private readonly string $name,
         string                  $tableName = null
@@ -254,6 +259,10 @@ class EntityConfig
 
     public function isAllowedAction(string $action): bool
     {
+        if ($action === 'autocomplete' && $this->autocompleteSqlExpression !== []) {
+            return true;
+        }
+
         return \in_array($action, $this->enabledActions, true);
     }
 
@@ -295,5 +304,21 @@ class EntityConfig
     public function getListeners(): array
     {
         return $this->listeners;
+    }
+
+    public function addAutocompleteSqExpression(string $sqExpression): static
+    {
+        $this->autocompleteSqlExpression[] = $sqExpression;
+        return $this;
+    }
+
+    public function getAutocompleteSqlExpression(string $hash): ?string
+    {
+        foreach ($this->autocompleteSqlExpression as $sqlExpression) {
+            if (md5($sqlExpression) === $hash) {
+                return $sqlExpression;
+            }
+        }
+        return null;
     }
 }

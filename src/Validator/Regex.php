@@ -17,6 +17,9 @@ class Regex implements ValidatorInterface
 
     public function __construct(private readonly string $pattern)
     {
+        if (!@\preg_match($this->pattern, '')) {
+            throw new \InvalidArgumentException(sprintf('Invalid regex pattern: "%s".', $this->pattern));
+        }
     }
 
     public function getValidationErrors(mixed $value, TranslatorInterface $translator): array

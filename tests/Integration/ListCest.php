@@ -32,7 +32,7 @@ class ListCest
         $I->seeResponseCodeIs(200);
         $I->see('Post', 'h1');
 
-        $I->seeElement(self::FILTER_FORM_SELECTOR . ' input[type="text"][name="search"]');
+        $I->seeElement(self::FILTER_FORM_SELECTOR . ' input[type="search"][name="search"]');
         $I->seeElement(self::FILTER_FORM_SELECTOR . ' input[type="radio"][name="is_active"][value="1"]');
         $I->seeElement(self::FILTER_FORM_SELECTOR . ' input[type="radio"][name="is_active"][value="0"]');
         $I->seeElement(self::FILTER_FORM_SELECTOR . ' input[type="radio"][name="is_active"][value=""]');
@@ -106,7 +106,7 @@ class ListCest
         $I->seeElement(self::FILTER_FORM_SELECTOR . ' input[type="checkbox"][name="statuses[]"][value="new"]');
         $I->seeElement(self::FILTER_FORM_SELECTOR . ' input[type="checkbox"][name="statuses[]"][value="approved"]');
         $I->seeElement(self::FILTER_FORM_SELECTOR . ' input[type="checkbox"][name="statuses[]"][value="rejected"]');
-        $I->seeElement(self::FILTER_FORM_SELECTOR . ' input[type="text"][name="search"]');
+        $I->seeElement(self::FILTER_FORM_SELECTOR . ' input[type="search"][name="search"]');
         $I->seeElement(self::FILTER_FORM_SELECTOR . ' select[name="post_id"]');
         $I->seeElement(self::FILTER_FORM_SELECTOR . ' input[type="date"][name="created_from"]');
         $I->seeElement(self::FILTER_FORM_SELECTOR . ' input[type="date"][name="created_to"]');

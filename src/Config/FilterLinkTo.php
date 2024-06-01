@@ -29,7 +29,7 @@ readonly class FilterLinkTo extends Filter
         parent::__construct(
             $fieldConfig->name,
             $label ?? $fieldConfig->getLabel(),
-            'select',
+            $fieldConfig->control === 'autocomplete' ? 'autocomplete' : 'select',
             $fieldConfig->name . ' = %1$s'
         );
     }

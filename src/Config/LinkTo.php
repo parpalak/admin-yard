@@ -25,5 +25,6 @@ readonly class LinkTo
         public EntityConfig $foreignEntity,
         public string       $titleSqlExpression
     ) {
+        $this->foreignEntity->addAutocompleteSqExpression($this->titleSqlExpression);
     }
 }

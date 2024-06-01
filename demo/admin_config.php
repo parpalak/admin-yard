@@ -60,7 +60,7 @@ $commentConfig = (new EntityConfig('Comment', 'comments'))
     ->addField(($postIdField = new FieldConfig(
         name: 'post_id',
         type: new DbColumnFieldType(FieldConfig::DATA_TYPE_INT),
-        control: 'select',
+        control: 'autocomplete',
         validators: [new NotBlank()],
         sortable: true,
         linkToEntity: new LinkTo($postEntity, match (getenv('APP_DB_TYPE')) {
@@ -99,7 +99,7 @@ $commentConfig = (new EntityConfig('Comment', 'comments'))
     ->addFilter(new Filter(
         'search',
         'Fulltext Search',
-        'input',
+        'search_input',
         'name LIKE %1$s OR email LIKE %1$s OR comment_text LIKE %1$s',
         fn(string $value) => $value !== '' ? '%' . $value . '%' : null
     ))
@@ -273,7 +273,7 @@ $adminConfig
                 new Filter(
                     'search',
                     'Fulltext Search',
-                    'input',
+                    'search_input',
                     'title LIKE %1$s OR text LIKE %1$s',
                     fn(string $value) => $value !== '' ? '%' . $value . '%' : null
                 )
@@ -282,7 +282,7 @@ $adminConfig
                 new Filter(
                     'tags',
                     'Tags',
-                    'input',
+                    'search_input',
                     'id IN (SELECT pt.post_id FROM posts_tags AS pt JOIN tags AS t ON t.id = pt.tag_id WHERE t.name LIKE %1$s)',
                     fn(string $value) => $value !== '' ? '%' . $value . '%' : null
                 )
