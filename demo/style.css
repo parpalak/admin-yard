@@ -143,6 +143,7 @@ section.list-header h1 {
 .admin-content th {
     padding: 0 0.5em;
     text-align: left;
+    vertical-align: top;
 }
 .admin-content tbody tr {
     background: var(--table-background);
@@ -194,12 +195,15 @@ td.row-actions {
 }
 
 .list-action-link-edit:before {
-    content: '✎';
-    transform: scaleX(-1);
+    content: url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 1792 1792' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M491 1536l91-91-235-235-91 91v107h128v128h107zm523-928q0-22-22-22-10 0-17 7l-542 542q-7 7-7 17 0 22 22 22 10 0 17-7l542-542q7-7 7-17zm-54-192l416 416-832 832H128v-416zm683 96q0 53-37 90l-166 166-416-416 166-165q36-38 90-38 53 0 91 38l235 234q37 39 37 91z'/%3E%3C/svg%3E");
+    vertical-align: -2px;
+    opacity: 0.6;
 }
 
 .list-action-link-show:before {
-    content: '👁';
+    content: url("data:image/svg+xml,%3Csvg height='16' width='16' viewBox='0 0 2091 2091' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1813.333 1216q-152-236-381-353 61 104 61 225 0 185-131.5 316.5t-316.5 131.5-316.5-131.5-131.5-316.5q0-121 61-225-229 117-381 353 133 205 333.5 326.5t434.5 121.5 434.5-121.5 333.5-326.5zm-720-384q0-20-14-34t-34-14q-125 0-214.5 89.5t-89.5 214.5q0 20 14 34t34 14 34-14 14-34q0-86 61-147t147-61q20 0 34-14t14-34zm848 384q0 34-20 69-140 230-376.5 368.5t-499.5 138.5-499.5-139-376.5-368q-20-35-20-69t20-69q140-229 376.5-368t499.5-139 499.5 139 376.5 368q20 35 20 69z'/%3E%3C/svg%3E");;
+    vertical-align: -2px;
+    opacity: 0.6;
 }
 
 .list-action-link-delete:before {
@@ -317,20 +321,19 @@ td.row-actions {
 /* Icons */
 
 .entity-action-new:before {
-    content: '➕';
-    font-size: 0.625em;
+    content: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 1792 1792'%3E%3Cpath d='M1678.58 880.06v143.98c0 26.67-9.34 49.33-28 68-18.67 18.67-41.34 28-68 28h-464.02v466.2c0 26.67-9.34 49.33-28 68-18.67 18.67-41.34 28-68 28H882.94c-26.66 0-49.33-9.33-68-28-18.66-18.67-28-41.33-28-68v-466.2H322.92c-26.66 0-49.33-9.33-68-28-18.66-18.67-28-41.33-28-68V880.06c0-26.67 9.34-49.34 28-68 18.67-18.67 41.34-28 68-28h464.02V322.22c0-26.67 9.34-49.33 28-68 18.67-18.67 41.34-28 68-28h139.62c26.66 0 49.33 9.33 68 28 18.66 18.67 28 41.33 28 68v461.84h464.02c26.66 0 49.33 9.33 68 28 18.66 18.66 28 41.33 28 68z'/%3E%3C/svg%3E");
     display: inline-block;
-    position: relative;
-    left: -4px;
-    top: -2px;
+    opacity: 0.6;
+    margin: 0 0.25em 0 -0.25em;
+    vertical-align: -2px;
 }
 
 .filter-button:before {
-    content: '🕨';
-    color: var(--color-muted);
-    transform: rotate(90deg) scale(1.2) translate(4px, 1px);
+    content: url("data:image/svg+xml,%3Csvg height='16' width='16' viewBox='0 0 1792 1792' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1595 295q17 41-14 70l-493 493v742q0 42-39 59-13 5-25 5-27 0-45-19l-256-256q-19-19-19-45V858L211 365q-31-29-14-70 17-39 59-39h1280q42 0 59 39z'/%3E%3C/svg%3E");
     display: inline-block;
-    padding-right: 0.5em;
+    opacity: 0.6;
+    margin: 0 0.25em 0 -0.25em;
+    vertical-align: -2px;
 }
 
 /* Links and buttons */

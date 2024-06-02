@@ -88,9 +88,7 @@ declare(strict_types=1);
             <?php foreach ($rows as $rowIndex => $row): ?>
                 <tr>
                     <?php foreach ($row['cells'] as $fieldName => $cell): ?>
-                        <td class="type-<?= $cell['type'] ?> field-<?= $entityName ?>-<?= $fieldName ?> <?= $fieldName === $sortField ? 'current-sort' : '' ?>">
-                            <?= $cell['content'] ?>
-                        </td>
+                        <td class="type-<?= $cell['type'] ?> field-<?= $entityName ?>-<?= $fieldName ?> <?= $fieldName === $sortField ? 'current-sort' : '' ?>"><?= $cell['content'] ?></td>
                     <?php endforeach; ?>
                     <?php if (!empty($rowActions)): ?>
                         <td class="row-actions">
