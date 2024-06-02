@@ -33,7 +33,7 @@ class TypeTransformer implements TypeTransformerInterface
     {
         return match ($dataType) {
             FieldConfig::DATA_TYPE_STRING => (string)$value,
-            FieldConfig::DATA_TYPE_FLOAT => (float)$value,
+            FieldConfig::DATA_TYPE_FLOAT => $value !== null && $value !== '' ? (string)$value : null,
             FieldConfig::DATA_TYPE_INT => $value !== null && $value !== '' ? (int)$value : null,
             FieldConfig::DATA_TYPE_DATE => $value !== null && $value !== '' ? (string)$value : null,
             FieldConfig::DATA_TYPE_BOOL => $value ? 1 : 0,
