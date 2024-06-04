@@ -4,6 +4,9 @@
  * @license   http://opensource.org/licenses/MIT MIT
  * @package   AdminYard
  */
+/** @noinspection UnknownInspectionInspection */
+/** @noinspection PhpComposerExtensionStubsInspection */
+/** @noinspection SqlDialectInspection */
 
 declare(strict_types=1);
 
@@ -20,19 +23,19 @@ readonly class PdoDataProvider
     }
 
     /**
-     * @param string                $tableName
-     * @param array<string,string>  $dataTypes  List of data types configured for this entity.
-     *                                          If some fields are missing, they will be skipped in the query.
-     * @param array<string,string>  $labels     List of SQL expressions to be displayed instead of the field values.
-     * @param array<string, Filter> $filters    List of Filters configured for this entity
-     * @param array<string,mixed>   $filterData Content of the filter form
-     * @param ?string               $sortField
-     * @param string                $sortDirection
-     * @param ?int                  $limit
-     * @param int                   $offset
+     * @param string               $tableName
+     * @param array<string,string> $dataTypes  List of data types configured for this entity.
+     *                                         If some fields are missing, they will be skipped in the query.
+     * @param array<string,string> $labels     List of SQL expressions to be displayed instead of the field values.
+     * @param array<string,Filter> $filters    List of Filters configured for this entity
+     * @param array<string,mixed>  $filterData Content of the filter form
+     * @param ?string              $sortField
+     * @param string               $sortDirection
+     * @param ?int                 $limit
+     * @param int                  $offset
      *
      * @return array
-     * @throws \PDOException
+     * @throws DataProviderException
      */
     public function getEntityList(
         string  $tableName,
@@ -102,7 +105,11 @@ readonly class PdoDataProvider
             $sql .= " LIMIT $limit OFFSET $offset";
         }
         $stmt = $this->pdo->prepare($sql);
-        $stmt->execute($params);
+        try {
+            $stmt->execute($params);
+        } catch (\PDOException $e) {
+            throw new DataProviderException($e->getMessage(), 0, $e);
+        }
         $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
         foreach ($rows as &$row) {
@@ -118,7 +125,6 @@ readonly class PdoDataProvider
 
     /**
      * @throws DataProviderException
-     * @throws \PDOException
      */
     public function getEntity(string $tableName, array $dataTypes, array $labels, Key $primaryKey): ?array
     {
@@ -128,7 +134,11 @@ readonly class PdoDataProvider
 
         $stmt   = $this->pdo->prepare($sql);
         $params = $this->getTransformedKeyParams($primaryKey, $dataTypes);
-        $stmt->execute($params);
+        try {
+            $stmt->execute($params);
+        } catch (\PDOException $e) {
+            throw new DataProviderException($e->getMessage(), 0, $e);
+        }
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);
 
         if ($row === false) {
@@ -144,6 +154,7 @@ readonly class PdoDataProvider
 
     /**
      * @throws DataProviderException
+     * @throws SafeDataProviderException
      */
     public function updateEntity(string $tableName, array $dataTypes, Key $condition, array $data): void
     {
@@ -171,19 +182,15 @@ readonly class PdoDataProvider
         try {
             $stmt->execute($params);
         } catch (\PDOException $e) {
-            if (
-                ($e->errorInfo[1] === 1062 && $this->driverIs('mysql'))
-                || ($e->errorInfo[0] === '23505' && $this->driverIs('pgsql'))
-                || ($e->errorInfo[1] === 19 && $this->driverIs('sqlite') && str_contains($e->getMessage(), 'UNIQUE'))
-            ) {
-                throw new DataProviderException('The entity with same parameters already exists.', 0, $e);
+            if ($this->isUniqueConstraintViolation($e)) {
+                throw new SafeDataProviderException('The entity with same parameters already exists.', 0, $e);
             }
-            throw new DataProviderException('Cannot save entity to database', 0, $e);
+            throw new SafeDataProviderException('Cannot save entity to database', 0, $e);
         }
     }
 
     /**
-     * @throws DataProviderException
+     * @throws SafeDataProviderException
      */
     public function createEntity(string $tableName, array $dataTypes, array $data): void
     {
@@ -198,14 +205,10 @@ readonly class PdoDataProvider
         try {
             $stmt->execute(array_filter($data, static fn($value) => $value !== null));
         } catch (\PDOException $e) {
-            if (
-                ($e->errorInfo[1] === 1062 && $this->driverIs('mysql'))
-                || ($e->errorInfo[0] === '23505' && $this->driverIs('pgsql'))
-                || ($e->errorInfo[1] === 19 && $this->driverIs('sqlite') && str_contains($e->getMessage(), 'UNIQUE'))
-            ) {
-                throw new DataProviderException('The entity with same parameters already exists.', 0, $e);
+            if ($this->isUniqueConstraintViolation($e)) {
+                throw new SafeDataProviderException('The entity with same parameters already exists.', 0, $e);
             }
-            throw new DataProviderException('Cannot save entity to database', 0, $e);
+            throw new SafeDataProviderException('Cannot save entity to database', 0, $e);
         }
     }
 
@@ -213,25 +216,29 @@ readonly class PdoDataProvider
     {
         try {
             return $this->pdo->lastInsertId() ?: null;
-        } catch (\PDOException $e) {
+        } catch (\PDOException) {
             return null;
         }
     }
 
     /**
      * @throws DataProviderException
-     * @throws \PDOException
+     * @throws SafeDataProviderException
      */
     public function deleteEntity(string $tableName, array $dataTypes, Key $condition): int
     {
-        $criteria  = implode(' AND ', array_map(
+        $criteria = implode(' AND ', array_map(
             fn($key) => sprintf('%1$s %2$s :%1$s', $key, $this->eqOp()), $condition->getColumnNames()
         ));
+        $params   = $this->getTransformedKeyParams($condition, $dataTypes);
+
         $selectSql = "SELECT COUNT(*) FROM $tableName WHERE " . $criteria;
         $stmt      = $this->pdo->prepare($selectSql);
-        $params    = $this->getTransformedKeyParams($condition, $dataTypes);
-
-        $stmt->execute($params);
+        try {
+            $stmt->execute($params);
+        } catch (\PDOException $e) {
+            throw new SafeDataProviderException('Cannot delete entity from database', 0, $e);
+        }
         $oldCount = $stmt->fetchColumn();
 
         $deleteSql = "DELETE FROM $tableName WHERE " . $criteria;
@@ -244,9 +251,9 @@ readonly class PdoDataProvider
                 || ($this->driverIs('pgsql') && $e->errorInfo[0] === '23503')
                 || ($this->driverIs('sqlite') && $e->errorInfo[1] === 19)
             ) {
-                throw new DataProviderException('Cannot delete entity because it is used in other entities.', 0, $e);
+                throw new SafeDataProviderException('Cannot delete entity because it is used in other entities.', 0, $e);
             }
-            throw new DataProviderException('Cannot delete entity from database', 0, $e);
+            throw new SafeDataProviderException('Cannot delete entity from database', 0, $e);
         }
 
         $reportedCount = $stmt->rowCount();
@@ -255,7 +262,11 @@ readonly class PdoDataProvider
         }
 
         $stmt = $this->pdo->prepare($selectSql);
-        $stmt->execute($params);
+        try {
+            $stmt->execute($params);
+        } catch (\PDOException $e) {
+            throw new SafeDataProviderException('Cannot delete entity from database', 0, $e);
+        }
         $newCount = $stmt->fetchColumn();
 
         return $newCount - $oldCount;
@@ -278,7 +289,7 @@ readonly class PdoDataProvider
     }
 
     /**
-     * @return array<string, string>
+     * @return array<string,string>
      */
     public function getLabelsFromTable(string $tableName, array $primaryKeyColumnNames, string $titleSqlExpression): array
     {
@@ -286,6 +297,9 @@ readonly class PdoDataProvider
         return $this->pdo->query($sql)->fetchAll(\PDO::FETCH_KEY_PAIR);
     }
 
+    /**
+     * @throws DataProviderException
+     */
     public function getAutocompleteResults(
         string $tableName,
         string $idColumn,
@@ -305,22 +319,23 @@ ORDER BY $autocompleteSqlExpression
 LIMIT 20
 SQL;
         $stmt = $this->pdo->prepare($sql);
-        $stmt->execute([
-            'query'        => '%' . mb_strtolower($query) . '%',
-            'additionalId' => $additionalId
-        ]);
+        try {
+            $stmt->execute([
+                'query'        => '%' . mb_strtolower($query) . '%',
+                'additionalId' => $additionalId
+            ]);
+        } catch (\PDOException $e) {
+            throw new DataProviderException($e->getMessage(), 0, $e);
+        }
 
         return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 
-    /**
-     * @throws DataProviderException
-     */
     private function driverIs(string $driverName): bool
     {
         $supportedDrivers = ['mysql', 'pgsql', 'sqlite'];
         if (!\in_array($driverName, $supportedDrivers, true)) {
-            throw new DataProviderException(sprintf("Unsupported driver: %s. Supported drivers: [%s].", $driverName, implode(', ', $supportedDrivers)));
+            throw new \InvalidArgumentException(sprintf("Unsupported driver: %s. Supported drivers: [%s].", $driverName, implode(', ', $supportedDrivers)));
         }
         return $this->pdo->getAttribute(\PDO::ATTR_DRIVER_NAME) === $driverName;
     }
@@ -354,5 +369,12 @@ SQL;
         }
 
         throw new DataProviderException('Unsupported driver.');
+    }
+
+    private function isUniqueConstraintViolation(\PDOException $e): bool
+    {
+        return ($e->errorInfo[1] === 1062 && $this->driverIs('mysql'))
+            || ($e->errorInfo[0] === '23505' && $this->driverIs('pgsql'))
+            || ($e->errorInfo[1] === 19 && $this->driverIs('sqlite') && str_contains($e->getMessage(), 'UNIQUE'));
     }
 }

@@ -129,7 +129,7 @@ $commentConfig = (new EntityConfig('Comment', 'comments'))
 ;
 
 /**
- * @throws \S2\AdminYard\Database\DataProviderException
+ * @throws \S2\AdminYard\Database\SafeDataProviderException
  * @throws PDOException
  */
 function tagIdsFromTags(PdoDataProvider $dataProvider, array $tags): array

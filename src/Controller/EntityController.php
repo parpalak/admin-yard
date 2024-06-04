@@ -16,6 +16,7 @@ use S2\AdminYard\Config\Filter;
 use S2\AdminYard\Config\VirtualFieldType;
 use S2\AdminYard\Database\DatabaseHelper;
 use S2\AdminYard\Database\DataProviderException;
+use S2\AdminYard\Database\SafeDataProviderException;
 use S2\AdminYard\Database\Key;
 use S2\AdminYard\Database\PdoDataProvider;
 use S2\AdminYard\Event\AfterSaveEvent;
@@ -49,7 +50,7 @@ readonly class EntityController
     }
 
     /**
-     * @throws \PDOException
+     * @throws DataProviderException
      */
     final public function listAction(Request $request): string
     {
@@ -94,6 +95,7 @@ readonly class EntityController
 
     /**
      * @throws BadRequestException
+     * @throws DataProviderException
      * @throws InvalidRequestException
      * @throws NotFoundException
      */
@@ -132,9 +134,9 @@ readonly class EntityController
 
     /**
      * @throws BadRequestException
+     * @throws DataProviderException
      * @throws InvalidRequestException
      * @throws NotFoundException
-     * @throws SuspiciousOperationException
      */
     public function editAction(Request $request): string|Response
     {
@@ -143,7 +145,7 @@ readonly class EntityController
         $errorMessages = [];
 
         $form = $this->formFactory->createEntityForm($this->entityConfig, FieldConfig::ACTION_EDIT, $request);
-        if ($request->getMethod() === Request::METHOD_POST) {
+        if ($request->getRealMethod() === Request::METHOD_POST) {
             $form->submit($request);
             if ($form->isValid()) {
                 $data = $form->getData();
@@ -162,7 +164,7 @@ readonly class EntityController
                         $primaryKey,
                         $data
                     );
-                } catch (DataProviderException $e) {
+                } catch (SafeDataProviderException $e) {
                     $errorMessages[] = $this->translator->trans($e->getMessage());
                 }
 
@@ -222,7 +224,7 @@ readonly class EntityController
         $form          = $this->formFactory->createEntityForm($this->entityConfig, FieldConfig::ACTION_NEW, $request);
         $errorMessages = [];
 
-        if ($request->getMethod() === Request::METHOD_POST) {
+        if ($request->getRealMethod() === Request::METHOD_POST) {
             $form->submit($request);
 
             if ($form->isValid()) {
@@ -241,7 +243,7 @@ readonly class EntityController
                         $this->entityConfig->getFieldDataTypes(FieldConfig::ACTION_NEW, includeDefault: true),
                         array_merge($this->entityConfig->getFieldDefaultValues(), $data)
                     );
-                } catch (DataProviderException $e) {
+                } catch (SafeDataProviderException $e) {
                     $errorMessages[] = $this->translator->trans($e->getMessage());
                 }
 
@@ -290,10 +292,10 @@ readonly class EntityController
     }
 
     /**
+     * @throws BadRequestException
+     * @throws DataProviderException
      * @throws InvalidRequestException
      * @throws SuspiciousOperationException
-     * @throws \PDOException
-     * @throws \Symfony\Component\HttpFoundation\Exception\BadRequestException
      */
     public function deleteAction(Request $request): Response
     {
@@ -321,7 +323,7 @@ readonly class EntityController
                 $this->entityConfig->getFieldDataTypes(FieldConfig::ACTION_DELETE, includePrimaryKey: true),
                 $primaryKey
             );
-        } catch (DataProviderException $e) {
+        } catch (SafeDataProviderException $e) {
             $this->addFlashMessage($request, 'error', $this->translator->trans($e->getMessage()));
             return new Response('Unable to delete entity', Response::HTTP_INTERNAL_SERVER_ERROR);
         }
@@ -342,8 +344,9 @@ readonly class EntityController
     }
 
     /**
-     * @throws InvalidRequestException
      * @throws BadRequestException
+     * @throws DataProviderException
+     * @throws InvalidRequestException
      */
     public function autocompleteAction(Request $request): Response
     {
@@ -382,7 +385,7 @@ readonly class EntityController
     /**
      * @param array<string, Filter> $filters
      *
-     * @throws \PDOException
+     * @throws DataProviderException
      */
     protected function getEntityList(array $filters, array $filterData, ?string $sortField, ?string $sortDirection): array
     {
