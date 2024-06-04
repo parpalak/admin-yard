@@ -332,10 +332,8 @@ which is a subclass of VirtualFieldType.
 
 To use VirtualFieldType, you need to write an SQL query that evaluates the content displayed in the virtual field.
 
-When executing SELECT queries to the database, one need to retrieve both column field values and virtual
-field values.
-To avoid conflicts, column field names are prefixed with `field_` since this represents the actual field value.
-Virtual field names are prefixed with `label_` as their values are displayed as content on the list and show screens.
+When executing SELECT queries to the database, one need to retrieve both column field values and virtual field values.
+To avoid conflicts, column field names are prefixed with `column_`, and virtual field names are prefixed with `virtual_`.
 Without this separation, many-to-one associations using `new LinkTo($postEntity, "CONCAT('#', id, ' ', title)")`
 would not work, as both the content for the link and the entity identifier for the link address
 need to be retrieved simultaneously.
@@ -373,8 +371,8 @@ $postConfig
         if (\is_array($event->data)) {
             // Convert NULL to an empty string when the edit form is filled with current data.
             // It is required since TypeTransformer is not applied to virtual fields (no dataType).
-            // 'label_' prefix is used for virtual fields as explained earlier.
-            $event->data['label_tags'] = (string)$event->data['label_tags'];
+            // 'virtual_' prefix is used for virtual fields as explained earlier.
+            $event->data['virtual_tags'] = (string)$event->data['virtual_tags'];
         }
     })
     ->addListener([EntityConfig::EVENT_BEFORE_UPDATE, EntityConfig::EVENT_BEFORE_CREATE], function (BeforeSaveEvent $event) {
@@ -396,7 +394,7 @@ $postConfig
             'post_id' => FieldConfig::DATA_TYPE_INT,
             'tag_id'  => FieldConfig::DATA_TYPE_INT,
         ], filterData: ['post_id' => $event->primaryKey->toArray()['id']]);
-        $existingTagIds = array_column($existingLinks, 'field_tag_id');
+        $existingTagIds = array_column($existingLinks, 'column_tag_id');
         
         // Check if the new tag list differs from the old one
         if (implode(',', $existingTagIds) !== implode(',', $newTagIds)) {
@@ -432,7 +430,7 @@ function tagIdsFromTags(PdoDataProvider $dataProvider, array $tags): array
         'id'   => FieldConfig::DATA_TYPE_INT,
     ], filterData: ['LOWER(name)' => array_map(static fn(string $tag) => mb_strtolower($tag), $tags)]);
 
-    $existingTagsMap = array_column($existingTags, 'field_name', 'field_id');
+    $existingTagsMap = array_column($existingTags, 'column_name', 'column_id');
     $existingTagsMap = array_map(static fn(string $tag) => mb_strtolower($tag), $existingTagsMap);
     $existingTagsMap = array_flip($existingTagsMap);
 

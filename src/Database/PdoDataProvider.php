@@ -114,7 +114,7 @@ readonly class PdoDataProvider
 
         foreach ($rows as &$row) {
             foreach ($dataTypes as $columnName => $type) {
-                $key       = 'field_' . $columnName;
+                $key       = 'column_' . $columnName;
                 $row[$key] = $this->typeTransformer->normalizedFromDb($row[$key], $type);
             }
         }
@@ -146,7 +146,7 @@ readonly class PdoDataProvider
         }
 
         foreach ($dataTypes as $columnName => $type) {
-            $key       = 'field_' . $columnName;
+            $key       = 'column_' . $columnName;
             $row[$key] = $this->typeTransformer->normalizedFromDb($row[$key], $type);
         }
         return $row;
@@ -274,9 +274,9 @@ readonly class PdoDataProvider
 
     private function getAliasesForSelect(array $dataTypes, array $labels): string
     {
-        $aliases = array_map(static fn(string $columnName) => "$columnName AS field_$columnName", array_keys($dataTypes));
+        $aliases = array_map(static fn(string $columnName) => "$columnName AS column_$columnName", array_keys($dataTypes));
         foreach ($labels as $columnName => $sqlExpression) {
-            $aliases[] = "$sqlExpression AS label_$columnName";
+            $aliases[] = "$sqlExpression AS virtual_$columnName";
         }
 
         if (\count($aliases) === 0) {

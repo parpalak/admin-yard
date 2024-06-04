@@ -274,7 +274,7 @@ class EntityConfig
 
         foreach ($this->fields as $field) {
             if ($field->name === $sortField) {
-                return $field->type instanceof DbColumnFieldType && $field->linkToEntity === null ? $sortField : 'label_' . $sortField;
+                return $field->type instanceof DbColumnFieldType && $field->linkToEntity === null ? $sortField : 'virtual_' . $sortField;
             }
         }
 

@@ -9,7 +9,6 @@ declare(strict_types=1);
 
 namespace S2\AdminYard\Config;
 
-use InvalidArgumentException;
 use S2\AdminYard\Validator\NotBlank;
 use S2\AdminYard\Validator\ValidatorInterface;
 
@@ -47,6 +46,8 @@ class FieldConfig
         self::ACTION_DELETE,
     ];
 
+    public const ACTIONS_ALLOWED_FOR_ENTITY_LINK = [self::ACTION_SHOW, self::ACTION_EDIT];
+
     /**
      * @param string               $name          Column name in the database.
      * @param string|null          $label         Field label in the interface. If not set, column name will be used as
@@ -79,12 +80,16 @@ class FieldConfig
         public readonly string            $viewTemplate = __DIR__ . '/../../templates/view_cell.php',
 
     ) {
-        if ($this->actionOnClick !== null && !\in_array($this->actionOnClick, [self::ACTION_SHOW, self::ACTION_EDIT], true)) {
-            throw new InvalidArgumentException(sprintf('Invalid linkToAction "%s". Must be one of [%s].', $this->actionOnClick, implode(', ', [self::ACTION_SHOW, self::ACTION_EDIT])));
+        if ($this->actionOnClick !== null && !\in_array($this->actionOnClick, self::ACTIONS_ALLOWED_FOR_ENTITY_LINK, true)) {
+            throw new \InvalidArgumentException(sprintf(
+                'Invalid linkToAction "%s". Must be one of [%s].',
+                $this->actionOnClick,
+                implode(', ', self::ACTIONS_ALLOWED_FOR_ENTITY_LINK)
+            ));
         }
         foreach ($this->validators as $validator) {
             if (!$validator instanceof ValidatorInterface) {
-                throw new InvalidArgumentException(sprintf('Validator must implement "%s".', ValidatorInterface::class));
+                throw new \InvalidArgumentException(sprintf('Validator must implement "%s".', ValidatorInterface::class));
             }
         }
         if (\count(array_filter([
@@ -92,7 +97,7 @@ class FieldConfig
                 $this->linkToEntity !== null,
                 $this->actionOnClick !== null,
             ])) > 1) {
-            throw new InvalidArgumentException('Only one of linkToEntity, actionOnClick, or type other than DbColumnFieldType can be set.');
+            throw new \InvalidArgumentException('Only one of linkToEntity, actionOnClick, or type other than DbColumnFieldType can be set.');
         }
         if ($useOnActions !== null) {
             if (\count(array_diff($useOnActions, self::ALLOWED_ACTIONS)) > 0) {
@@ -104,7 +109,7 @@ class FieldConfig
             }
         }
         if ($this->control === null && $this->options !== null) {
-            throw new InvalidArgumentException('Options can be set only if control is set.');
+            throw new \InvalidArgumentException('Options can be set only if control is set.');
         }
         /**
          * TODO think about controls and options validation.

@@ -199,7 +199,7 @@ readonly class EntityController
             if ($data === null) {
                 throw new NotFoundException(sprintf($this->translator->trans('%s with %s not found.'), $this->entityConfig->getName(), $primaryKey->toString()));
             }
-            $form->fillFromArray($data, ['field_', 'label_']);
+            $form->fillFromArray($data, ['column_', 'virtual_']);
         }
 
         return $this->templateRenderer->render(
@@ -411,7 +411,7 @@ readonly class EntityController
     protected function renderCellsForNormalizedRow(Request $request, array $row, string $actionForFieldRestriction): array
     {
         $idFieldNames = $this->entityConfig->getFieldNamesOfPrimaryKey();
-        $idValues     = array_map(static fn(string $columnName) => $row['field_' . $columnName], $idFieldNames);
+        $idValues     = array_map(static fn(string $columnName) => $row['column_' . $columnName], $idFieldNames);
         $primaryKey   = array_combine($idFieldNames, $idValues);
         $result       = [
             'cells'       => [],
@@ -425,8 +425,8 @@ readonly class EntityController
             $columnName = $field->name;
             $dataType   = $field->type instanceof DbColumnFieldType ? $field->type->dataType : 'virtual';
             $cellValue  = match (\get_class($field->type)) {
-                DbColumnFieldType::class => $this->viewTransformer->viewFromNormalized($row['field_' . $columnName], $dataType, $field->options),
-                VirtualFieldType::class => $row['label_' . $columnName],
+                DbColumnFieldType::class => $this->viewTransformer->viewFromNormalized($row['column_' . $columnName], $dataType, $field->options),
+                VirtualFieldType::class => $row['virtual_' . $columnName],
                 default => null,
             };
 
@@ -434,7 +434,7 @@ readonly class EntityController
             $linkCellParams = $this->getLinkCellParams($field, new Key($primaryKey), $row);
             $cellParams     = [
                 'value'      => $cellValue,
-                'label'      => (string)($row['label_' . $columnName] ?? $cellValue),
+                'label'      => (string)($row['virtual_' . $columnName] ?? $cellValue),
                 'type'       => $dataType,
                 'linkParams' => $linkCellParams,
                 'row'        => $row,
@@ -468,10 +468,10 @@ readonly class EntityController
             $externalFilterColumnNames = $currentField->type->linkToEntityParams->filterColumnNames;
             $valueColumns              = $currentField->type->linkToEntityParams->valueColumnNamesOfFilters;
 
-            if (!\array_key_exists('label_' . $columnName, $row)) {
-                throw new \LogicException(sprintf('Row data array for entity "%s" must have a "label_%s" key.', $this->entityConfig->getName(), $columnName));
+            if (!\array_key_exists('virtual_' . $columnName, $row)) {
+                throw new \LogicException(sprintf('Row data array for entity "%s" must have a "virtual_%s" key.', $this->entityConfig->getName(), $columnName));
             }
-            if ($row['label_' . $columnName] === null) {
+            if ($row['virtual_' . $columnName] === null) {
                 // Label is NULL so there will be no link to associated entities
                 return null;
             }
@@ -479,15 +479,15 @@ readonly class EntityController
             return [
                 'entity' => $externalEntityName,
                 'action' => 'list',
-                ... array_combine($externalFilterColumnNames, array_map(static fn(string $columnName) => $row['field_' . $columnName], $valueColumns)),
+                ... array_combine($externalFilterColumnNames, array_map(static fn(string $columnName) => $row['column_' . $columnName], $valueColumns)),
             ];
         }
 
         if ($currentField->linkToEntity !== null) {
-            if (!\array_key_exists('label_' . $columnName, $row)) {
-                throw new \LogicException(sprintf('Row data array for entity "%s" must have a "label_%s" key.', $this->entityConfig->getName(), $columnName));
+            if (!\array_key_exists('virtual_' . $columnName, $row)) {
+                throw new \LogicException(sprintf('Row data array for entity "%s" must have a "virtual_%s" key.', $this->entityConfig->getName(), $columnName));
             }
-            if ($row['label_' . $columnName] === null) {
+            if ($row['virtual_' . $columnName] === null) {
                 // Label is NULL so there will be no link to associated entity
                 return null;
             }
@@ -504,7 +504,7 @@ readonly class EntityController
                 'action'                   => 'show',
                 // NOTE: think about how to handle primary keys with more than one field.
                 //       For now, we just take the first field. It's ok for usual ID fields.
-                $fieldNamesOfPrimaryKey[0] => $row['field_' . $currentField->name],
+                $fieldNamesOfPrimaryKey[0] => $row['column_' . $currentField->name],
             ];
         }
 

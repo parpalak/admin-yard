@@ -139,7 +139,7 @@ function tagIdsFromTags(PdoDataProvider $dataProvider, array $tags): array
         'id'   => FieldConfig::DATA_TYPE_INT,
     ], filterData: ['LOWER(name)' => array_map(static fn(string $tag) => mb_strtolower($tag), $tags)]);
 
-    $existingTagsMap = array_column($existingTags, 'field_name', 'field_id');
+    $existingTagsMap = array_column($existingTags, 'column_name', 'column_id');
     $existingTagsMap = array_map(static fn(string $tag) => mb_strtolower($tag), $existingTagsMap);
     $existingTagsMap = array_flip($existingTagsMap);
 
@@ -235,7 +235,7 @@ $adminConfig
             ->addListener([EntityConfig::EVENT_BEFORE_EDIT], function (BeforeEditEvent $event) {
                 if (\is_array($event->data)) {
                     // Convert NULL to an empty string when the edit form is filled with current data
-                    $event->data['label_tags'] = (string)$event->data['label_tags'];
+                    $event->data['virtual_tags'] = (string)$event->data['virtual_tags'];
                 }
             })
             ->addListener([EntityConfig::EVENT_BEFORE_UPDATE, EntityConfig::EVENT_BEFORE_CREATE], function (BeforeSaveEvent $event) {
@@ -256,7 +256,7 @@ $adminConfig
                     'tag_id'  => FieldConfig::DATA_TYPE_INT,
                 ], filterData: ['post_id' => $event->primaryKey->toArray()['id']]);
 
-                $existingTagIds = array_column($existingLinks, 'field_tag_id');
+                $existingTagIds = array_column($existingLinks, 'column_tag_id');
                 if (implode(',', $existingTagIds) !== implode(',', $newTagIds)) {
                     $event->dataProvider->deleteEntity('posts_tags', ['post_id' => FieldConfig::DATA_TYPE_INT], new Key(['post_id' => $event->primaryKey->toArray()['id']]));
                     foreach ($newTagIds as $tagId) {
