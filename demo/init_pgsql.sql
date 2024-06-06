@@ -52,7 +52,7 @@ CREATE TABLE IF NOT EXISTS comments
     id SERIAL PRIMARY KEY,
     post_id INT NOT NULL,
     name TEXT NOT NULL,
-    email VARCHAR(20) DEFAULT NULL,
+    email VARCHAR(50) DEFAULT NULL,
     comment_text TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     status_code VARCHAR(20) NOT NULL,

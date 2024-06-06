@@ -14,7 +14,7 @@ class EmailInput extends Input
     public function getHtml(?string $id = null): string
     {
         return sprintf(
-            '<input type="email" name="%s" value="%s"%s>',
+            '<input type="email" name="%s" value="%s" autocomplete="off"%s>',
             htmlspecialchars($this->fieldName, ENT_QUOTES, 'UTF-8'),
             htmlspecialchars($this->value, ENT_QUOTES, 'UTF-8'),
             $id !== null ? ' id="' . $id . '"' : ''

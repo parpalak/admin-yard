@@ -183,9 +183,9 @@ readonly class PdoDataProvider
             $stmt->execute($params);
         } catch (\PDOException $e) {
             if ($this->isUniqueConstraintViolation($e)) {
-                throw new SafeDataProviderException('The entity with same parameters already exists.', 0, $e);
+                throw new SafeDataProviderException('The entity with same parameters already exists.', 422, $e);
             }
-            throw new SafeDataProviderException('Cannot save entity to database', 0, $e);
+            throw new SafeDataProviderException('Cannot save entity to database', 500, $e);
         }
     }
 

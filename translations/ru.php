@@ -34,6 +34,7 @@ return [
     '%s was not deleted.'                                        => 'Запись "%s" не была удален.',
     '%s deleted successfully.'                                   => 'Запись "%s" была успешно удалена.',
     'Cannot delete entity because it is used in other entities.' => 'Невозможно удалить запись, так как она используется в других записях.',
+    'Something went wrong and the value was not saved.'          => 'Что-то пошло не так и значение не было сохранено.',
 
     'This value should not be blank.'                                                                                                                => 'Поле не может быть пустым.',
     'The value you selected is not a valid choice.'                                                                                                  => 'Выбранное значение неверно.',

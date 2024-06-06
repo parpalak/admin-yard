@@ -16,15 +16,16 @@ use S2\AdminYard\Config\Filter;
 use S2\AdminYard\Config\VirtualFieldType;
 use S2\AdminYard\Database\DatabaseHelper;
 use S2\AdminYard\Database\DataProviderException;
-use S2\AdminYard\Database\SafeDataProviderException;
 use S2\AdminYard\Database\Key;
 use S2\AdminYard\Database\PdoDataProvider;
+use S2\AdminYard\Database\SafeDataProviderException;
 use S2\AdminYard\Event\AfterSaveEvent;
 use S2\AdminYard\Event\BeforeDeleteEvent;
 use S2\AdminYard\Event\BeforeEditEvent;
 use S2\AdminYard\Event\BeforeSaveEvent;
 use S2\AdminYard\Form\Form;
 use S2\AdminYard\Form\FormFactory;
+use S2\AdminYard\Form\FormParams;
 use S2\AdminYard\TemplateRenderer;
 use S2\AdminYard\Transformer\ViewTransformer;
 use S2\AdminYard\Translator;
@@ -144,7 +145,13 @@ readonly class EntityController
 
         $errorMessages = [];
 
-        $form = $this->formFactory->createEntityForm($this->entityConfig, FieldConfig::ACTION_EDIT, $request);
+        $form = $this->formFactory->createEntityForm(new FormParams(
+            $this->entityConfig->getName(),
+            $this->entityConfig->getFields(FieldConfig::ACTION_EDIT),
+            $request,
+            FieldConfig::ACTION_EDIT,
+            $primaryKey->toArray()
+        ));
         if ($request->getRealMethod() === Request::METHOD_POST) {
             $form->submit($request);
             if ($form->isValid()) {
@@ -221,7 +228,13 @@ readonly class EntityController
 
     public function newAction(Request $request): string|Response
     {
-        $form          = $this->formFactory->createEntityForm($this->entityConfig, FieldConfig::ACTION_NEW, $request);
+        $form = $this->formFactory->createEntityForm(new FormParams(
+            $this->entityConfig->getName(),
+            $this->entityConfig->getFields(FieldConfig::ACTION_NEW),
+            $request,
+            FieldConfig::ACTION_NEW
+        ));
+
         $errorMessages = [];
 
         if ($request->getRealMethod() === Request::METHOD_POST) {
@@ -345,6 +358,58 @@ readonly class EntityController
 
     /**
      * @throws BadRequestException
+     * @throws InvalidRequestException
+     */
+    public function patchAction(Request $request): Response
+    {
+        if ($request->getRealMethod() !== Request::METHOD_POST) {
+            throw new InvalidRequestException('Patch action must be called via POST request.', Response::HTTP_METHOD_NOT_ALLOWED);
+        }
+        $fieldName = $request->query->get('field');
+        if ($fieldName === null) {
+            throw new InvalidRequestException('Field name must be provided.', Response::HTTP_BAD_REQUEST);
+        }
+        $field     = $this->entityConfig->findFieldByName($fieldName);
+        if ($field === null) {
+            throw new InvalidRequestException(sprintf('Field "%s" not found in entity "%s".', $fieldName, $this->entityConfig->getName()));
+        }
+        if (!$field->inlineEdit) {
+            throw new InvalidRequestException(sprintf('Field "%s" is not declared as inline editable.', $fieldName));
+        }
+        $primaryKey = $this->getEntityPrimaryKeyFromRequest($request);
+
+        $form = $this->formFactory->createEntityForm(new FormParams(
+            $this->entityConfig->getName(),
+            [$fieldName => $field],
+            $request,
+            'patch',
+            $primaryKey->toArray(),
+        ));
+
+        $form->submit($request);
+        if (!$form->isValid()) {
+            return new JsonResponse(['errors' => $form->getValidationErrors()], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        $data = $form->getData();
+        try {
+            $this->dataProvider->updateEntity(
+                $this->entityConfig->getTableName(),
+                $this->entityConfig->getFieldDataTypes('patch', includePrimaryKey: true),
+                $primaryKey,
+                $data
+            );
+        } catch (SafeDataProviderException $e) {
+            return new JsonResponse(['errors' => [$this->translator->trans($e->getMessage())]], $e->getCode() ?: Response::HTTP_INTERNAL_SERVER_ERROR);
+        } catch (\Exception $e) {
+            return new JsonResponse(['errors' => ['Unable to update entity']], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
+
+        return new JsonResponse(['success' => true]);
+    }
+
+    /**
+     * @throws BadRequestException
      * @throws DataProviderException
      * @throws InvalidRequestException
      */
@@ -422,25 +487,49 @@ readonly class EntityController
         ];
 
         foreach ($this->entityConfig->getFields($actionForFieldRestriction) as $field) {
-            $columnName = $field->name;
-            $dataType   = $field->type instanceof DbColumnFieldType ? $field->type->dataType : 'virtual';
-            $cellValue  = match (\get_class($field->type)) {
-                DbColumnFieldType::class => $this->viewTransformer->viewFromNormalized($row['column_' . $columnName], $dataType, $field->options),
-                VirtualFieldType::class => $row['virtual_' . $columnName],
+            $fieldName = $field->name;
+            $dataType  = $field->type instanceof DbColumnFieldType ? $field->type->dataType : 'virtual';
+            $cellValue = match (\get_class($field->type)) {
+                DbColumnFieldType::class => $this->viewTransformer->viewFromNormalized($row['column_' . $fieldName], $dataType, $field->options),
+                VirtualFieldType::class => $row['virtual_' . $fieldName],
                 default => null,
             };
+
+            if ($field->inlineEdit) {
+                $form = $this->formFactory->createEntityForm(new FormParams(
+                    $this->entityConfig->getName(),
+                    [$fieldName => $field],
+                    $request,
+                    'patch',
+                    $primaryKey,
+                ));
+                $form->fillFromArray($row, ['column_', 'virtual_']);
+
+                $result['cells'][$fieldName] = [
+                    'type'    => $dataType,
+                    'content' => $this->templateRenderer->render($field->inlineFormTemplate, [
+                        'value'      => $cellValue,
+                        'form'       => $form,
+                        'entityName' => $this->entityConfig->getName(),
+                        'fieldName'  => $fieldName,
+                        'primaryKey' => $primaryKey,
+                    ]),
+                ];
+
+                continue;
+            }
 
             // Additional attributes to build a link to an associated entity.
             $linkCellParams = $this->getLinkCellParams($field, new Key($primaryKey), $row);
             $cellParams     = [
                 'value'      => $cellValue,
-                'label'      => (string)($row['virtual_' . $columnName] ?? $cellValue),
+                'label'      => (string)($row['virtual_' . $fieldName] ?? $cellValue),
                 'type'       => $dataType,
                 'linkParams' => $linkCellParams,
                 'row'        => $row,
             ];
 
-            $result['cells'][$columnName] = [
+            $result['cells'][$fieldName] = [
                 'type'    => $linkCellParams === null && $field->linkToEntity === null ? $dataType : FieldConfig::DATA_TYPE_STRING, // string for int IDs converted to links
                 'content' => $this->templateRenderer->render($field->viewTemplate, $cellParams),
             ];
@@ -566,7 +655,8 @@ readonly class EntityController
 
     protected function getDeleteCsrfToken(array $primaryKey, Request $request): string
     {
-        return $this->formFactory->generateCsrfToken($this->entityConfig->getName(), FieldConfig::ACTION_DELETE, $primaryKey, $request);
+        $formParams = new FormParams($this->entityConfig->getName(), [], $request, FieldConfig::ACTION_DELETE, $primaryKey);
+        return $formParams->getCsrfToken();
     }
 
     /**

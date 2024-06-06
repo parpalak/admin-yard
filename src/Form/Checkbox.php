@@ -40,7 +40,7 @@ class Checkbox implements FormControlInterface
     {
         /** @noinspection HtmlUnknownAttribute */
         return sprintf(
-            '<input type="checkbox" name="%s"%s%s>',
+            '<label><input type="checkbox" name="%s"%s%s></label>',
             htmlspecialchars($this->fieldName, ENT_QUOTES, 'UTF-8'),
             $this->value ? ' checked' : '',
             $id ? ' id="' . $id . '"' : ''

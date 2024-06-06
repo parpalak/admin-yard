@@ -52,6 +52,9 @@ class Form
         return array_filter($this->controls, static fn(FormControlInterface $control) => !$control instanceof HiddenInput);
     }
 
+    /**
+     * @return array<string, FormControlInterface>
+     */
     public function getHiddenControls(): array
     {
         return array_filter($this->controls, static fn(FormControlInterface $control) => $control instanceof HiddenInput);
@@ -74,7 +77,7 @@ class Form
 
     public function submit(Request $request, bool $overwriteEmptyArrayControls = false): void
     {
-        $method = $request->getMethod();
+        $method = $request->getRealMethod();
         if ($method === Request::METHOD_POST) {
             $inputBag = $request->request;
         } elseif ($method === Request::METHOD_GET) {
@@ -172,5 +175,10 @@ class Form
             (new HiddenInput(self::CSRF_FIELD_NAME))->setValue($this->csrfToken),
             self::CSRF_FIELD_NAME
         );
+    }
+
+    public function getValidationErrors(): array
+    {
+        return array_merge($this->formErrors, array_merge(...array_map(static fn(FormControlInterface $control) => $control->getValidationErrors(), array_values($this->controls))));
     }
 }

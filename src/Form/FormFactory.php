@@ -9,11 +9,9 @@ declare(strict_types=1);
 
 namespace S2\AdminYard\Form;
 
-use Random\RandomException;
 use S2\AdminYard\Config\EntityConfig;
 use S2\AdminYard\Config\FilterLinkTo;
 use S2\AdminYard\Database\PdoDataProvider;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 readonly class FormFactory
@@ -31,21 +29,21 @@ readonly class FormFactory
      * @throws \DomainException if entities are not configured correctly, may appear during AdminYard integration.
      * @throws \LogicException if a violation of invariants is detected, may appear in case of AdminYard bugs.
      */
-    public function createEntityForm(EntityConfig $entityConfig, string $action, Request $request): Form
+    public function createEntityForm(FormParams $formParams): Form
     {
-        // NOTE: Pass primary key and generate form action here?
-        $form      = new Form($this->translator);
-        $csrfToken = $this->generateCsrfToken($entityConfig->getName(), $action, [], $request);
-        $form->setCsrfToken($csrfToken);
+        $form = new Form($this->translator);
+        $form->setCsrfToken($formParams->getCsrfToken());
 
-        foreach ($entityConfig->getFields($action) as $field) {
+        $entityName = $formParams->entityName;
+
+        foreach ($formParams->fields as $field) {
             $columnName  = $field->name;
             $controlName = $field->control;
             if ($controlName === null) {
                 throw new \DomainException(sprintf(
                     'Field "%s" for entity "%s" must have a control configured.',
                     $columnName,
-                    $entityConfig->getName()
+                    $entityName
                 ));
             }
             $control = $this->formControlFactory->create($controlName, $columnName);
@@ -83,7 +81,7 @@ readonly class FormFactory
                     throw new \DomainException(sprintf(
                         'Field "%s" for entity "%s" must have a control configured as OptionsInterface or Autocomplete.',
                         $columnName,
-                        $entityConfig->getName()
+                        $entityName
                     ));
                 }
             } elseif ($control instanceof OptionsInterface) {
@@ -92,7 +90,7 @@ readonly class FormFactory
                     throw new \DomainException(sprintf(
                         'Field "%s" for entity "%s" must have options configured since its control is "%s".',
                         $columnName,
-                        $entityConfig->getName(),
+                        $entityName,
                         $controlName
                     ));
                 }
@@ -191,22 +189,5 @@ readonly class FormFactory
         }
 
         return $form;
-    }
-
-    public function generateCsrfToken(string $entityName, string $action, array $primaryKey, Request $request): string
-    {
-        $session = $request->getSession();
-        if (!$session->has('main_csrf_token')) {
-            try {
-                $mainToken = bin2hex(random_bytes(16));
-            } catch (RandomException $e) {
-                $mainToken = sha1(uniqid((string)mt_rand(), true));
-            }
-            $session->set('main_csrf_token', $mainToken);
-        } else {
-            $mainToken = $session->get('main_csrf_token');
-        }
-
-        return sha1(serialize([$entityName, $action, $primaryKey, $mainToken]));
     }
 }

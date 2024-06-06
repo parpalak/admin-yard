@@ -13,6 +13,7 @@ declare(strict_types=1);
 <head>
     <title>Admin panel</title>
     <link rel="stylesheet" href="style.css">
+    <script src="script.js"></script>
 </head>
 <body>
 <nav><?= $menu ?></nav>
@@ -22,7 +23,7 @@ foreach ($flashMessages as $type => $messages) {
         ?>
         <div class="flash-message flash-<?= $type ?>">
             <?= htmlspecialchars($message, ENT_QUOTES, 'UTF-8') ?>
-            <button type="button" class="flash-message-close" onclick="this.parentElement.remove()">&times;</button>
+            <button type="button" class="flash-message-close" onclick="this.parentElement.remove()">✕</button>
         </div>
         <?php
     }

@@ -63,6 +63,7 @@ class FieldConfig
      * @param string|null          $actionOnClick Action for link target if the value on view screens must be clickable.
      * @param LinkTo|null          $linkToEntity  Specifies that this field is a foreign key to another entity
      *                                            (many-to-one).
+     * @param bool                 $inlineEdit    True if the cell on the list screen may be editable inline.
      * @param array|null           $useOnActions  Describes on which action screens this field will be used.
      * @param string               $viewTemplate  View template for rendering cell content on the list and show screens.
      */
@@ -76,9 +77,10 @@ class FieldConfig
         public readonly bool              $sortable = false,
         public readonly ?string           $actionOnClick = null,
         public readonly ?LinkTo           $linkToEntity = null,
+        public readonly bool              $inlineEdit = false,
         public readonly ?array            $useOnActions = null,
         public readonly string            $viewTemplate = __DIR__ . '/../../templates/view_cell.php',
-
+        public readonly string            $inlineFormTemplate = __DIR__ . '/../../templates/inline_form_cell.php',
     ) {
         if ($this->actionOnClick !== null && !\in_array($this->actionOnClick, self::ACTIONS_ALLOWED_FOR_ENTITY_LINK, true)) {
             throw new \InvalidArgumentException(sprintf(
@@ -96,8 +98,9 @@ class FieldConfig
                 !$this->type instanceof DbColumnFieldType,
                 $this->linkToEntity !== null,
                 $this->actionOnClick !== null,
+                $this->inlineEdit !== false,
             ])) > 1) {
-            throw new \InvalidArgumentException('Only one of linkToEntity, actionOnClick, or type other than DbColumnFieldType can be set.');
+            throw new \InvalidArgumentException('Only one of linkToEntity, actionOnClick, inlineEdit or type other than DbColumnFieldType can be set.');
         }
         if ($useOnActions !== null) {
             if (\count(array_diff($useOnActions, self::ALLOWED_ACTIONS)) > 0) {

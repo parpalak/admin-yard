@@ -72,12 +72,14 @@ $commentConfig = (new EntityConfig('Comment', 'comments'))
     ->addField(new FieldConfig(
         name: 'name',
         control: 'input',
-        validators: [new NotBlank(), new Length(max: 50)]
+        validators: [new NotBlank(), new Length(max: 50)],
+        inlineEdit: true,
     ))
     ->addField(new FieldConfig(
         name: 'email',
         control: 'input',
-        validators: [new Length(max: 80)]
+        validators: [new Length(max: 80)],
+        inlineEdit: true,
     ))
     ->addField(new FieldConfig(
         name: 'comment_text',
@@ -94,6 +96,7 @@ $commentConfig = (new EntityConfig('Comment', 'comments'))
         type: new DbColumnFieldType(FieldConfig::DATA_TYPE_STRING, defaultValue: 'new'),
         control: 'radio',
         options: ['new' => 'Pending', 'approved' => 'Approved', 'rejected' => 'Rejected'],
+        inlineEdit: true,
         useOnActions: [FieldConfig::ACTION_LIST, FieldConfig::ACTION_SHOW, FieldConfig::ACTION_EDIT]
     ))
     ->addFilter(new Filter(
@@ -165,6 +168,7 @@ $adminConfig
                 label: 'ID',
                 type: new DbColumnFieldType(FieldConfig::DATA_TYPE_INT, true),
                 sortable: true,
+                actionOnClick: 'edit',
                 useOnActions: [FieldConfig::ACTION_LIST, FieldConfig::ACTION_SHOW]
             ))
             ->addField(new FieldConfig(
@@ -172,7 +176,6 @@ $adminConfig
                 control: 'input',
                 validators: [new Length(max: 80)],
                 sortable: true,
-                actionOnClick: 'edit',
                 viewTemplate: __DIR__ . '/templates/post_view_title.php'
             ))
             ->addField(new FieldConfig(
@@ -201,6 +204,7 @@ $adminConfig
                 label: 'Published',
                 type: new DbColumnFieldType(FieldConfig::DATA_TYPE_BOOL),
                 control: 'checkbox',
+                inlineEdit: true,
             ))
             ->addField(new FieldConfig(
                 name: 'created_at',

@@ -19,7 +19,7 @@ class Radio extends Select
         foreach ($this->options as $key => $value) {
             /** @noinspection HtmlUnknownAttribute */
             $options .= sprintf(
-                '<label><input type="radio" name="%s" value="%s" %s>%s</label>',
+                '<label class="radio-label"><input type="radio" name="%s" value="%s" %s>%s</label>',
                 htmlspecialchars($this->fieldName, ENT_QUOTES, 'UTF-8'),
                 htmlspecialchars((string)$key, ENT_QUOTES, 'UTF-8'),
                 $this->isCurrentOption($key) ? 'checked' : '',

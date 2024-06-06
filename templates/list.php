@@ -100,6 +100,7 @@ declare(strict_types=1);
                                 ?>
                                 <?php if ($action['name'] === 'delete'): ?>
                                     <a class="list-action-link list-action-link-<?= $action['name'] ?>" href="#"
+                                       title="<?= $trans($action['name']) ?>"
                                        onclick=" document.getElementById('delete<?= $rowIndex ?>').classList.toggle('hidden'); return false"><span><?= $trans($action['name']) ?></span></a>
                                     <span id="delete<?= $rowIndex ?>" class="hidden list-action-delete-popup">
                                         <a class="link-as-button danger list-action-link list-action-link-delete-confirm"

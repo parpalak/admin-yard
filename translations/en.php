@@ -34,6 +34,7 @@ return [
     '%s was not deleted.'                                        => '%s was not deleted.',
     '%s deleted successfully.'                                   => '%s deleted successfully.',
     'Cannot delete entity because it is used in other entities.' => 'Cannot delete entity because it is used in other entities.',
+    'Something went wrong and the value was not saved.'          => 'Something went wrong and the value was not saved.',
 
     'This value should not be blank.'                                                                                                                => 'This value should not be blank.',
     'The value you selected is not a valid choice.'                                                                                                  => 'The value you selected is not a valid choice.',

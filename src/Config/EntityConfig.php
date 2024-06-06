@@ -87,6 +87,11 @@ class EntityConfig
         return array_filter($this->fields, static fn(FieldConfig $field) => $field->allowedOnAction($action));
     }
 
+    public function findFieldByName(string $name): ?FieldConfig
+    {
+        return $this->fields[$name] ?? null;
+    }
+
     public function setEnabledActions(array $enabledActions): static
     {
         if (\count(array_diff($enabledActions, self::ALLOWED_ACTIONS)) > 0) {
@@ -259,6 +264,10 @@ class EntityConfig
 
     public function isAllowedAction(string $action): bool
     {
+        if ($action === 'patch') {
+            return true;
+        }
+
         if ($action === 'autocomplete' && $this->autocompleteSqlExpression !== []) {
             return true;
         }

@@ -50,7 +50,7 @@ class Datetime implements FormControlInterface
             $formattedValue = $this->value;
         }
         return sprintf(
-            '<input type="datetime-local" name="%s" value="%s"%s>',
+            '<input type="datetime-local" name="%s" value="%s" autocomplete="off"%s>',
             htmlspecialchars($this->fieldName, ENT_QUOTES, 'UTF-8'),
             htmlspecialchars($formattedValue, ENT_QUOTES, 'UTF-8'),
             $id !== null ? ' id="' . $id . '"' : ''
