@@ -12,6 +12,7 @@ declare(strict_types=1);
 
 namespace S2\AdminYard\Database;
 
+use S2\AdminYard\Config\FieldConfig;
 use S2\AdminYard\Config\Filter;
 
 readonly class PdoDataProvider

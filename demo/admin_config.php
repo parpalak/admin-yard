@@ -14,9 +14,9 @@ use S2\AdminYard\Config\LinkToEntityParams;
 use S2\AdminYard\Config\VirtualFieldType;
 use S2\AdminYard\Database\Key;
 use S2\AdminYard\Database\PdoDataProvider;
+use S2\AdminYard\Event\AfterLoadEvent;
 use S2\AdminYard\Event\AfterSaveEvent;
 use S2\AdminYard\Event\BeforeDeleteEvent;
-use S2\AdminYard\Event\BeforeEditEvent;
 use S2\AdminYard\Event\BeforeSaveEvent;
 use S2\AdminYard\Validator\Length;
 use S2\AdminYard\Validator\NotBlank;
@@ -176,7 +176,7 @@ $adminConfig
                 control: 'input',
                 validators: [new Length(max: 80)],
                 sortable: true,
-                viewTemplate: __DIR__ . '/templates/post_view_title.php'
+                viewTemplate: __DIR__ . '/templates/post_view_title.php.inc',
             ))
             ->addField(new FieldConfig(
                 name: 'tags',
@@ -236,7 +236,7 @@ $adminConfig
              *
              * We have to define some listeners to handle its value on form submission.
              */
-            ->addListener([EntityConfig::EVENT_BEFORE_EDIT], function (BeforeEditEvent $event) {
+            ->addListener([EntityConfig::EVENT_AFTER_EDIT_FETCH], function (AfterLoadEvent $event) {
                 if (\is_array($event->data)) {
                     // Convert NULL to an empty string when the edit form is filled with current data
                     $event->data['virtual_tags'] = (string)$event->data['virtual_tags'];

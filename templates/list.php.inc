@@ -54,8 +54,9 @@ declare(strict_types=1);
                     </div>
                 <?php endforeach; ?>
                 <div class="filter-control-button">
-                    <button class="secondary filter-button" type="submit" name="apply_filter"
-                            value="1"><?= $trans('Filter') ?></button>
+                    <button class="secondary filter-button" type="submit" name="apply_filter" value="1">
+                        <?= $trans('Filter') ?>
+                    </button>
                 </div>
             </div>
         </form>

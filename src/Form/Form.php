@@ -177,8 +177,19 @@ class Form
         );
     }
 
-    public function getValidationErrors(): array
+    /**
+     * @return array<string, string[]>
+     */
+    public function getFieldErrors(): array
     {
-        return array_merge($this->formErrors, array_merge(...array_map(static fn(FormControlInterface $control) => $control->getValidationErrors(), array_values($this->controls))));
+        return array_map(static fn(FormControlInterface $control) => $control->getValidationErrors(), $this->controls);
+    }
+
+    /**
+     * @return string[]
+     */
+    public function getMergedErrors(): array
+    {
+        return array_merge($this->formErrors, array_merge(...array_values($this->getFieldErrors())));
     }
 }

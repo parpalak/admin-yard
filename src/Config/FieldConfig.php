@@ -79,8 +79,8 @@ class FieldConfig
         public readonly ?LinkTo           $linkToEntity = null,
         public readonly bool              $inlineEdit = false,
         public readonly ?array            $useOnActions = null,
-        public readonly string            $viewTemplate = __DIR__ . '/../../templates/view_cell.php',
-        public readonly string            $inlineFormTemplate = __DIR__ . '/../../templates/inline_form_cell.php',
+        public readonly string            $viewTemplate = __DIR__ . '/../../templates/view_cell.php.inc',
+        public readonly string            $inlineFormTemplate = __DIR__ . '/../../templates/inline_form_cell.php.inc',
     ) {
         if ($this->actionOnClick !== null && !\in_array($this->actionOnClick, self::ACTIONS_ALLOWED_FOR_ENTITY_LINK, true)) {
             throw new \InvalidArgumentException(sprintf(

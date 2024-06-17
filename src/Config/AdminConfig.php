@@ -15,8 +15,8 @@ class AdminConfig
      * @var EntityConfig[]
      */
     private array $entities = [];
-    private string $menuTemplate = __DIR__ . '/../../templates/menu.php';
-    private string $layoutTemplate = __DIR__ . '/../../templates/layout.php';
+    private string $menuTemplate = __DIR__ . '/../../templates/menu.php.inc';
+    private string $layoutTemplate = __DIR__ . '/../../templates/layout.php.inc';
 
     public function addEntity(EntityConfig $entity, $priority = 0): static
     {

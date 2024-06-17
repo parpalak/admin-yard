@@ -9,7 +9,7 @@ declare(strict_types=1);
 
 namespace S2\AdminYard\Event;
 
-class BeforeEditEvent
+class AfterLoadEvent
 {
     public function __construct(public ?array $data)
     {

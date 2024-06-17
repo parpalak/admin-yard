@@ -11,12 +11,16 @@ namespace S2\AdminYard\Config;
 
 class EntityConfig
 {
-    public const EVENT_BEFORE_UPDATE = 'before_update';
-    public const EVENT_AFTER_UPDATE  = 'after_update';
-    public const EVENT_BEFORE_CREATE = 'before_create';
-    public const EVENT_AFTER_CREATE  = 'after_create';
-    public const EVENT_BEFORE_DELETE = 'before_delete';
-    public const EVENT_BEFORE_EDIT   = 'before_edit';
+    public const EVENT_BEFORE_UPDATE      = 'before_update';
+    public const EVENT_AFTER_UPDATE       = 'after_update';
+    public const EVENT_BEFORE_CREATE      = 'before_create';
+    public const EVENT_AFTER_CREATE       = 'after_create';
+    public const EVENT_BEFORE_PATCH       = 'before_patch';
+    public const EVENT_AFTER_PATCH        = 'after_patch';
+    public const EVENT_BEFORE_DELETE      = 'before_delete';
+    public const EVENT_AFTER_EDIT_FETCH   = 'after_edit_fetch';
+    public const EVENT_BEFORE_EDIT_RENDER = 'before_edit_render';
+    public const EVENT_BEFORE_LIST_RENDER = 'before_list_render';
 
     private const ALLOWED_ACTIONS = FieldConfig::ALLOWED_ACTIONS;
 
@@ -38,10 +42,10 @@ class EntityConfig
     private array $enabledActions = self::ALLOWED_ACTIONS;
 
     private bool $default = false;
-    private string $listTemplate = __DIR__ . '/../../templates/list.php';
-    private string $showTemplate = __DIR__ . '/../../templates/show.php';
-    private string $newTemplate = __DIR__ . '/../../templates/new.php';
-    private string $editTemplate = __DIR__ . '/../../templates/edit.php';
+    private string $listTemplate = __DIR__ . '/../../templates/list.php.inc';
+    private string $showTemplate = __DIR__ . '/../../templates/show.php.inc';
+    private string $newTemplate = __DIR__ . '/../../templates/new.php.inc';
+    private string $editTemplate = __DIR__ . '/../../templates/edit.php.inc';
 
     /**
      * @var array<string,callable>
@@ -193,6 +197,30 @@ class EntityConfig
     {
         // TODO
         return 200;
+    }
+
+    public function setListTemplate(string $listTemplate): static
+    {
+        $this->listTemplate = $listTemplate;
+        return $this;
+    }
+
+    public function setShowTemplate(string $showTemplate): static
+    {
+        $this->showTemplate = $showTemplate;
+        return $this;
+    }
+
+    public function setNewTemplate(string $newTemplate): static
+    {
+        $this->newTemplate = $newTemplate;
+        return $this;
+    }
+
+    public function setEditTemplate(string $editTemplate): static
+    {
+        $this->editTemplate = $editTemplate;
+        return $this;
     }
 
     public function getListTemplate(): string

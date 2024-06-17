@@ -356,7 +356,7 @@ use S2\AdminYard\Database\Key;
 use S2\AdminYard\Database\PdoDataProvider;
 use S2\AdminYard\Event\AfterSaveEvent;
 use S2\AdminYard\Event\BeforeDeleteEvent;
-use S2\AdminYard\Event\BeforeEditEvent;
+use S2\AdminYard\Event\AfterLoadEvent;
 use S2\AdminYard\Event\BeforeSaveEvent;
 
 $postConfig
@@ -367,7 +367,7 @@ $postConfig
         // Form control for new and edit forms
         control: 'input',
     ))
-    ->addListener([EntityConfig::EVENT_BEFORE_EDIT], function (BeforeEditEvent $event) {
+    ->addListener([EntityConfig::EVENT_AFTER_EDIT_FETCH], function (AfterLoadEvent $event) {
         if (\is_array($event->data)) {
             // Convert NULL to an empty string when the edit form is filled with current data.
             // It is required since TypeTransformer is not applied to virtual fields (no dataType).

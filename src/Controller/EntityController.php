@@ -19,9 +19,10 @@ use S2\AdminYard\Database\DataProviderException;
 use S2\AdminYard\Database\Key;
 use S2\AdminYard\Database\PdoDataProvider;
 use S2\AdminYard\Database\SafeDataProviderException;
+use S2\AdminYard\Event\AfterLoadEvent;
 use S2\AdminYard\Event\AfterSaveEvent;
 use S2\AdminYard\Event\BeforeDeleteEvent;
-use S2\AdminYard\Event\BeforeEditEvent;
+use S2\AdminYard\Event\BeforeRenderEvent;
 use S2\AdminYard\Event\BeforeSaveEvent;
 use S2\AdminYard\Form\Form;
 use S2\AdminYard\Form\FormFactory;
@@ -68,30 +69,34 @@ readonly class EntityController
             $data
         );
 
-        return $this->templateRenderer->render(
-            $this->entityConfig->getListTemplate(),
-            [
-                'title'      => $this->entityConfig->getName(),
-                'entityName' => $this->entityConfig->getName(),
+        $beforeRenderEvent = new BeforeRenderEvent([
+            'title'      => $this->entityConfig->getName(),
+            'entityName' => $this->entityConfig->getName(),
 
-                'filterControls' => $filterForm->getVisibleControls(), // Hidden controls on the list page are only for processing extra query parameters, they should not be in the form data since it's impossible to clear them.
-                'filterLabels'   => array_map(static fn(Filter $filter) => $filter->label, $filters),
-                'filterData'     => array_map(static fn($value) => $value ?? '', $filterData),
+            'filterControls' => $filterForm->getVisibleControls(), // Hidden controls on the list page are only for processing extra query parameters, they should not be in the form data since it's impossible to clear them.
+            'filterLabels'   => array_map(static fn(Filter $filter) => $filter->label, $filters),
+            'filterData'     => array_map(static fn($value) => $value ?? '', $filterData),
 
-                'sortableFields' => $this->entityConfig->getSortableFieldNames(),
-                'sortField'      => $sortField,
-                'sortDirection'  => $sortDirection,
+            'sortableFields' => $this->entityConfig->getSortableFieldNames(),
+            'sortField'      => $sortField,
+            'sortDirection'  => $sortDirection,
 
-                'header'        => $this->entityConfig->getLabels(FieldConfig::ACTION_LIST),
-                'rows'          => $renderedRows,
-                'rowActions'    => array_map(static fn(string $action) => [
-                    'name' => $action,
-                ], array_diff($this->entityConfig->getEnabledActions(), [FieldConfig::ACTION_LIST, FieldConfig::ACTION_NEW])),
-                'entityActions' => array_map(static fn(string $action) => [
-                    'name' => $action,
-                ], array_intersect($this->entityConfig->getEnabledActions(), [FieldConfig::ACTION_NEW])),
-            ]
+            'header'        => $this->entityConfig->getLabels(FieldConfig::ACTION_LIST),
+            'rows'          => $renderedRows,
+            'rowActions'    => array_map(static fn(string $action) => [
+                'name' => $action,
+            ], array_diff($this->entityConfig->getEnabledActions(), [FieldConfig::ACTION_LIST, FieldConfig::ACTION_NEW])),
+            'entityActions' => array_map(static fn(string $action) => [
+                'name' => $action,
+            ], array_intersect($this->entityConfig->getEnabledActions(), [FieldConfig::ACTION_NEW])),
+        ]);
+
+        $this->eventDispatcher->dispatch(
+            $beforeRenderEvent,
+            'adminyard.' . $this->entityConfig->getName() . '.' . EntityConfig::EVENT_BEFORE_LIST_RENDER
         );
+
+        return $this->templateRenderer->render($this->entityConfig->getListTemplate(), $beforeRenderEvent->data);
     }
 
     /**
@@ -173,14 +178,21 @@ readonly class EntityController
                     );
                 } catch (SafeDataProviderException $e) {
                     $errorMessages[] = $this->translator->trans($e->getMessage());
+                    if ($request->isXmlHttpRequest()) {
+                        return new JsonResponse(['success' => false, 'errors' => $errorMessages], $e->getCode());
+                    }
                 }
 
-                $this->eventDispatcher->dispatch(
-                    new AfterSaveEvent($this->dataProvider, $primaryKey, $context),
-                    'adminyard.' . $this->entityConfig->getName() . '.' . EntityConfig::EVENT_AFTER_UPDATE
-                );
-
                 if ($errorMessages === []) {
+                    $this->eventDispatcher->dispatch(
+                        new AfterSaveEvent($this->dataProvider, $primaryKey, $context),
+                        'adminyard.' . $this->entityConfig->getName() . '.' . EntityConfig::EVENT_AFTER_UPDATE
+                    );
+
+                    if ($request->isXmlHttpRequest()) {
+                        return new JsonResponse(['success' => true]);
+                    }
+
                     // Update primary key for correct URL in form
                     $primaryKey = $primaryKey->withColumnValues($data);
 
@@ -189,6 +201,14 @@ readonly class EntityController
                             'action' => 'edit',
                             ...$primaryKey->toArray()
                         ]));
+                }
+            } else {
+                if ($request->isXmlHttpRequest()) {
+                    return new JsonResponse([
+                        'success'      => false,
+                        'errors'       => $form->getGlobalFormErrors(),
+                        'field_errors' => $form->getFieldErrors(),
+                    ], Response::HTTP_UNPROCESSABLE_ENTITY);
                 }
             }
         } else {
@@ -199,31 +219,39 @@ readonly class EntityController
                 $primaryKey,
             );
             $this->eventDispatcher->dispatch(
-                $event = new BeforeEditEvent($data),
-                'adminyard.' . $this->entityConfig->getName() . '.' . EntityConfig::EVENT_BEFORE_EDIT
+                $event = new AfterLoadEvent($data),
+                'adminyard.' . $this->entityConfig->getName() . '.' . EntityConfig::EVENT_AFTER_EDIT_FETCH
             );
             $data = $event->data;
             if ($data === null) {
-                throw new NotFoundException(sprintf($this->translator->trans('%s with %s not found.'), $this->entityConfig->getName(), $primaryKey->toString()));
+                throw new NotFoundException(sprintf(
+                    $this->translator->trans('%s with %s not found.'),
+                    $this->entityConfig->getName(),
+                    $primaryKey->toString()
+                ));
             }
             $form->fillFromArray($data, ['column_', 'virtual_']);
         }
 
-        return $this->templateRenderer->render(
-            $this->entityConfig->getEditTemplate(),
-            [
-                'title'         => $this->entityConfig->getName(),
-                'entityName'    => $this->entityConfig->getName(),
-                'errorMessages' => $errorMessages,
-                'primaryKey'    => $primaryKey->toArray(),
-                'csrfToken'     => $this->getDeleteCsrfToken($primaryKey->toArray(), $request),
-                'header'        => $this->entityConfig->getLabels(FieldConfig::ACTION_EDIT),
-                'form'          => $form,
-                'actions'       => array_map(static fn(string $action) => [
-                    'name' => $action,
-                ], array_diff($this->entityConfig->getEnabledActions(), [FieldConfig::ACTION_EDIT, FieldConfig::ACTION_NEW])),
-            ]
+        $beforeRenderEvent = new BeforeRenderEvent([
+            'title'         => $this->entityConfig->getName(),
+            'entityName'    => $this->entityConfig->getName(),
+            'errorMessages' => $errorMessages,
+            'primaryKey'    => $primaryKey->toArray(),
+            'csrfToken'     => $this->getDeleteCsrfToken($primaryKey->toArray(), $request),
+            'header'        => $this->entityConfig->getLabels(FieldConfig::ACTION_EDIT),
+            'form'          => $form,
+            'actions'       => array_map(static fn(string $action) => [
+                'name' => $action,
+            ], array_diff($this->entityConfig->getEnabledActions(), [FieldConfig::ACTION_EDIT, FieldConfig::ACTION_NEW])),
+        ]);
+
+        $this->eventDispatcher->dispatch(
+            $beforeRenderEvent,
+            'adminyard.' . $this->entityConfig->getName() . '.' . EntityConfig::EVENT_BEFORE_EDIT_RENDER
         );
+
+        return $this->templateRenderer->render($this->entityConfig->getEditTemplate(), $beforeRenderEvent->data);
     }
 
     public function newAction(Request $request): string|Response
@@ -280,10 +308,14 @@ readonly class EntityController
                             ]));
                     }
 
+                    $allowedAction = $this->entityConfig->isAllowedAction('edit')
+                        ? 'edit'
+                        : ($this->entityConfig->isAllowedAction('show') ? 'show' : 'list');
+
                     return new RedirectResponse('?' . http_build_query([
                             'entity' => $this->entityConfig->getName(),
-                            'action' => 'edit',
-                            ...$newPrimaryKey->toArray(),
+                            'action' => $allowedAction,
+                            ...($allowedAction !== 'list' ? $newPrimaryKey->toArray() : []),
                         ]));
                 }
             }
@@ -369,7 +401,7 @@ readonly class EntityController
         if ($fieldName === null) {
             throw new InvalidRequestException('Field name must be provided.', Response::HTTP_BAD_REQUEST);
         }
-        $field     = $this->entityConfig->findFieldByName($fieldName);
+        $field = $this->entityConfig->findFieldByName($fieldName);
         if ($field === null) {
             throw new InvalidRequestException(sprintf('Field "%s" not found in entity "%s".', $fieldName, $this->entityConfig->getName()));
         }
@@ -388,10 +420,17 @@ readonly class EntityController
 
         $form->submit($request);
         if (!$form->isValid()) {
-            return new JsonResponse(['errors' => $form->getValidationErrors()], Response::HTTP_UNPROCESSABLE_ENTITY);
+            return new JsonResponse(['errors' => $form->getMergedErrors()], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
-
         $data = $form->getData();
+
+        $context = [];
+        $this->eventDispatcher->dispatch(
+            $event = new BeforeSaveEvent($data, $context),
+            'adminyard.' . $this->entityConfig->getName() . '.' . EntityConfig::EVENT_BEFORE_PATCH
+        );
+        $data = $event->data;
+
         try {
             $this->dataProvider->updateEntity(
                 $this->entityConfig->getTableName(),
@@ -404,6 +443,11 @@ readonly class EntityController
         } catch (\Exception $e) {
             return new JsonResponse(['errors' => ['Unable to update entity']], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
+
+        $this->eventDispatcher->dispatch(
+            new AfterSaveEvent($this->dataProvider, $primaryKey, $context),
+            'adminyard.' . $this->entityConfig->getName() . '.' . EntityConfig::EVENT_AFTER_PATCH
+        );
 
         return new JsonResponse(['success' => true]);
     }
