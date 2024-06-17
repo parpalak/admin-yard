@@ -153,8 +153,8 @@ function makeAutocompleteControl(controlId, allowEmpty, emptyLabel, fetchUrl) {
 }
 
 function makeInlineForm(formId, unknownErrorMessage) {
-    const checkTypes = ['checkbox', 'radio'];
-    const fieldTypes = ['text', 'number', 'password', 'email', 'url', 'tel', 'search', 'date', 'time', 'datetime-local', 'month', 'week'];
+    const checkTypes = ['checkbox', 'radio', 'select'];
+    const fieldTypes = ['text', 'number', 'password', 'email', 'url', 'tel', 'search', 'date', 'time', 'datetime-local', 'month', 'week', 'color'];
 
     const form = document.getElementById(formId);
 
@@ -191,7 +191,7 @@ function makeInlineForm(formId, unknownErrorMessage) {
     function backupFormChecks() {
         for (let i = 0; i < form.elements.length; i++) {
             const input = form.elements[i];
-            if (checkTypes.includes(input.type)) {
+            if (checkTypes.includes(input.nodeName.toLowerCase()) || checkTypes.includes(input.type)) {
                 if (input.type === 'checkbox' && input.parentNode.tagName === 'LABEL') {
                     input.parentNode.title = input.checked ? 'On' : 'Off';
                 }
@@ -212,7 +212,7 @@ function makeInlineForm(formId, unknownErrorMessage) {
 
     function restoreFormChecks() {
         for (let i = 0; i < form.elements.length; i++) {
-            if (checkTypes.includes(form.elements[i].type)) {
+            if (checkTypes.includes(input.nodeName.toLowerCase()) || checkTypes.includes(form.elements[i].type)) {
                 form.elements[i].checked = formBackup[i];
             }
         }
@@ -260,7 +260,7 @@ function makeInlineForm(formId, unknownErrorMessage) {
 
     for (let i = 0; i < form.elements.length; i++) {
         const input = form.elements[i];
-        if (checkTypes.includes(input.type)) {
+        if (checkTypes.includes(input.nodeName.toLowerCase()) || checkTypes.includes(input.type) || input.type === 'color') {
             input.addEventListener('change', sendData);
         } else if (fieldTypes.includes(input.type)) {
             input.addEventListener('keyup', function (event) {
@@ -277,7 +277,6 @@ function makeInlineForm(formId, unknownErrorMessage) {
             });
             input.addEventListener('blur', function () {
                 if (input.value !== input.previousValue) {
-                    console.log(input.value, input.previousValue);
                     sendData();
                 }
             });

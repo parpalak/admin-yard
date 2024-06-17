@@ -391,7 +391,9 @@ form.inline-form input[type="date"],
 form.inline-form input[type="time"],
 form.inline-form input[type="datetime-local"],
 form.inline-form input[type="month"],
-form.inline-form input[type="week"]
+form.inline-form input[type="week"],
+form.inline-form input[type="color"],
+form.inline-form select
 {
     --border-color: transparent;
     --background-color: var(--page-background);
@@ -404,17 +406,21 @@ form.inline-form input[type="week"]
     border-radius: 3px;
     background-color: var(--background-color);
 }
-form.inline-form.has-errors input[type] {
+form.inline-form.has-errors input[type],
+form.inline-form.has-errors select
+{
     --background-color: var(--page-background);
     --border-color: var(--color-error);
     outline-color: var(--color-error);
 }
-form.inline-form input:not(:focus) {
+form.inline-form input:not(:focus),
+form.inline-form select:not(:focus) {
     --background-color: transparent;
     --border-color: transparent;
     transition: border-color 0.2s;
 }
-form.inline-form.success input {
+form.inline-form.success input,
+form.inline-form.success select {
     --border-color: var(--color-success);
 }
 
