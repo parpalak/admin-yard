@@ -74,12 +74,21 @@ class EntityConfig
         return $this->tableName;
     }
 
-    public function addField(FieldConfig $fieldConfig): self
+    public function addField(FieldConfig $fieldConfig, ?string $after = null): self
     {
         if (isset($this->fields[$fieldConfig->name])) {
             throw new \LogicException(sprintf('Field "%s" has already been defined.', $fieldConfig->name));
         }
-        $this->fields[$fieldConfig->name] = $fieldConfig;
+
+        if ($after !== null && ($keyNumber = array_search($after, array_keys($this->fields), true)) !== false) {
+            $this->fields = array_merge(
+                \array_slice($this->fields, 0, $keyNumber + 1, true),
+                [$fieldConfig->name => $fieldConfig],
+                \array_slice($this->fields, $keyNumber + 1, null, true)
+            );
+        } else {
+            $this->fields[$fieldConfig->name] = $fieldConfig;
+        }
         return $this;
     }
 
