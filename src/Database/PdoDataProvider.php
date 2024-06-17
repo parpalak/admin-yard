@@ -314,13 +314,20 @@ readonly class PdoDataProvider
         // NOTE: Maybe it's worth to search over each column separately to improve performance?
         // And to control over '%foo%' or 'foo%' to be searched?
         $sql  = <<<SQL
+SELECT * FROM (SELECT
+    $idColumn AS value,
+    $autocompleteSqlExpression AS text
+FROM $tableName
+WHERE LOWER($autocompleteSqlExpression) LIKE :query
+ORDER BY $autocompleteSqlExpression
+LIMIT 20) AS tmp
+UNION
 SELECT
     $idColumn AS value,
     $autocompleteSqlExpression AS text
 FROM $tableName
-WHERE LOWER($autocompleteSqlExpression) LIKE :query OR $idColumn = :additionalId
-ORDER BY $autocompleteSqlExpression
-LIMIT 20
+WHERE $idColumn = :additionalId
+ORDER BY text
 SQL;
         $stmt = $this->pdo->prepare($sql);
         try {
