@@ -95,6 +95,8 @@ readonly class FormFactory
                     ));
                 }
                 $control->setOptions($options);
+            } elseif ($control instanceof ColorInput && $field->options !== null) {
+                $control->setOptions($field->options);
             }
 
             $control->setValidators(...$field->validators);

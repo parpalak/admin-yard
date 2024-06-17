@@ -25,6 +25,7 @@ class TypeTransformer implements TypeTransformerInterface
             FieldConfig::DATA_TYPE_BOOL => $value === 1 || $value === '1' || $value === true,
             FieldConfig::DATA_TYPE_TIMESTAMP => $value !== null ? new DateTimeImmutable($value) : null,
             FieldConfig::DATA_TYPE_UNIXTIME => $value === 0 ? null : new DateTimeImmutable('@' . $value),
+            FieldConfig::DATA_TYPE_PASSWORD => '***',
             default => throw new InvalidArgumentException(sprintf('Unknown data type "%s".', $dataType)),
         };
     }
@@ -39,6 +40,7 @@ class TypeTransformer implements TypeTransformerInterface
             FieldConfig::DATA_TYPE_BOOL => $value ? 1 : 0,
             FieldConfig::DATA_TYPE_TIMESTAMP => $value?->format('Y-m-d H:i:s'),
             FieldConfig::DATA_TYPE_UNIXTIME => $value?->getTimestamp() ?? 0, // TODO how to configure default value?
+            FieldConfig::DATA_TYPE_PASSWORD => (string)$value,
             default => throw new InvalidArgumentException(sprintf('Unknown data type "%s".', $dataType)),
         };
     }

@@ -21,6 +21,7 @@ class FieldConfig
     public const  DATA_TYPE_DATE      = 'date';
     public const  DATA_TYPE_TIMESTAMP = 'timestamp';
     public const  DATA_TYPE_UNIXTIME  = 'unixtime';
+    public const  DATA_TYPE_PASSWORD  = 'password';
 
     public const ALLOWED_DATA_TYPES = [
         self::DATA_TYPE_STRING,
@@ -30,6 +31,7 @@ class FieldConfig
         self::DATA_TYPE_DATE,
         self::DATA_TYPE_TIMESTAMP,
         self::DATA_TYPE_UNIXTIME,
+        self::DATA_TYPE_PASSWORD,
     ];
 
     public const ACTION_LIST   = 'list';

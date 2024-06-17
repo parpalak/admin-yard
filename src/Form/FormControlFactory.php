@@ -22,6 +22,7 @@ class FormControlFactory implements FormControlFactoryInterface
             'search_input' => new SearchInput($fieldName),
             'email_input' => new EmailInput($fieldName),
             'color_input' => new ColorInput($fieldName),
+            'password' => new Password($fieldName),
             'hidden_input' => new HiddenInput($fieldName),
             'textarea' => new Textarea($fieldName),
             'select' => new Select($fieldName),

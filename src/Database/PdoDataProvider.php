@@ -275,7 +275,10 @@ readonly class PdoDataProvider
 
     private function getAliasesForSelect(array $dataTypes, array $labels): string
     {
-        $aliases = array_map(static fn(string $columnName) => "$columnName AS column_$columnName", array_keys($dataTypes));
+        $aliases = array_map(
+            static fn(string $columnName) => $dataTypes[$columnName] === FieldConfig::DATA_TYPE_PASSWORD ? "'***' AS column_$columnName" : "$columnName AS column_$columnName",
+            array_keys($dataTypes)
+        );
         foreach ($labels as $columnName => $sqlExpression) {
             $aliases[] = "$sqlExpression AS virtual_$columnName";
         }
