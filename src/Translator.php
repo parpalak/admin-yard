@@ -25,7 +25,7 @@ class Translator implements TranslatorInterface
 
     public function trans(?string $id, array $parameters = [], ?string $domain = null, ?string $locale = null): string
     {
-        $id = $this->translations[$id] ?? $id;
+        $id = isset($this->translations[$id]) ? (string)$this->translations[$id] : $id;
 
         return $this->parentTrans($id, $parameters, $domain, $locale);
     }

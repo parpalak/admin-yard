@@ -191,7 +191,7 @@ section.list-header h1 {
     background: var(--table-background);
 }
 .admin-content tbody tr:hover {
-    background: transparent;
+    background: color-mix(in srgb, var(--color-accent) 10%, var(--table-background) 90%);
 }
 .admin-content th {
     border-color: var(--table-header-border);

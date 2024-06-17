@@ -1,8 +1,8 @@
 <?php
 /**
  * @copyright 2024 Roman Parpalak
- * @license http://opensource.org/licenses/MIT MIT
- * @package AdminYard
+ * @license   http://opensource.org/licenses/MIT MIT
+ * @package   AdminYard
  */
 
 declare(strict_types=1);
@@ -13,7 +13,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 readonly class TemplateRenderer
 {
-    public function __construct(private TranslatorInterface $translator)
+    public function __construct(protected TranslatorInterface $translator)
     {
     }
 
