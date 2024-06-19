@@ -9,6 +9,8 @@ declare(strict_types=1);
 
 namespace S2\AdminYard\Config;
 
+use S2\AdminYard\Controller\EntityController;
+
 class EntityConfig
 {
     public const EVENT_BEFORE_UPDATE      = 'before_update';
@@ -42,13 +44,15 @@ class EntityConfig
     private array $enabledActions = self::ALLOWED_ACTIONS;
 
     private bool $default = false;
+
     private string $listTemplate = __DIR__ . '/../../templates/list.php.inc';
+    private string $listActionsTemplate = __DIR__ . '/../../templates/list-actions.php.inc';
     private string $showTemplate = __DIR__ . '/../../templates/show.php.inc';
     private string $newTemplate = __DIR__ . '/../../templates/new.php.inc';
     private string $editTemplate = __DIR__ . '/../../templates/edit.php.inc';
 
     /**
-     * @var array<string,callable>
+     * @var array<string,callable[]>
      */
     private array $listeners = [];
 
@@ -56,6 +60,10 @@ class EntityConfig
      * @var string[]
      */
     private array $autocompleteSqlExpression = [];
+
+    private ?string $controllerClass = null;
+
+    private array $extraActions = [];
 
     public function __construct(
         private readonly string $name,
@@ -107,11 +115,12 @@ class EntityConfig
 
     public function setEnabledActions(array $enabledActions): static
     {
-        if (\count(array_diff($enabledActions, self::ALLOWED_ACTIONS)) > 0) {
+        $allowedActions = array_merge(self::ALLOWED_ACTIONS, $this->extraActions);
+        if (\count(array_diff($enabledActions, $allowedActions)) > 0) {
             throw new \InvalidArgumentException(sprintf(
                 'Unknown action encountered: "%s". Actions must be set of %s.',
                 implode(', ', $enabledActions),
-                implode(', ', self::ALLOWED_ACTIONS)
+                implode(', ', $allowedActions)
             ));
         }
         $this->enabledActions = $enabledActions;
@@ -129,8 +138,12 @@ class EntityConfig
     /**
      * @return array<string,string>
      */
-    public function getFieldDataTypes(string $action, bool $includePrimaryKey = false, bool $includeDefault = false): array
-    {
+    public function getFieldDataTypes(
+        string $action,
+        bool   $includePrimaryKey = false,
+        bool   $includeDefault = false,
+        bool   $includeInlineEditable = false
+    ): array {
         $dataTypes = [];
 
         foreach ($this->fields as $fieldName => $field) {
@@ -141,6 +154,7 @@ class EntityConfig
             if (
                 ($includePrimaryKey && $field->type->primaryKey)
                 || ($includeDefault && $field->type->defaultValue !== null)
+                || ($includeInlineEditable && $field->inlineEdit)
                 || $field->allowedOnAction($action)
             ) {
                 $dataTypes[$fieldName] = $field->type->dataType;
@@ -196,10 +210,19 @@ class EntityConfig
         return $this;
     }
 
+    public function setControllerClass(string $controller, array $extraActions = []): static
+    {
+        if (!is_a($controller, EntityController::class, true)) {
+            throw new \InvalidArgumentException(sprintf('Controller class "%s" must extend "%s".', $controller, EntityController::class));
+        }
+        $this->controllerClass = $controller;
+        $this->extraActions    = $extraActions;
+        return $this;
+    }
+
     public function getControllerClass(): ?string
     {
-        // TODO
-        return null;
+        return $this->controllerClass;
     }
 
     public function getLimit(): ?int
@@ -211,6 +234,12 @@ class EntityConfig
     public function setListTemplate(string $listTemplate): static
     {
         $this->listTemplate = $listTemplate;
+        return $this;
+    }
+
+    public function setListActionsTemplate(string $listActionsTemplate): static
+    {
+        $this->listActionsTemplate = $listActionsTemplate;
         return $this;
     }
 
@@ -235,6 +264,11 @@ class EntityConfig
     public function getListTemplate(): string
     {
         return $this->listTemplate;
+    }
+
+    public function getListActionsTemplate(): string
+    {
+        return $this->listActionsTemplate;
     }
 
     public function getShowTemplate(): string
@@ -338,14 +372,14 @@ class EntityConfig
     public function addListener(string|array $eventNames, callable $listener): static
     {
         foreach ((array)$eventNames as $eventName) {
-            $this->listeners[$this->name . '.' . $eventName] = $listener;
+            $this->listeners[$this->name . '.' . $eventName][] = $listener;
         }
 
         return $this;
     }
 
     /**
-     * @return array<string,callable>
+     * @return array<string,callable[]>
      */
     public function getListeners(): array
     {

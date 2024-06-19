@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 /** @var callable $trans */
 /** @var string $title */
 /** @var string $entityName */
@@ -16,8 +14,15 @@ declare(strict_types=1);
 
 /** @var array $header */
 /** @var array $rows */
-/** @var array $rowActions */
 /** @var array $entityActions */
+
+$hasActions = false;
+foreach ($rows as $row) {
+    if (($row['rendered_actions'] ?? '') !== '') {
+        $hasActions = true;
+        break;
+    }
+}
 
 ?>
 <section class="list-header">
@@ -79,46 +84,21 @@ declare(strict_types=1);
                         <th class="field-<?= $entityName ?>-<?= $fieldName ?>"><?= htmlspecialchars($cell, ENT_QUOTES, 'UTF-8') ?></th>
                     <?php endif; ?>
                 <?php endforeach; ?>
-                <?php if (!empty($rowActions)): ?>
+                <?php if ($hasActions): ?>
                     <th><?= $trans('Actions') ?></th>
                 <?php endif; ?>
             </tr>
             </thead>
 
             <tbody>
-            <?php foreach ($rows as $rowIndex => $row): ?>
+            <?php foreach ($rows as $row): ?>
                 <tr>
                     <?php foreach ($row['cells'] as $fieldName => $cell): ?>
                         <td class="type-<?= $cell['type'] ?> field-<?= $entityName ?>-<?= $fieldName ?> <?= $fieldName === $sortField ? 'current-sort' : '' ?>"><?= $cell['content'] ?></td>
                     <?php endforeach; ?>
-                    <?php if (!empty($rowActions)): ?>
+                    <?php if ($hasActions): ?>
                         <td class="row-actions">
-                            <?php foreach ($rowActions as $action) {
-                                $queryParams = http_build_query(array_merge([
-                                    'entity' => $entityName,
-                                    'action' => $action['name']
-                                ], $row['primary_key']));
-                                ?>
-                                <?php if ($action['name'] === 'delete'): ?>
-                                    <a class="list-action-link list-action-link-<?= $action['name'] ?>" href="#"
-                                       title="<?= $trans($action['name']) ?>"
-                                       onclick=" document.getElementById('delete<?= $rowIndex ?>').classList.toggle('hidden'); return false"><span><?= $trans($action['name']) ?></span></a>
-                                    <span id="delete<?= $rowIndex ?>" class="hidden list-action-delete-popup">
-                                        <a class="link-as-button danger list-action-link list-action-link-delete-confirm"
-                                           title="<?= $trans($action['name']) ?>"
-                                           href="?<?= $queryParams ?>"
-                                           onclick="fetch(this.href, {method: 'POST', body: new URLSearchParams('csrf_token=<?= $row['csrf_token'] ?>') }).then(function () { window.location.reload(); } ); return false;"><?= $trans('Confirm deletion') ?></a>
-                                        <a class="link-as-button list-action-link list-action-link-delete-cancel"
-                                           title="<?= $trans('Cancel') ?>"
-                                           href="#"
-                                           onclick=" document.getElementById('delete<?= $rowIndex ?>').classList.toggle('hidden'); return false;"><?= $trans('Cancel') ?></a>
-                                    </span>
-                                <?php else: ?>
-                                    <a class="list-action-link list-action-link-<?= $action['name'] ?>"
-                                       title="<?= $trans($action['name']) ?>"
-                                       href="?<?= $queryParams ?>"><span><?= $trans($action['name']) ?></span></a>
-                                <?php endif; ?>
-                            <?php } ?>
+                            <?= $row['rendered_actions'] ?? '' ?>
                         </td>
                     <?php endif; ?>
                 </tr>

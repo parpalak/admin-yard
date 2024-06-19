@@ -84,7 +84,9 @@ readonly class AdminPanel
         if (!method_exists($controller, $methodName)) {
             return $this->errorResponse($request, sprintf($this->translator->trans('Action "%s" is unsupported.'), $action));
         }
-        if (!$entityConfig->isAllowedAction($action)) {
+        if (!$entityConfig->isAllowedAction($action) && method_exists(EntityController::class, $methodName)) {
+            // Allowed actions are checked only for default actions defined in the EntityController.
+            // If a custom controller for an entity defines a custom action, it is supposed to be allowed.
             return $this->errorResponse($request, sprintf($this->translator->trans('Action "%s" is not allowed for entity "%s".'), $action, $entityConfig->getName()), Response::HTTP_FORBIDDEN);
         }
 

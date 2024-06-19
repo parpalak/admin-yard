@@ -35,6 +35,19 @@ readonly class Key
         return new static(array_combine(array_map(static fn($key) => $keyPrefix . $key, $this->getColumnNames()), array_values($this->columns)));
     }
 
+    public function getIntId(): int
+    {
+        if (array_keys($this->columns) !== ['id']) {
+            throw new \LogicException('Key does not contain "id" column.');
+        }
+
+        if (!is_numeric($this->columns['id'])) {
+            throw new \LogicException('Key does not contain a numeric identifier.');
+        }
+
+        return (int)$this->columns['id'];
+    }
+
     public function toArray(): array
     {
         return $this->columns;

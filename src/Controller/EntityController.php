@@ -40,7 +40,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 readonly class EntityController
 {
-    public function __construct(
+    final public function __construct(
         protected EntityConfig     $entityConfig,
         protected EventDispatcher  $eventDispatcher,
         protected PdoDataProvider  $dataProvider,
@@ -54,7 +54,7 @@ readonly class EntityController
     /**
      * @throws DataProviderException
      */
-    final public function listAction(Request $request): string
+    public function listAction(Request $request): string|Response
     {
         $filterForm = $this->getListFilterForm($request);
         $filterData = $filterForm->getData();
@@ -83,9 +83,6 @@ readonly class EntityController
 
             'header'        => $this->entityConfig->getLabels(FieldConfig::ACTION_LIST),
             'rows'          => $renderedRows,
-            'rowActions'    => array_map(static fn(string $action) => [
-                'name' => $action,
-            ], array_diff($this->entityConfig->getEnabledActions(), [FieldConfig::ACTION_LIST, FieldConfig::ACTION_NEW])),
             'entityActions' => array_map(static fn(string $action) => [
                 'name' => $action,
             ], array_intersect($this->entityConfig->getEnabledActions(), [FieldConfig::ACTION_NEW])),
@@ -105,7 +102,7 @@ readonly class EntityController
      * @throws InvalidRequestException
      * @throws NotFoundException
      */
-    public function showAction(Request $request): string
+    public function showAction(Request $request): string|Response
     {
         $primaryKey = $this->getEntityPrimaryKeyFromRequest($request);
 
@@ -164,33 +161,36 @@ readonly class EntityController
 
                 $context = [];
                 $this->eventDispatcher->dispatch(
-                    $event = new BeforeSaveEvent($data, $context),
+                    $event = new BeforeSaveEvent($this->dataProvider, $data, $context, $primaryKey),
                     'adminyard.' . $this->entityConfig->getName() . '.' . EntityConfig::EVENT_BEFORE_UPDATE
                 );
-                $data = $event->data;
+                $errorMessages = $event->errorMessages;
+                $data          = $event->data;
 
-                try {
-                    $this->dataProvider->updateEntity(
-                        $this->entityConfig->getTableName(),
-                        $this->entityConfig->getFieldDataTypes(FieldConfig::ACTION_EDIT, includePrimaryKey: true),
-                        $primaryKey,
-                        $data
-                    );
-                } catch (SafeDataProviderException $e) {
-                    $errorMessages[] = $this->translator->trans($e->getMessage());
-                    if ($request->isXmlHttpRequest()) {
-                        return new JsonResponse(['success' => false, 'errors' => $errorMessages], $e->getCode());
+                if ($errorMessages === []) {
+                    try {
+                        $this->dataProvider->updateEntity(
+                            $this->entityConfig->getTableName(),
+                            $this->entityConfig->getFieldDataTypes(FieldConfig::ACTION_EDIT, includePrimaryKey: true),
+                            $primaryKey,
+                            $data
+                        );
+                    } catch (SafeDataProviderException $e) {
+                        $errorMessages[] = $this->translator->trans($e->getMessage());
+                        if ($request->isXmlHttpRequest()) {
+                            return new JsonResponse(['success' => false, 'errors' => $errorMessages], $e->getCode());
+                        }
                     }
                 }
 
                 if ($errorMessages === []) {
                     $this->eventDispatcher->dispatch(
-                        new AfterSaveEvent($this->dataProvider, $primaryKey, $context),
+                        $afterSaveEvent = new AfterSaveEvent($this->dataProvider, $primaryKey, $context),
                         'adminyard.' . $this->entityConfig->getName() . '.' . EntityConfig::EVENT_AFTER_UPDATE
                     );
 
                     if ($request->isXmlHttpRequest()) {
-                        return new JsonResponse(['success' => true]);
+                        return new JsonResponse(['success' => true, ...$afterSaveEvent->ajaxExtraResponse], 200);
                     }
 
                     // Update primary key for correct URL in form
@@ -201,6 +201,10 @@ readonly class EntityController
                             'action' => 'edit',
                             ...$primaryKey->toArray()
                         ]));
+                } else {
+                    if ($request->isXmlHttpRequest()) {
+                        return new JsonResponse(['success' => false, 'errors' => $errorMessages], Response::HTTP_UNPROCESSABLE_ENTITY);
+                    }
                 }
             } else {
                 if ($request->isXmlHttpRequest()) {
@@ -273,7 +277,7 @@ readonly class EntityController
 
                 $context = [];
                 $this->eventDispatcher->dispatch(
-                    $event = new BeforeSaveEvent($data, $context),
+                    $event = new BeforeSaveEvent($this->dataProvider, $data, $context),
                     'adminyard.' . $this->entityConfig->getName() . '.' . EntityConfig::EVENT_BEFORE_CREATE
                 );
                 $data = $event->data;
@@ -426,7 +430,7 @@ readonly class EntityController
 
         $context = [];
         $this->eventDispatcher->dispatch(
-            $event = new BeforeSaveEvent($data, $context),
+            $event = new BeforeSaveEvent($this->dataProvider, $data, $context, $primaryKey),
             'adminyard.' . $this->entityConfig->getName() . '.' . EntityConfig::EVENT_BEFORE_PATCH
         );
         $data = $event->data;
@@ -434,7 +438,7 @@ readonly class EntityController
         try {
             $this->dataProvider->updateEntity(
                 $this->entityConfig->getTableName(),
-                $this->entityConfig->getFieldDataTypes('patch', includePrimaryKey: true),
+                $this->entityConfig->getFieldDataTypes('patch', includePrimaryKey: true, includeInlineEditable: true),
                 $primaryKey,
                 $data
             );
@@ -522,9 +526,22 @@ readonly class EntityController
         $idFieldNames = $this->entityConfig->getFieldNamesOfPrimaryKey();
         $idValues     = array_map(static fn(string $columnName) => $row['column_' . $columnName], $idFieldNames);
         $primaryKey   = array_combine($idFieldNames, $idValues);
-        $result       = [
-            'cells'       => [],
-            'primary_key' => $primaryKey,
+        $rowActions   = array_map(static fn(string $action) => [
+            'name' => $action,
+        ], array_diff($this->entityConfig->getEnabledActions(), [FieldConfig::ACTION_LIST, FieldConfig::ACTION_NEW]));
+
+        $result = [
+            'cells'            => [],
+            'primary_key'      => $primaryKey,
+            'rendered_actions' => $actionForFieldRestriction === FieldConfig::ACTION_LIST
+                ? $this->templateRenderer->render($this->entityConfig->getListActionsTemplate(), [
+                    'rowActions' => $rowActions,
+                    'row'        => $row,
+                    'entityName' => $this->entityConfig->getName(),
+                    'primaryKey' => $primaryKey,
+                    'csrfToken'  => $this->getDeleteCsrfToken($primaryKey, $request),
+                ])
+                : null,
             ... $this->entityConfig->isAllowedAction(FieldConfig::ACTION_DELETE) ? [
                 'csrf_token' => $this->getDeleteCsrfToken($primaryKey, $request),
             ] : [],
@@ -634,7 +651,7 @@ readonly class EntityController
 
             return [
                 'entity'                   => $foreignEntity->getName(),
-                'action'                   => 'show',
+                'action'                   => $foreignEntity->isAllowedAction(FieldConfig::ACTION_SHOW) ? FieldConfig::ACTION_SHOW : FieldConfig::ACTION_EDIT,
                 // NOTE: think about how to handle primary keys with more than one field.
                 //       For now, we just take the first field. It's ok for usual ID fields.
                 $fieldNamesOfPrimaryKey[0] => $row['column_' . $currentField->name],

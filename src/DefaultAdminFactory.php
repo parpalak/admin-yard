@@ -34,8 +34,10 @@ class DefaultAdminFactory
 
         $eventDispatcher = new EventDispatcher();
         foreach ($adminConfig->getEntities() as $entityConfig) {
-            foreach ($entityConfig->getListeners() as $eventName => $listener) {
-                $eventDispatcher->addListener('adminyard.' . $eventName, $listener);
+            foreach ($entityConfig->getListeners() as $eventName => $listeners) {
+                foreach ($listeners as $listener) {
+                    $eventDispatcher->addListener('adminyard.' . $eventName, $listener);
+                }
             }
         }
 

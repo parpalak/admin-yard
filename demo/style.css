@@ -212,7 +212,7 @@ section.list-header h1 {
 .admin-content .list-content td,
 .admin-content .list-content th {
     white-space: nowrap;
-    max-width: 500px;
+    max-width: calc(300px + 40vw);
     overflow: hidden;
     text-overflow: ellipsis;
 }
