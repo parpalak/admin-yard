@@ -133,9 +133,9 @@ readonly class PdoDataProvider
                 fn($key) => sprintf('%1$s %2$s :%1$s', $key, $this->eqOp()), $primaryKey->getColumnNames()
             ));
 
-        $stmt   = $this->pdo->prepare($sql);
         $params = $this->getTransformedKeyParams($primaryKey, $dataTypes);
         try {
+            $stmt = $this->pdo->prepare($sql);
             $stmt->execute($params);
         } catch (\PDOException $e) {
             throw new DataProviderException($e->getMessage(), 0, $e);

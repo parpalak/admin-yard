@@ -21,12 +21,23 @@ readonly class MenuGenerator
 
     public function generateMainMenu(string $baseUrl, ?string $currentEntity = null): string
     {
-        $links = [];
+        $links = $this->config->getPriorities();
+        asort($links);
+
         foreach ($this->config->getEntities() as $entity) {
-            $links[] = [
-                'name'   => $entity->getName(),
-                'url'    => $baseUrl . '?entity=' . urlencode($entity->getName()) . '&action=list',
-                'active' => $currentEntity === $entity->getName(),
+            $name    = $entity->getName();
+            $links[$name] = [
+                'name'   => $name,
+                'url'    => $baseUrl . '?entity=' . urlencode($name) . '&action=list',
+                'active' => $currentEntity === $name,
+            ];
+        }
+
+        foreach ($this->config->getServicePageNames() as $page) {
+            $links[$page] = [
+                'name'   => $page,
+                'url'    => $baseUrl . '?entity=' . urlencode($page),
+                'active' => $currentEntity === $page,
             ];
         }
 

@@ -40,6 +40,16 @@ readonly class AdminPanel
     public function handleRequest(Request $request): Response
     {
         $entityName = $request->query->get('entity');
+        if ($entityName !== null && ($page = $this->config->getServicePage($entityName))) {
+            $html = $this->templateRenderer->render($this->config->getLayoutTemplate(), [
+                'menu'          => $this->menuGenerator->generateMainMenu('', $entityName),
+                'content'       => $page(),
+                'flashMessages' => $this->getFlashMessages($request),
+            ]);
+
+            return new Response($html);
+        }
+
         if ($entityName === null) {
             // No entity was requested, consider as a "main" page and display a list of default entities
             $entityConfig = $this->config->findDefaultEntity();

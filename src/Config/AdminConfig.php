@@ -1,8 +1,8 @@
 <?php
 /**
  * @copyright 2024 Roman Parpalak
- * @license http://opensource.org/licenses/MIT MIT
- * @package AdminYard
+ * @license   http://opensource.org/licenses/MIT MIT
+ * @package   AdminYard
  */
 
 declare(strict_types=1);
@@ -17,10 +17,20 @@ class AdminConfig
     private array $entities = [];
     private string $menuTemplate = __DIR__ . '/../../templates/menu.php.inc';
     private string $layoutTemplate = __DIR__ . '/../../templates/layout.php.inc';
+    /**
+     * @var array<string, callable>
+     */
+    private array $pages = [];
+    private array $priorities = [];
 
-    public function addEntity(EntityConfig $entity, $priority = 0): static
+    public function addEntity(EntityConfig $entity, int $priority = 0): static
     {
-        $this->entities[] = ['entity' => $entity, 'priority' => $priority];
+        if (isset($this->priorities[$entity->getName()])) {
+            throw new \InvalidArgumentException('Entity "' . $entity->getName() . '" already exists');
+        }
+        $this->priorities[$entity->getName()] = $priority;
+
+        $this->entities[] = $entity;
 
         return $this;
     }
@@ -30,16 +40,12 @@ class AdminConfig
      */
     public function getEntities(): array
     {
-        usort($this->entities, static function ($a, $b) {
-            return $a['priority'] <=> $b['priority'];
-        });
-
-        return array_column($this->entities, 'entity');
+        return $this->entities;
     }
 
     public function findEntityByName(string $name): ?EntityConfig
     {
-        foreach ($this->getEntities() as $entity) {
+        foreach ($this->entities as $entity) {
             if ($entity->getName() === $name) {
                 return $entity;
             }
@@ -53,7 +59,7 @@ class AdminConfig
      */
     public function findDefaultEntity(): ?EntityConfig
     {
-        foreach ($this->getEntities() as $entity) {
+        foreach ($this->entities as $entity) {
             if ($entity->isDefault()) {
                 return $entity;
             }
@@ -82,5 +88,31 @@ class AdminConfig
     public function getMenuTemplate(): string
     {
         return $this->menuTemplate;
+    }
+
+    public function setServicePage(string $pageName, callable $page, int $priority = 0): self
+    {
+        if (isset($this->priorities[$pageName])) {
+            throw new \InvalidArgumentException('Page "' . $pageName . '" already exists');
+        }
+        $this->priorities[$pageName] = $priority;
+
+        $this->pages[$pageName] = $page;
+        return $this;
+    }
+
+    public function getServicePage(string $pageName): ?callable
+    {
+        return $this->pages[$pageName] ?? null;
+    }
+
+    public function getServicePageNames(): array
+    {
+        return array_keys($this->pages);
+    }
+
+    public function getPriorities(): array
+    {
+        return $this->priorities;
     }
 }
