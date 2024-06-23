@@ -354,11 +354,15 @@ readonly class EntityController
         $primaryKey = $this->getEntityPrimaryKeyFromRequest($request);
         $csrfToken  = $request->request->get('csrf_token');
         if ($this->getDeleteCsrfToken($primaryKey->toArray(), $request) !== $csrfToken) {
-            $this->addFlashMessage(
-                $request,
-                'error',
-                $this->translator->trans('Unable to confirm security token. A likely cause for this is that some time passed between when you first entered the page and when you submitted the form. If that is the case and you would like to continue, submit the form again.')
-            );
+            $errorMessage = $this->translator->trans('Unable to confirm security token. A likely cause for this is that some time passed between when you first entered the page and when you submitted the form. If that is the case and you would like to continue, submit the form again.');
+            if ($request->isXmlHttpRequest()) {
+                return new JsonResponse([
+                    'success' => false,
+                    'errors'  => [$errorMessage]
+                ], Response::HTTP_UNPROCESSABLE_ENTITY);
+            }
+
+            $this->addFlashMessage($request, 'error', $errorMessage);
             return new Response('CSRF token mismatch', Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
@@ -373,16 +377,35 @@ readonly class EntityController
                 $primaryKey
             );
         } catch (SafeDataProviderException $e) {
+            if ($request->isXmlHttpRequest()) {
+                return new JsonResponse([
+                    'success' => false,
+                    'errors'  => ['Unable to delete entity'],
+                ], Response::HTTP_INTERNAL_SERVER_ERROR);
+            }
+
             $this->addFlashMessage($request, 'error', $this->translator->trans($e->getMessage()));
             return new Response('Unable to delete entity', Response::HTTP_INTERNAL_SERVER_ERROR);
         }
 
         if ($deletedRows === 0) {
-            $this->addFlashMessage($request, 'warning', sprintf(
+            $message = sprintf(
                 $this->translator->trans('%s was not deleted.'),
                 $this->entityConfig->getName()
-            ));
+            );
+            if ($request->isXmlHttpRequest()) {
+                return new JsonResponse([
+                    'success' => false,
+                    'errors'  => [$message],
+                ], Response::HTTP_INTERNAL_SERVER_ERROR);
+            }
+            $this->addFlashMessage($request, 'warning', $message);
+
             return new Response('No entity was deleted', Response::HTTP_NOT_FOUND);
+        }
+
+        if ($request->isXmlHttpRequest()) {
+            return new JsonResponse(['success' => true]);
         }
 
         $this->addFlashMessage($request, 'success', sprintf(
