@@ -488,7 +488,7 @@ form.inline-form label:has(input[type="checkbox"]:checked):before {
 
 /* Links and buttons */
 
-.link-as-button, button[type=submit] {
+.link-as-button, button[type=submit], button.primary {
     --btn-color: var(--color-btn-secondary);
     display: inline-block;
     text-decoration: none;
@@ -501,12 +501,12 @@ form.inline-form label:has(input[type="checkbox"]:checked):before {
     color: color-mix(in srgb, var(--btn-color) 50%, var(--color-text) 100%);
     box-shadow: 0 2px 3px -1px rgba(0, 0, 0, 0.1);
 }
-.link-as-button:hover, button[type=submit]:hover {
+.link-as-button:hover, button[type=submit]:hover, button.primary:hover {
     background: linear-gradient(to bottom, color-mix(in srgb, var(--btn-color) 10%, var(--page-background) 100%), color-mix(in srgb, var(--btn-color) 10%, var(--page-background) 90%));
     border: 1px solid color-mix(in srgb, var(--btn-color) 70%, var(--color-text) 30%);
     box-shadow: 0 2px 3px -1px rgba(0, 0, 0, 0.15);
 }
-.link-as-button:active, button[type=submit]:active {
+.link-as-button:active, button[type=submit]:active, button.primary:active {
     background: linear-gradient(to bottom, color-mix(in srgb, var(--btn-color) 20%, var(--page-background) 100%), color-mix(in srgb, var(--btn-color) 10%, var(--page-background) 90%));
     box-shadow: none;
 }

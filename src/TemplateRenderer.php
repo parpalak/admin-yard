@@ -11,9 +11,9 @@ namespace S2\AdminYard;
 
 use Symfony\Contracts\Translation\TranslatorInterface;
 
-readonly class TemplateRenderer
+class TemplateRenderer
 {
-    public function __construct(protected TranslatorInterface $translator)
+    public function __construct(readonly protected TranslatorInterface $translator)
     {
     }
 

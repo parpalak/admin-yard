@@ -39,7 +39,7 @@ readonly class FormParams
             try {
                 $mainToken = bin2hex(random_bytes(16));
             } catch (RandomException $e) {
-                $mainToken = sha1(uniqid((string)mt_rand(), true));
+                $mainToken = md5(uniqid((string)mt_rand(), true) . microtime(true));
             }
             $session->set('main_csrf_token', $mainToken);
         } else {
