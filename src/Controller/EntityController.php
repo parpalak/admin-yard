@@ -650,8 +650,9 @@ readonly class EntityController
             }
 
             return [
-                'entity' => $externalEntityName,
-                'action' => 'list',
+                'entity'       => $externalEntityName,
+                'action'       => 'list',
+                'apply_filter' => '0', /** Skip filters saved in session, @see self::getListFilterForm() */
                 ... array_combine($externalFilterColumnNames, array_map(static fn(string $columnName) => $row['column_' . $columnName], $valueColumns)),
             ];
         }
@@ -694,14 +695,18 @@ readonly class EntityController
         $filterForm = $this->formFactory->createFilterForm($this->entityConfig);
         $session    = $request->getSession();
 
+        $applyFilter = $request->get('apply_filter');
+
         // First we fill the filter form with the previous filter values
-        $storedFilterData = $session->get('filter_' . $this->entityConfig->getName());
-        if (\is_array($storedFilterData)) {
-            $filterForm->fillFromArray($storedFilterData);
+        if ($applyFilter !== '0') {
+            $storedFilterData = $session->get('filter_' . $this->entityConfig->getName());
+            if (\is_array($storedFilterData)) {
+                $filterForm->fillFromArray($storedFilterData);
+            }
         }
 
         // Then we overwrite with the new values if there are any
-        $filterFormWasSubmitted = $request->get('apply_filter') !== null;
+        $filterFormWasSubmitted = $applyFilter === '1';
         $filterForm->submit($request, $filterFormWasSubmitted);
 
         if ($filterFormWasSubmitted) {
