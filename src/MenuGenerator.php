@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace S2\AdminYard;
 
 use S2\AdminYard\Config\AdminConfig;
+use S2\AdminYard\Config\FieldConfig;
 
 readonly class MenuGenerator
 {
@@ -25,7 +26,11 @@ readonly class MenuGenerator
         asort($links);
 
         foreach ($this->config->getEntities() as $entity) {
-            $name    = $entity->getName();
+            $name = $entity->getName();
+            if (!$entity->isAllowedAction(FieldConfig::ACTION_LIST)) {
+                unset($links[$name]);
+                continue;
+            }
             $links[$name] = [
                 'name'   => $name,
                 'url'    => $baseUrl . '?entity=' . urlencode($name) . '&action=list',

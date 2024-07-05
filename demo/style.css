@@ -56,10 +56,18 @@ body, button, input, select, textarea {
 }
 
 input[type="text"],
-input[type="search"],
 input[type="number"],
+input[type="password"],
 input[type="email"],
+input[type="url"],
+input[type="tel"],
+input[type="search"],
 input[type="date"],
+input[type="time"],
+input[type="datetime-local"],
+input[type="month"],
+input[type="week"],
+input[type="color"],
 select,
 button.ay-select-button {
     box-sizing: border-box;
@@ -135,7 +143,7 @@ nav a.main-menu-link:focus-visible:after {
     border-radius: 1px;
 }
 
-nav .active a.main-menu-link {
+nav li.main-menu-item.active {
     background: var(--page-secondary-background);
 }
 
@@ -236,24 +244,24 @@ td.type-int {
 
 .list-action-link:before {
     display: inline-block;
-    padding: 2px;
+    padding: 0 2px;
 }
 
 .list-action-link-edit:before {
     content: url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 1792 1792' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M491 1536l91-91-235-235-91 91v107h128v128h107zm523-928q0-22-22-22-10 0-17 7l-542 542q-7 7-7 17 0 22 22 22 10 0 17-7l542-542q7-7 7-17zm-54-192l416 416-832 832H128v-416zm683 96q0 53-37 90l-166 166-416-416 166-165q36-38 90-38 53 0 91 38l235 234q37 39 37 91z'/%3E%3C/svg%3E");
-    vertical-align: -2px;
+    /*vertical-align: -2px;*/
     opacity: 0.6;
 }
 
 .list-action-link-show:before {
     content: url("data:image/svg+xml,%3Csvg height='16' width='16' viewBox='0 0 2091 2091' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1813.333 1216q-152-236-381-353 61 104 61 225 0 185-131.5 316.5t-316.5 131.5-316.5-131.5-131.5-316.5q0-121 61-225-229 117-381 353 133 205 333.5 326.5t434.5 121.5 434.5-121.5 333.5-326.5zm-720-384q0-20-14-34t-34-14q-125 0-214.5 89.5t-89.5 214.5q0 20 14 34t34 14 34-14 14-34q0-86 61-147t147-61q20 0 34-14t14-34zm848 384q0 34-20 69-140 230-376.5 368.5t-499.5 138.5-499.5-139-376.5-368q-20-35-20-69t20-69q140-229 376.5-368t499.5-139 499.5 139 376.5 368q20 35 20 69z'/%3E%3C/svg%3E");
-    vertical-align: -2px;
+    /*vertical-align: -2px;*/
     opacity: 0.6;
 }
 
 .list-action-link-delete:before {
     content: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='red' viewBox='0 0 1792 1792'%3E%3Cpath d='M672 1317V701q0-12-8-20t-20-8h-56q-12 0-20 8t-8 20v616q0 12 8 20t20 8h56q12 0 20-8t8-20zm224 0V701q0-12-8-20t-20-8h-56q-12 0-20 8t-8 20v616q0 12 8 20t20 8h56q12 0 20-8t8-20zm224 0V701q0-12-8-20t-20-8h-56q-12 0-20 8t-8 20v616q0 12 8 20t20 8h56q12 0 20-8t8-20zM644 449h392l-42-102q-6-8-15-9H702q-9 1-15 9zm811 28v56q0 13-7 20-8 8-21 8h-83v829q0 73-42 125-41 53-98 53H476q-57 0-98-51t-41-123V561h-84q-13 0-20-8-8-7-8-20v-56q0-12 8-20 7-8 20-8h270l61-146q13-32 47-55 34-22 69-22h280q35 0 69 22 34 23 47 55l61 146h270q13 0 21 8 7 8 7 20z'/%3E%3C/svg%3E");
-    vertical-align: -2px;
+    /*vertical-align: -2px;*/
     opacity: 0.6;
     color: var(--color-danger);
 }
@@ -369,7 +377,7 @@ td.type-int {
 
 .inline-form-holder {
     visibility: hidden;
-    display: inline-block;
+    display: block;
     height: 0;
 }
 form.inline-form {
@@ -378,6 +386,7 @@ form.inline-form {
 }
 form.inline-form .input-wrapper {
     display: inline-block;
+    vertical-align: top;
     height: 1.75em;
 }
 form.inline-form input[type="text"],
@@ -444,7 +453,7 @@ form.inline-form label:has(input[type="checkbox"]) {
     background-color: var(--base-2);
     border-radius: 10px;
     transition: background-color 0.2s;
-    margin-top: 6px;
+    vertical-align: -3px;
     box-shadow: 0 1px 5px -2px rgba(0, 0, 0, 0.2) inset;
 }
 form.inline-form label:has(input[type="checkbox"]:checked) {
@@ -475,7 +484,7 @@ form.inline-form label:has(input[type="checkbox"]:checked):before {
     display: inline-block;
     opacity: 0.6;
     margin: 0 0.25em 0 -0.25em;
-    vertical-align: -2px;
+    /*vertical-align: -2px;*/
 }
 
 .filter-button:before {
@@ -483,7 +492,7 @@ form.inline-form label:has(input[type="checkbox"]:checked):before {
     display: inline-block;
     opacity: 0.6;
     margin: 0 0.25em 0 -0.25em;
-    vertical-align: -2px;
+    /*vertical-align: -2px;*/
 }
 
 /* Links and buttons */

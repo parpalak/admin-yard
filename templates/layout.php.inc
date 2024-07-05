@@ -9,6 +9,7 @@ declare(strict_types=1);
 /** @var array $flashMessages */
 
 ?>
+<!DOCTYPE html>
 <html>
 <head>
     <title>Admin panel</title>
