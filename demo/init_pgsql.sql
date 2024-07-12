@@ -15,13 +15,14 @@ CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
     login VARCHAR(255) NOT NULL,
     name VARCHAR(255) DEFAULT NULL,
+    password VARCHAR(255) NOT NULL,
     birthdate DATE DEFAULT NULL,
     UNIQUE (login)
 );
 
-INSERT INTO users (login, name) VALUES
-    ('admin', NULL),
-    ('user', 'John Smith')
+INSERT INTO users (login, name, password) VALUES
+    ('admin', NULL, 'admin-password'),
+    ('user', 'John Smith', 'user-password')
 ;
 
 CREATE TABLE IF NOT EXISTS posts
@@ -98,7 +99,10 @@ VALUES
     (10, 'Emily Chen', 'e@c.com', 'This is the eighth comment for post 10.', NOW(), 'rejected'),
     (10, 'Tom Johnson', 't@j.com', 'This is the ninth comment for post 10.', NOW(), 'rejected'),
     (10, 'David Kim', 'd@k.com', 'This is the tenth comment for post 10.', NOW(), 'rejected'),
-    (10, 'Emily Chen', 'e@c.com', 'This is the eleventh comment for post 10.', NOW(), 'rejected')
+    (10, 'Emily Chen', 'e@c.com', 'This is the eleventh comment for post 10.', NOW(), 'rejected'),
+    (40, 'David Kim', 'd@k.com', 'This is the first comment for post 40.', NOW(), 'approved'),
+    (40, 'Emily Chen', 'e@c.com', 'This is the second comment for post 40.', NOW(), 'new'),
+    (40, 'Tom Johnson', 't@j.com', 'This is the third comment for post 40.', NOW(), 'rejected')
 ;
 
 DROP TABLE IF EXISTS tags;

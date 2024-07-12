@@ -15,13 +15,14 @@ CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     login TEXT NOT NULL,
     name TEXT DEFAULT NULL,
+    password TEXT NOT NULL,
     birthdate DATE DEFAULT NULL,
     UNIQUE (login)
 );
 
-INSERT INTO users (login, name) VALUES
-    ('admin', NULL),
-    ('user', 'John Smith')
+INSERT INTO users (login, name, password) VALUES
+    ('admin', NULL, 'admin-password'),
+    ('user', 'John Smith', 'user-password')
 ;
 
 CREATE TABLE IF NOT EXISTS posts (
@@ -96,7 +97,10 @@ INSERT INTO comments (post_id, name, email, comment_text, created_at, status_cod
     (10, 'Emily Chen', 'e@c.com', 'This is the eighth comment for post 10.', CURRENT_TIMESTAMP, 'rejected'),
     (10, 'Tom Johnson', 't@j.com', 'This is the ninth comment for post 10.', CURRENT_TIMESTAMP, 'rejected'),
     (10, 'David Kim', 'd@k.com', 'This is the tenth comment for post 10.', CURRENT_TIMESTAMP, 'rejected'),
-    (10, 'Emily Chen', 'e@c.com', 'This is the eleventh comment for post 10.', CURRENT_TIMESTAMP, 'rejected')
+    (10, 'Emily Chen', 'e@c.com', 'This is the eleventh comment for post 10.', CURRENT_TIMESTAMP, 'rejected'),
+    (40, 'David Kim', 'd@k.com', 'This is the first comment for post 40.', CURRENT_TIMESTAMP, 'approved'),
+    (40, 'Emily Chen', 'e@c.com', 'This is the second comment for post 40.', CURRENT_TIMESTAMP, 'new'),
+    (40, 'Tom Johnson', 't@j.com', 'This is the third comment for post 40.', CURRENT_TIMESTAMP, 'rejected')
 ;
 
 DROP TABLE IF EXISTS tags;

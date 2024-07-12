@@ -33,7 +33,7 @@ $adminConfig->setServicePage('About', function () {
     $converter = $converter = new \League\CommonMark\MarkdownConverter($environment);
 
     $html = <<<'EOF'
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/styles/default.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/styles/github.min.css">
 EOF;
     $html .= '<section class="text-content">' . $converter->convert(file_get_contents(__DIR__ . '/../README.md')) . '</section>';
     $html .= <<<'EOF'
@@ -55,6 +55,13 @@ $userEntity = (new EntityConfig('User', 'users'))
         control: 'input',
         validators: [new NotBlank()],
         sortable: true
+    ))
+    ->addField(new FieldConfig(
+        name: 'password',
+        type: new DbColumnFieldType(FieldConfig::DATA_TYPE_PASSWORD),
+        control: 'password',
+        validators: [new NotBlank(), new Length(min: 8)],
+        inlineEdit: true,
     ))
     ->addField(new FieldConfig(
         name: 'name',

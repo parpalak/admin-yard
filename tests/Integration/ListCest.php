@@ -28,6 +28,15 @@ class ListCest
         $I->assertCount(self::AVAILABLE_POSTS, $I->grabMultiple(self::ENTITY_ROW_SELECTOR));
     }
 
+    public function noErrorsOnEmptyFilter(IntegrationTester $I): void
+    {
+        $I->amOnPage('?entity=Comment&action=list');
+        $I->seeResponseCodeIs(200);
+
+        $validationErrors = $I->grabMultiple('.validation-error');
+        $I->assertEmpty($validationErrors);
+    }
+
     public function filterRadioDateInputTest(IntegrationTester $I): void
     {
         $I->amOnPage('?entity=Post&action=list');

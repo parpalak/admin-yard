@@ -18,7 +18,9 @@ readonly class Key
     public function __construct(protected array $columns)
     {
         if (\count($this->columns) < 1) {
+            // @codeCoverageIgnoreStart
             throw new \InvalidArgumentException('Primary key must contain at least one column.');
+            // @codeCoverageIgnoreEnd
         }
     }
 
@@ -38,11 +40,15 @@ readonly class Key
     public function getIntId(): int
     {
         if (array_keys($this->columns) !== ['id']) {
+            // @codeCoverageIgnoreStart
             throw new \LogicException('Key does not contain "id" column.');
+            // @codeCoverageIgnoreEnd
         }
 
         if (!is_numeric($this->columns['id'])) {
+            // @codeCoverageIgnoreStart
             throw new \LogicException('Key does not contain a numeric identifier.');
+            // @codeCoverageIgnoreEnd
         }
 
         return (int)$this->columns['id'];

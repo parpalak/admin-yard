@@ -11,13 +11,14 @@ CREATE TABLE IF NOT EXISTS users
     id        INT AUTO_INCREMENT PRIMARY KEY,
     login     VARCHAR(255) NOT NULL,
     name      VARCHAR(255) DEFAULT NULL,
+    password  VARCHAR(255) NOT NULL,
     birthdate DATE         DEFAULT NULL,
     UNIQUE KEY (login)
 );
 
-INSERT INTO users (login, name)
-VALUES ('admin', NULL),
-       ('user', 'John Smith')
+INSERT INTO users (login, name, password)
+VALUES ('admin', NULL, 'admin-password'),
+       ('user', 'John Smith', 'user-password')
 ;
 
 CREATE TABLE IF NOT EXISTS posts

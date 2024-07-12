@@ -98,7 +98,11 @@ class Autocomplete extends Input
 
     protected function getInternalValidators(): array
     {
-        $options       = ($this->optionsProvider)($this->value, 0);
+        $options = [
+            ... $this->allowEmpty ? [['value' => '', 'text' => FormFactory::EMPTY_SELECT_LABEL]] : [],
+            ...($this->optionsProvider)($this->value, 0)
+        ];
+
         $allowedValues = array_map(static fn($option) => (string)$option['value'], $options);
         return [
             new Choice($allowedValues, true),
