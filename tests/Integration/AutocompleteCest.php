@@ -48,7 +48,7 @@ class AutocompleteCest
         $I->assertEquals($example['expected'], $data);
     }
 
-    public function autocompleteTestProvider(): array
+    protected function autocompleteTestProvider(): array
     {
         return [
             ['query' => 'foo', 'expected' => []],

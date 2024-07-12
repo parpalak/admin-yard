@@ -2,7 +2,7 @@
 /**
  * @copyright 2024 Roman Parpalak
  * @license   http://opensource.org/licenses/MIT MIT
- * @package   S2
+ * @package   AdminYard
  */
 
 declare(strict_types=1);

@@ -17,7 +17,8 @@ use Tests\Support\IntegrationTester;
  */
 class VirtualFieldCest
 {
-    public const ENTITY_ROW_SELECTOR = 'section.list-content tbody tr';
+    public const  ENTITY_ROW_SELECTOR                = 'section.list-content tbody tr';
+    private const POSTS_RESTRICTED_BY_ACCESS_CONTROL = [40, 41];
 
     public function invalidNewCest(IntegrationTester $I): void
     {
@@ -39,7 +40,9 @@ class VirtualFieldCest
         $I->see('Post', 'h1');
 
         // No new posts
-        $I->assertEquals(range(1, 50), $I->grabMultiple(self::ENTITY_ROW_SELECTOR . ' .field-Post-id'));
+        $expectedIds = array_diff(range(1, 50), self::POSTS_RESTRICTED_BY_ACCESS_CONTROL);
+        sort($expectedIds);
+        $I->assertEquals($expectedIds, $I->grabMultiple(self::ENTITY_ROW_SELECTOR . ' .field-Post-id'));
 
         // No new tags
         $I->amOnPage('?entity=Tag&action=list');
@@ -72,7 +75,7 @@ class VirtualFieldCest
         $I->amOnPage('?entity=Post&action=list');
         $I->seeResponseCodeIs(200);
         $postIds = $I->grabMultiple(self::ENTITY_ROW_SELECTOR . ' .field-Post-id');
-        $I->assertCount(51, $postIds);
+        $I->assertCount(51 - \count(self::POSTS_RESTRICTED_BY_ACCESS_CONTROL), $postIds);
         $I->see('HTML, valid tag');
 
         // New tag
@@ -131,9 +134,8 @@ class VirtualFieldCest
         $I->seeResponseCodeIs(200);
         $I->see('Post', 'h1');
         $comments = $I->grabMultiple(self::ENTITY_ROW_SELECTOR . ' .field-Post-comments');
-        $I->assertEquals(['11', '3', '3', '3', '3', '3', '3', '3', '3', '3', ...array_fill(0, 40, 'null')], $comments);
+        $I->assertEquals(['11', '3', '3', '3', '3', '3', '3', '3', '3', '3', ...array_fill(0, 40 - \count(self::POSTS_RESTRICTED_BY_ACCESS_CONTROL), 'null')], $comments);
     }
-
 
     private function getValidationErrorSelector(string $entity, string $field): string
     {

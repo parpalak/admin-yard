@@ -8,6 +8,10 @@
 /** @var array $primaryKey */
 
 foreach ($rowActions as $action) {
+    if (!$row['virtual_write_access_control'] && ($action['name'] === 'edit' || $action['name'] === 'delete')) {
+        continue;
+    }
+
     $queryParams = http_build_query(array_merge([
         'entity' => $entityName,
         'action' => $action['name']

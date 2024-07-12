@@ -11,6 +11,7 @@ namespace S2\AdminYard\Form;
 
 use S2\AdminYard\Config\EntityConfig;
 use S2\AdminYard\Config\FilterLinkTo;
+use S2\AdminYard\Database\DatabaseHelper;
 use S2\AdminYard\Database\PdoDataProvider;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
@@ -55,8 +56,9 @@ readonly class FormFactory
                 if ($control instanceof OptionsInterface) {
                     $options = $this->dataProvider->getLabelsFromTable(
                         $foreignEntity->getTableName(),
-                        $foreignEntity->getFieldNamesOfPrimaryKey(),
-                        $field->linkToEntity->titleSqlExpression
+                        $foreignEntity->getFieldNamesOfPrimaryKey()[0],
+                        $field->linkToEntity->titleSqlExpression,
+                        DatabaseHelper::getReadAccessControlConditions($foreignEntity),
                     );
                     if ($field->canBeEmpty()) {
                         $options[''] = self::EMPTY_SELECT_LABEL;
@@ -67,11 +69,13 @@ readonly class FormFactory
                     $control->setAutocompleteParams(
                         $foreignEntity->getName(),
                         md5($field->linkToEntity->titleSqlExpression),
-                        fn(string $value) => $this->dataProvider->getAutocompleteResults(
+                        fn(string $value, int $limit = 20) => $this->dataProvider->getAutocompleteResults(
                             $foreignEntity->getTableName(),
                             $foreignEntity->getFieldNamesOfPrimaryKey()[0],
                             $field->linkToEntity->titleSqlExpression,
+                            DatabaseHelper::getReadAccessControlConditions($foreignEntity),
                             '',
+                            $limit,
                             (int)$value,
                         ),
                         $field->canBeEmpty()
@@ -125,8 +129,9 @@ readonly class FormFactory
                         $entityConfig->getName()
                     ));
                 }
-                $field = $linkToFields[$filter->name];
-                if ($field->linkToEntity->foreignEntity !== $filter->foreignEntity) {
+                $field              = $linkToFields[$filter->name];
+                $fieldForeignEntity = $field->linkToEntity->foreignEntity;
+                if ($fieldForeignEntity !== $filter->foreignEntity) {
                     throw new \DomainException(sprintf(
                         'Filter "%s" for entity "%s" of type "LinkTo" cannot be applied since it is not pointing to the same entity as corresponding field.',
                         $filterName,
@@ -136,9 +141,10 @@ readonly class FormFactory
 
                 if ($control instanceof OptionsInterface) {
                     $options = $this->dataProvider->getLabelsFromTable(
-                        $field->linkToEntity->foreignEntity->getTableName(),
-                        $field->linkToEntity->foreignEntity->getFieldNamesOfPrimaryKey(),
-                        $field->linkToEntity->titleSqlExpression
+                        $fieldForeignEntity->getTableName(),
+                        $fieldForeignEntity->getFieldNamesOfPrimaryKey()[0],
+                        $field->linkToEntity->titleSqlExpression,
+                        DatabaseHelper::getReadAccessControlConditions($fieldForeignEntity),
                     );
 
                     $options[''] = self::EMPTY_SELECT_LABEL;
@@ -146,13 +152,15 @@ readonly class FormFactory
 
                 } elseif ($control instanceof Autocomplete) {
                     $control->setAutocompleteParams(
-                        $field->linkToEntity->foreignEntity->getName(),
+                        $fieldForeignEntity->getName(),
                         md5($field->linkToEntity->titleSqlExpression),
-                        fn(string $value) => $this->dataProvider->getAutocompleteResults(
+                        fn(string $value, int $limit = 20) => $this->dataProvider->getAutocompleteResults(
                             $field->linkToEntity->foreignEntity->getTableName(),
                             $field->linkToEntity->foreignEntity->getFieldNamesOfPrimaryKey()[0],
                             $field->linkToEntity->titleSqlExpression,
+                            DatabaseHelper::getReadAccessControlConditions($fieldForeignEntity),
                             '',
+                            $limit,
                             (int)$value
                         ),
                         true

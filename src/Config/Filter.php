@@ -9,6 +9,8 @@ declare(strict_types=1);
 
 namespace S2\AdminYard\Config;
 
+use S2\AdminYard\Database\LogicalExpression;
+
 readonly class Filter
 {
     /**
@@ -34,12 +36,16 @@ readonly class Filter
     ) {
     }
 
-    public function getSqlExpressionWithSubstitutions(): string
+    public function getCondition(mixed $value): LogicalExpression
     {
-        return sprintf($this->whereSqlExprPattern, ':' . $this->name);
+        return new LogicalExpression(
+            $this->name,
+            $this->transformParamValue($value),
+            $this->whereSqlExprPattern
+        );
     }
 
-    public function transformParamValue(mixed $value): mixed
+    private function transformParamValue(mixed $value): mixed
     {
         return $this->paramTransformer !== null ? ($this->paramTransformer)($value) : $value;
     }

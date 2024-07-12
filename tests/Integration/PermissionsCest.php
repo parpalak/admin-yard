@@ -12,6 +12,9 @@ namespace Tests\Integration;
 use Codeception\Example;
 use Tests\Support\IntegrationTester;
 
+/**
+ * @group permissions
+ */
 class PermissionsCest
 {
     public function defaultEntityTest(IntegrationTester $I): void
@@ -73,7 +76,7 @@ class PermissionsCest
         }
     }
 
-    public static function actionsDataProvider(): array
+    protected function actionsDataProvider(): array
     {
         return [
             ['action' => '', 'code' => 400],
@@ -98,7 +101,7 @@ class PermissionsCest
         }
     }
 
-    public static function notFoundDataProvider(): array
+    protected function notFoundDataProvider(): array
     {
         return [
             ['action' => 'show', 'code' => 404],

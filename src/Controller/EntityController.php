@@ -17,6 +17,7 @@ use S2\AdminYard\Config\VirtualFieldType;
 use S2\AdminYard\Database\DatabaseHelper;
 use S2\AdminYard\Database\DataProviderException;
 use S2\AdminYard\Database\Key;
+use S2\AdminYard\Database\LogicalExpression;
 use S2\AdminYard\Database\PdoDataProvider;
 use S2\AdminYard\Database\SafeDataProviderException;
 use S2\AdminYard\Event\AfterLoadEvent;
@@ -62,7 +63,13 @@ readonly class EntityController
         [$sortField, $sortDirection] = $this->getListSorting($request);
 
         $filters = $this->entityConfig->getFilters();
-        $data    = $this->getEntityList($filters, $filterData, $sortField, $sortDirection);
+
+        $conditions = [];
+        foreach ($filterData as $filterName => $filterValue) {
+            $filter       = $filters[$filterName] ?? null;
+            $conditions[] = $filter?->getCondition($filterValue) ?? new LogicalExpression($filterName, $filterValue);
+        }
+        $data = $this->getEntityList($conditions, $sortField, $sortDirection);
 
         $renderedRows = array_map(
             fn(array $row) => $this->renderCellsForNormalizedRow($request, $row, FieldConfig::ACTION_LIST),
@@ -106,10 +113,15 @@ readonly class EntityController
     {
         $primaryKey = $this->getEntityPrimaryKeyFromRequest($request);
 
+        $labels = DatabaseHelper::getSqlExpressionsForAssociations($this->entityConfig, FieldConfig::ACTION_SHOW);
+
+        $labels['write_access_control'] = $this->entityConfig->getWriteAccessControl() ?? LogicalExpression::true();
+
         $data = $this->dataProvider->getEntity(
             $this->entityConfig->getTableName(),
             $this->entityConfig->getFieldDataTypes(FieldConfig::ACTION_SHOW, true),
-            DatabaseHelper::getSqlExpressionsForAssociations($this->entityConfig, FieldConfig::ACTION_SHOW),
+            $labels,
+            DatabaseHelper::getReadAccessControlConditions($this->entityConfig),
             $primaryKey,
         );
 
@@ -172,6 +184,7 @@ readonly class EntityController
                         $this->dataProvider->updateEntity(
                             $this->entityConfig->getTableName(),
                             $this->entityConfig->getFieldDataTypes(FieldConfig::ACTION_EDIT, includePrimaryKey: true),
+                            DatabaseHelper::getReadAndWriteAccessControlConditions($this->entityConfig),
                             $primaryKey,
                             $data
                         );
@@ -220,6 +233,7 @@ readonly class EntityController
                 $this->entityConfig->getTableName(),
                 $this->entityConfig->getFieldDataTypes(FieldConfig::ACTION_EDIT, includePrimaryKey: true),
                 DatabaseHelper::getSqlExpressionsForAssociations($this->entityConfig, FieldConfig::ACTION_EDIT),
+                DatabaseHelper::getReadAndWriteAccessControlConditions($this->entityConfig),
                 $primaryKey,
             );
             $this->eventDispatcher->dispatch(
@@ -374,7 +388,8 @@ readonly class EntityController
             $deletedRows = $this->dataProvider->deleteEntity(
                 $this->entityConfig->getTableName(),
                 $this->entityConfig->getFieldDataTypes(FieldConfig::ACTION_DELETE, includePrimaryKey: true),
-                $primaryKey
+                $primaryKey,
+                DatabaseHelper::getReadAndWriteAccessControlConditions($this->entityConfig),
             );
         } catch (SafeDataProviderException $e) {
             if ($request->isXmlHttpRequest()) {
@@ -462,6 +477,7 @@ readonly class EntityController
             $this->dataProvider->updateEntity(
                 $this->entityConfig->getTableName(),
                 $this->entityConfig->getFieldDataTypes('patch', includePrimaryKey: true, includeInlineEditable: true),
+                DatabaseHelper::getReadAndWriteAccessControlConditions($this->entityConfig),
                 $primaryKey,
                 $data
             );
@@ -511,19 +527,21 @@ readonly class EntityController
             $this->entityConfig->getTableName(),
             $this->entityConfig->getFieldNamesOfPrimaryKey()[0],
             $autocompleteSqlExpression,
+            DatabaseHelper::getReadAccessControlConditions($this->entityConfig),
             $query,
-            (int)$request->query->get('additional')
+            20,
+            (int)$request->query->get('additional'),
         );
 
         return new JsonResponse($results);
     }
 
     /**
-     * @param array<string, Filter> $filters
+     * @param LogicalExpression[] $filterConditions
      *
      * @throws DataProviderException
      */
-    protected function getEntityList(array $filters, array $filterData, ?string $sortField, ?string $sortDirection): array
+    protected function getEntityList(array $filterConditions, ?string $sortField, ?string $sortDirection): array
     {
         $sortField = $this->entityConfig->modifySortableField($sortField);
 
@@ -531,12 +549,16 @@ readonly class EntityController
             $sortDirection = 'asc';
         }
 
+        $labels = DatabaseHelper::getSqlExpressionsForAssociations($this->entityConfig, FieldConfig::ACTION_LIST);
+
+        $labels['write_access_control'] = $this->entityConfig->getWriteAccessControl() ?? LogicalExpression::true();
+        $accessControlConditions        = DatabaseHelper::getReadAccessControlConditions($this->entityConfig);
+
         return $this->dataProvider->getEntityList(
             $this->entityConfig->getTableName(),
             $this->entityConfig->getFieldDataTypes(FieldConfig::ACTION_LIST, true),
-            DatabaseHelper::getSqlExpressionsForAssociations($this->entityConfig, FieldConfig::ACTION_LIST),
-            $filters,
-            $filterData,
+            $labels,
+            array_merge($accessControlConditions, $filterConditions),
             $sortField,
             $sortDirection,
             $this->entityConfig->getLimit(),

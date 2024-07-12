@@ -9,6 +9,8 @@ declare(strict_types=1);
 
 namespace S2\AdminYard\Form;
 
+use S2\AdminYard\Validator\Choice;
+
 class Autocomplete extends Input
 {
     private ?string $entityName = null;
@@ -91,6 +93,15 @@ class Autocomplete extends Input
         $this->options = [
             ... $this->allowEmpty ? [['value' => '', 'text' => FormFactory::EMPTY_SELECT_LABEL]] : [],
             ...($this->optionsProvider)($this->value)
+        ];
+    }
+
+    protected function getInternalValidators(): array
+    {
+        $options       = ($this->optionsProvider)($this->value, 0);
+        $allowedValues = array_map(static fn($option) => (string)$option['value'], $options);
+        return [
+            new Choice($allowedValues, true),
         ];
     }
 }

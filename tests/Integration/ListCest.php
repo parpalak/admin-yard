@@ -15,15 +15,17 @@ use Tests\Support\IntegrationTester;
  */
 class ListCest
 {
-    public const ENTITY_ROW_SELECTOR  = 'section.list-content tbody tr';
-    public const FILTER_FORM_SELECTOR = '.filter-content form';
+    public const  ENTITY_ROW_SELECTOR                = 'section.list-content tbody tr';
+    public const  FILTER_FORM_SELECTOR               = '.filter-content form';
+    private const AVAILABLE_POSTS                    = 50 - 2;
+    private const POSTS_RESTRICTED_BY_ACCESS_CONTROL = [40, 41];
 
     public function findDefaultEntityTest(IntegrationTester $I): void
     {
         $I->amOnPage('?');
         $I->seeResponseCodeIs(200);
         $I->see('Post', 'h1');
-        $I->assertCount(50, $I->grabMultiple(self::ENTITY_ROW_SELECTOR));
+        $I->assertCount(self::AVAILABLE_POSTS, $I->grabMultiple(self::ENTITY_ROW_SELECTOR));
     }
 
     public function filterRadioDateInputTest(IntegrationTester $I): void
@@ -145,7 +147,8 @@ class ListCest
             'post_id' => '1111111',
         ]);
         $I->seeResponseCodeIs(200);
-        $I->assertCount(0, $I->grabMultiple(self::ENTITY_ROW_SELECTOR));
+        $I->assertCount(11, $I->grabMultiple(self::ENTITY_ROW_SELECTOR));
+        $I->see('The value you selected is not a valid choice.', self::FILTER_FORM_SELECTOR . ' .filter-Comment-post_id');
     }
 
     /**
@@ -167,7 +170,7 @@ class ListCest
         $I->assertCount($example['expectedCount'], $I->grabMultiple(self::ENTITY_ROW_SELECTOR));
     }
 
-    public function filterCheckboxArrayDataProvider(): array
+    protected function filterCheckboxArrayDataProvider(): array
     {
         return [
             ['statuses' => ['new', 'approved'], 'expectedCount' => 6],
@@ -196,11 +199,17 @@ class ListCest
         $I->seeResponseCodeIs(200);
         $I->see('Post', 'h1');
 
-        $I->assertEquals(range(1, 50), $I->grabMultiple(self::ENTITY_ROW_SELECTOR . ' .field-Post-id'));
+        $expectedIds = array_diff(range(1, 50), self::POSTS_RESTRICTED_BY_ACCESS_CONTROL);
+        sort($expectedIds);
+        $expectedIds = array_map(static fn($id) => (string)$id, $expectedIds);
+
+        $I->assertEquals($expectedIds, $I->grabMultiple(self::ENTITY_ROW_SELECTOR . ' .field-Post-id'));
         $I->click('section.list-content th.field-Post-id a');
-        $I->assertEquals(range(1, 50), $I->grabMultiple(self::ENTITY_ROW_SELECTOR . ' .field-Post-id'));
+        $I->assertEquals($expectedIds, $I->grabMultiple(self::ENTITY_ROW_SELECTOR . ' .field-Post-id'));
+
         $I->click('section.list-content th.field-Post-id a');
-        $I->assertEquals(range(50, 1), $I->grabMultiple(self::ENTITY_ROW_SELECTOR . ' .field-Post-id'));
+        rsort($expectedIds);
+        $I->assertEquals($expectedIds, $I->grabMultiple(self::ENTITY_ROW_SELECTOR . ' .field-Post-id'));
 
         $I->submitForm(self::FILTER_FORM_SELECTOR, [
             'search'        => 'post 1',

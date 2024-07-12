@@ -393,7 +393,7 @@ $postConfig
         $existingLinks = $event->dataProvider->getEntityList('posts_tags', [
             'post_id' => FieldConfig::DATA_TYPE_INT,
             'tag_id'  => FieldConfig::DATA_TYPE_INT,
-        ], filterData: ['post_id' => $event->primaryKey->toArray()['id']]);
+        ], conditions: [new Condition('post_id', $event->primaryKey->getIntId())]);
         $existingTagIds = array_column($existingLinks, 'column_tag_id');
         
         // Check if the new tag list differs from the old one
@@ -402,14 +402,15 @@ $postConfig
             $event->dataProvider->deleteEntity(
                 'posts_tags',
                 ['post_id' => FieldConfig::DATA_TYPE_INT],
-                new Key(['post_id' => $event->primaryKey->toArray()['id']])
+                new Key(['post_id' => $event->primaryKey->getIntId()]),
+                [],
             );
             // And create new ones
             foreach ($newTagIds as $tagId) {
                 $event->dataProvider->createEntity('posts_tags', [
                     'post_id' => FieldConfig::DATA_TYPE_INT,
                     'tag_id'  => FieldConfig::DATA_TYPE_INT,
-                ], ['post_id' => $event->primaryKey->toArray()['id'], 'tag_id' => $tagId]);
+                ], ['post_id' => $event->primaryKey->getIntId(), 'tag_id' => $tagId]);
             }
         }
     })
@@ -417,7 +418,8 @@ $postConfig
         $event->dataProvider->deleteEntity(
             'posts_tags',
             ['post_id' => FieldConfig::DATA_TYPE_INT], 
-            new Key(['post_id' => $event->primaryKey->toArray()['id']])
+            new Key(['post_id' => $event->primaryKey->getIntId()]),
+            [],
         );
     })
 ;
@@ -428,7 +430,7 @@ function tagIdsFromTags(PdoDataProvider $dataProvider, array $tags): array
     $existingTags = $dataProvider->getEntityList('tags', [
         'name' => FieldConfig::DATA_TYPE_STRING,
         'id'   => FieldConfig::DATA_TYPE_INT,
-    ], filterData: ['LOWER(name)' => array_map(static fn(string $tag) => mb_strtolower($tag), $tags)]);
+    ], conditions: [new Condition('name', array_map(static fn(string $tag) => mb_strtolower($tag), $tags), 'LOWER(name) IN (%s)')]);
 
     $existingTagsMap = array_column($existingTags, 'column_name', 'column_id');
     $existingTagsMap = array_map(static fn(string $tag) => mb_strtolower($tag), $existingTagsMap);

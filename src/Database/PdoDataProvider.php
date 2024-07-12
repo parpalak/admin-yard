@@ -13,7 +13,6 @@ declare(strict_types=1);
 namespace S2\AdminYard\Database;
 
 use S2\AdminYard\Config\FieldConfig;
-use S2\AdminYard\Config\Filter;
 
 readonly class PdoDataProvider
 {
@@ -24,16 +23,16 @@ readonly class PdoDataProvider
     }
 
     /**
-     * @param string               $tableName
-     * @param array<string,string> $dataTypes  List of data types configured for this entity.
-     *                                         If some fields are missing, they will be skipped in the query.
-     * @param array<string,string> $labels     List of SQL expressions to be displayed instead of the field values.
-     * @param array<string,Filter> $filters    List of Filters configured for this entity
-     * @param array<string,mixed>  $filterData Content of the filter form
-     * @param ?string              $sortField
-     * @param string               $sortDirection
-     * @param ?int                 $limit
-     * @param int                  $offset
+     * @param string                                 $tableName
+     * @param array<string,string>                   $dataTypes  List of data types configured for this entity.
+     *                                                           If some fields are missing, they will not be selected.
+     * @param array<string,string|LogicalExpression> $labels     List of SQL expressions to be displayed instead of the
+     *                                                           field values.
+     * @param LogicalExpression[]                    $conditions Conditions for WHERE clause.
+     * @param ?string                                $sortField
+     * @param string                                 $sortDirection
+     * @param ?int                                   $limit
+     * @param int                                    $offset
      *
      * @return array
      * @throws DataProviderException
@@ -42,51 +41,30 @@ readonly class PdoDataProvider
         string  $tableName,
         array   $dataTypes,
         array   $labels = [],
-        array   $filters = [],
-        array   $filterData = [],
+        array   $conditions = [],
         ?string $sortField = null,
         string  $sortDirection = 'asc',
         ?int    $limit = null,
         int     $offset = 0
     ): array {
-        $sql = "SELECT " . $this->getAliasesForSelect($dataTypes, $labels) . " FROM $tableName AS entity";
+        $paramsSet = [];
 
-        $params = [];
+        $sql = "SELECT " . $this->getAliasesForSelect($dataTypes, $labels, $paramsSet) . " FROM $tableName AS entity";
 
         $criteria = [];
-        foreach ($filterData as $filterName => $filterValue) {
-            if (isset($filters[$filterName])) {
-                $filterValue = $filters[$filterName]->transformParamValue($filterValue);
+        foreach ($conditions as $condition) {
+            if (!$condition instanceof LogicalExpression) {
+                throw new \InvalidArgumentException(sprintf('Condition must be instance of %s', LogicalExpression::class));
             }
-            if ($filterValue === null || $filterValue === '' || $filterValue === []) {
-                // NOTE: maybe '' and [] must be excluded somewhere else, not for all filters here.
-                // It can be useful in case of different semantics for null and [].
+            if ($condition->isTrivialCondition()) {
                 continue;
             }
 
-            if (\is_array($filterValue)) {
-                $format = "$filterName IN (%s)";
-                if (isset($filters[$filterName]) && $filters[$filterName]->whereSqlExprPattern !== null) {
-                    $format = $filters[$filterName]->whereSqlExprPattern;
-                }
-                $arrayParamNames = [];
-                foreach (array_values($filterValue) as $i => $value) {
-                    $paramName          = strtr($filterName, '()', '__') . '_' . $i;
-                    $arrayParamNames[]  = ':' . $paramName;
-                    $params[$paramName] = $value;
-                }
-                $criteria[] = sprintf($format, implode(', ', $arrayParamNames));
-                continue;
-            }
-
-            $params[$filterName] = $filterValue;
-            if (isset($filters[$filterName])) {
-                $criteria[] = $filters[$filterName]->getSqlExpressionWithSubstitutions();
-            } else {
-                $criteria[] = "$filterName = :$filterName";
-            }
+            $paramsSet[] = $condition->getParams();
+            $criteria[]  = $condition->getSqlExpression();
         }
 
+        $params = array_merge(...$paramsSet);
         if (\count($criteria) > 0) {
             $sql .= ' WHERE (' . implode(') AND (', $criteria) . ')';
         }
@@ -125,15 +103,33 @@ readonly class PdoDataProvider
     }
 
     /**
+     * @param LogicalExpression[] $conditions
+     *
      * @throws DataProviderException
      */
-    public function getEntity(string $tableName, array $dataTypes, array $labels, Key $primaryKey): ?array
+    public function getEntity(string $tableName, array $dataTypes, array $labels, array $conditions, Key $primaryKey): ?array
     {
-        $sql = "SELECT " . $this->getAliasesForSelect($dataTypes, $labels) . " FROM $tableName AS entity WHERE " . implode(' AND ', array_map(
-                fn($key) => sprintf('%1$s %2$s :%1$s', $key, $this->eqOp()), $primaryKey->getColumnNames()
-            ));
+        $paramsSet = [];
 
-        $params = $this->getTransformedKeyParams($primaryKey, $dataTypes);
+        $criteria = [];
+        foreach ($conditions as $condition) {
+            if ($condition->isTrivialCondition()) {
+                continue;
+            }
+
+            $paramsSet[] = $condition->getParams();
+            $criteria[]  = $condition->getSqlExpression();
+        }
+
+        foreach ($primaryKey->getColumnNames() as $key) {
+            $criteria[] = sprintf('%1$s %2$s :%1$s', $key, $this->eqOp());
+        }
+
+        $sql = "SELECT " . $this->getAliasesForSelect($dataTypes, $labels, $paramsSet) . " FROM $tableName AS entity WHERE (" . implode(') AND (', $criteria) . ")";
+
+        $paramsSet[] = $this->getTransformedKeyParams($primaryKey, $dataTypes);
+
+        $params = array_merge(...$paramsSet);
         try {
             $stmt = $this->pdo->prepare($sql);
             $stmt->execute($params);
@@ -154,13 +150,31 @@ readonly class PdoDataProvider
     }
 
     /**
+     * @param LogicalExpression[] $conditions
+     *
      * @throws DataProviderException
      * @throws SafeDataProviderException
      */
-    public function updateEntity(string $tableName, array $dataTypes, Key $condition, array $data): void
+    public function updateEntity(string $tableName, array $dataTypes, array $conditions, Key $primaryKey, array $data): void
     {
         if (\count($data) < 1) {
             return;
+        }
+
+        $paramsSet = [];
+
+        $criteria = [];
+        foreach ($conditions as $condition) {
+            if ($condition->isTrivialCondition()) {
+                continue;
+            }
+
+            $paramsSet[] = $condition->getParams();
+            $criteria[]  = $condition->getSqlExpression();
+        }
+
+        foreach ($primaryKey->getColumnNames() as $key) {
+            $criteria[] = sprintf('%1$s %2$s :pk_%1$s', $key, $this->eqOp());
         }
 
         foreach ($data as $key => $value) {
@@ -169,15 +183,13 @@ readonly class PdoDataProvider
             }
         }
 
-        $sql = "UPDATE $tableName SET " . implode(', ', array_map(
+        $sql = "UPDATE $tableName AS entity SET " . implode(', ', array_map(
                 static fn($key) => "$key = :$key", array_keys($data)
-            )) . " WHERE " . implode(' AND ', array_map(
-                fn($key) => sprintf('%1$s %2$s :pk_%1$s', $key, $this->eqOp()), $condition->getColumnNames()
-            ));
+            )) . " WHERE (" . implode(') AND (', $criteria) . ")";
 
-        $keyParams = $this->getTransformedKeyParams($condition, $dataTypes);
+        $keyParams = $this->getTransformedKeyParams($primaryKey, $dataTypes);
         $keyParams = (new Key($keyParams))->prependColumnNames('pk_')->toArray();
-        $params    = array_merge($data, $keyParams);
+        $params    = array_merge($data, $keyParams, ...$paramsSet);
 
         $stmt = $this->pdo->prepare($sql);
         try {
@@ -223,29 +235,60 @@ readonly class PdoDataProvider
     }
 
     /**
-     * @throws DataProviderException
-     * @throws SafeDataProviderException
+     * @param string              $tableName
+     * @param array               $dataTypes
+     * @param Key                 $keyCondition Identifier of entity to be deleted.
+     *                                          It is possible to pass a part of composite primary key. Then several
+     *                                          entities will be deleted. This behavior is not compatible with
+     *                                          $conditions in current realization.
+     * @param LogicalExpression[] $conditions
+     *
+     * @return int
      */
-    public function deleteEntity(string $tableName, array $dataTypes, Key $condition): int
+    public function deleteEntity(string $tableName, array $dataTypes, Key $keyCondition, array $conditions): int
     {
-        $criteria = implode(' AND ', array_map(
-            fn($key) => sprintf('%1$s %2$s :%1$s', $key, $this->eqOp()), $condition->getColumnNames()
-        ));
-        $params   = $this->getTransformedKeyParams($condition, $dataTypes);
+        $deleteParams = $this->getTransformedKeyParams($keyCondition, $dataTypes);
+        $paramsSet = [$deleteParams];
 
-        $selectSql = "SELECT COUNT(*) FROM $tableName WHERE " . $criteria;
+        $selectCriteria = $deleteCriteria = array_map(
+            fn($key) => sprintf('%1$s %2$s :%1$s', $key, $this->eqOp()), $keyCondition->getColumnNames()
+        );
+
+        foreach ($conditions as $condition) {
+            if ($condition->isTrivialCondition()) {
+                continue;
+            }
+
+            $paramsSet[]      = $condition->getParams();
+            $selectCriteria[] = $condition->getSqlExpression();
+        }
+
+        $selectParams = array_merge(...$paramsSet);
+        $selectWhere  = '(' . implode(') AND (', $selectCriteria) . ')';
+        $deleteWhere  = '(' . implode(') AND (', $deleteCriteria) . ')';
+
+        /**
+         * Now access control conditions are checked in SELECT, not in DELETE.
+         * It's due to MariaDB does not support aliases in DELETE
+         */
+        $selectSql = "SELECT COUNT(*) FROM $tableName AS entity WHERE $selectWhere";
         $stmt      = $this->pdo->prepare($selectSql);
         try {
-            $stmt->execute($params);
+            $stmt->execute($selectParams);
         } catch (\PDOException $e) {
             throw new SafeDataProviderException('Cannot delete entity from database', 0, $e);
         }
         $oldCount = $stmt->fetchColumn();
 
-        $deleteSql = "DELETE FROM $tableName WHERE " . $criteria;
+        if ($oldCount === 0) {
+            // If there is no access to the deleting entity, we exit here.
+            return 0;
+        }
+
+        $deleteSql = "DELETE FROM $tableName WHERE $deleteWhere";
         $stmt      = $this->pdo->prepare($deleteSql);
         try {
-            $stmt->execute($params);
+            $stmt->execute($deleteParams);
         } catch (\PDOException $e) {
             if (
                 ($this->driverIs('mysql') && $e->errorInfo[1] === 1451)
@@ -264,7 +307,7 @@ readonly class PdoDataProvider
 
         $stmt = $this->pdo->prepare($selectSql);
         try {
-            $stmt->execute($params);
+            $stmt->execute($selectParams);
         } catch (\PDOException $e) {
             throw new SafeDataProviderException('Cannot delete entity from database', 0, $e);
         }
@@ -273,14 +316,119 @@ readonly class PdoDataProvider
         return $newCount - $oldCount;
     }
 
-    private function getAliasesForSelect(array $dataTypes, array $labels): string
+    /**
+     * @param array<string,LogicalExpression> $conditions
+     *
+     * @return array<string,string>
+     */
+    public function getLabelsFromTable(
+        string $tableName,
+        string $idColumn,
+        string $titleSqlExpression,
+        array  $conditions,
+    ): array {
+        $paramsSet = [];
+        $criteria  = ['1=1'];
+        foreach ($conditions as $condition) {
+            if ($condition->isTrivialCondition()) {
+                continue;
+            }
+
+            $paramsSet[] = $condition->getParams();
+            $criteria[]  = $condition->getSqlExpression();
+        }
+
+        $sql = "SELECT $idColumn, $titleSqlExpression AS label FROM $tableName WHERE (" . implode(') AND (', $criteria) . ")";
+
+        $stmt = $this->pdo->prepare($sql);
+        try {
+            $stmt->execute(array_merge(...$paramsSet));
+        } catch (\PDOException $e) {
+            throw new DataProviderException($e->getMessage(), 0, $e);
+        }
+
+        return $stmt->fetchAll(\PDO::FETCH_KEY_PAIR);
+    }
+
+    /**
+     * @param array<string,LogicalExpression> $conditions
+     *
+     * @throws DataProviderException
+     */
+    public function getAutocompleteResults(
+        string $tableName,
+        string $idColumn,
+        string $autocompleteSqlExpression,
+        array  $conditions,
+        string $query,
+        int    $limit,
+        ?int   $additionalId,
+    ): array {
+        $paramsSet = [];
+
+        $criteria = [];
+        foreach ($conditions as $condition) {
+            if ($condition->isTrivialCondition()) {
+                continue;
+            }
+
+            $paramsSet[] = $condition->getParams();
+            $criteria[]  = $condition->getSqlExpression();
+        }
+
+        $queryWhere      = '(' . implode(') AND (', array_merge($criteria, ["LOWER($autocompleteSqlExpression) LIKE :query"])) . ')';
+        $paramsSet[]     = [
+            'query' => '%' . mb_strtolower($query) . '%',
+        ];
+        $additionalWhere = '(' . implode(') AND (', array_merge($criteria, ["$idColumn = :additionalId"])) . ')';
+        $paramsSet[]     = [
+            'additionalId' => $additionalId,
+        ];
+
+        // NOTE: Maybe it's worth to search over each column in expression separately to improve performance?
+        // And to control over '%foo%' or 'foo%' to be searched?
+        $sql  = <<<SQL
+SELECT * FROM (SELECT
+    $idColumn AS value,
+    $autocompleteSqlExpression AS text
+FROM $tableName
+WHERE $queryWhere
+ORDER BY $autocompleteSqlExpression
+LIMIT $limit) AS tmp
+UNION
+SELECT
+    $idColumn AS value,
+    $autocompleteSqlExpression AS text
+FROM $tableName
+WHERE $additionalWhere
+ORDER BY text
+SQL;
+        $stmt = $this->pdo->prepare($sql);
+        try {
+            $stmt->execute(array_merge(...$paramsSet));
+        } catch (\PDOException $e) {
+            throw new DataProviderException($e->getMessage(), 0, $e);
+        }
+
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * @param array<string,string|LogicalExpression> $labels
+     */
+    private function getAliasesForSelect(array $dataTypes, array $labels, array &$paramsSet): string
     {
         $aliases = array_map(
             static fn(string $columnName) => $dataTypes[$columnName] === FieldConfig::DATA_TYPE_PASSWORD ? "'***' AS column_$columnName" : "$columnName AS column_$columnName",
             array_keys($dataTypes)
         );
-        foreach ($labels as $columnName => $sqlExpression) {
-            $aliases[] = "$sqlExpression AS virtual_$columnName";
+        foreach ($labels as $columnName => $label) {
+            if ($label instanceof LogicalExpression) {
+                $paramsSet[] = $label->getParams();
+                $aliases[]   = $label->getSqlExpression() . ' AS virtual_' . $columnName;
+            } else {
+                $aliases[] = "$label AS virtual_$columnName";
+            }
         }
 
         if (\count($aliases) === 0) {
@@ -290,56 +438,6 @@ readonly class PdoDataProvider
         }
 
         return implode(', ', $aliases);
-    }
-
-    /**
-     * @return array<string,string>
-     */
-    public function getLabelsFromTable(string $tableName, array $primaryKeyColumnNames, string $titleSqlExpression): array
-    {
-        $sql = "SELECT $primaryKeyColumnNames[0], $titleSqlExpression AS label FROM $tableName";
-        return $this->pdo->query($sql)->fetchAll(\PDO::FETCH_KEY_PAIR);
-    }
-
-    /**
-     * @throws DataProviderException
-     */
-    public function getAutocompleteResults(
-        string $tableName,
-        string $idColumn,
-        string $autocompleteSqlExpression,
-        string $query,
-        ?int   $additionalId,
-    ): array {
-        // NOTE: Maybe it's worth to search over each column separately to improve performance?
-        // And to control over '%foo%' or 'foo%' to be searched?
-        $sql  = <<<SQL
-SELECT * FROM (SELECT
-    $idColumn AS value,
-    $autocompleteSqlExpression AS text
-FROM $tableName
-WHERE LOWER($autocompleteSqlExpression) LIKE :query
-ORDER BY $autocompleteSqlExpression
-LIMIT 20) AS tmp
-UNION
-SELECT
-    $idColumn AS value,
-    $autocompleteSqlExpression AS text
-FROM $tableName
-WHERE $idColumn = :additionalId
-ORDER BY text
-SQL;
-        $stmt = $this->pdo->prepare($sql);
-        try {
-            $stmt->execute([
-                'query'        => '%' . mb_strtolower($query) . '%',
-                'additionalId' => $additionalId
-            ]);
-        } catch (\PDOException $e) {
-            throw new DataProviderException($e->getMessage(), 0, $e);
-        }
-
-        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 
     private function driverIs(string $driverName): bool

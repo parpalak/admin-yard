@@ -13,6 +13,7 @@ use S2\AdminYard\Config\LinkTo;
 use S2\AdminYard\Config\LinkToEntityParams;
 use S2\AdminYard\Config\VirtualFieldType;
 use S2\AdminYard\Database\Key;
+use S2\AdminYard\Database\LogicalExpression;
 use S2\AdminYard\Database\PdoDataProvider;
 use S2\AdminYard\Event\AfterLoadEvent;
 use S2\AdminYard\Event\AfterSaveEvent;
@@ -50,6 +51,10 @@ $userEntity = (new EntityConfig('User', 'users'))
 ;
 
 $postEntity = new EntityConfig('Post', 'posts');
+$postEntity->setAccessControlConstraints(
+    new LogicalExpression('read_access_control', 40, 'id != %1$s AND id != 1 + %1$s'),
+    new LogicalExpression('write_access_control', [31, 32, 33, 34, 35], 'id NOT IN (%s)'),
+);
 
 $commentConfig = (new EntityConfig('Comment', 'comments'))
     ->addField(new FieldConfig(
@@ -140,7 +145,7 @@ function tagIdsFromTags(PdoDataProvider $dataProvider, array $tags): array
     $existingTags = $dataProvider->getEntityList('tags', [
         'name' => FieldConfig::DATA_TYPE_STRING,
         'id'   => FieldConfig::DATA_TYPE_INT,
-    ], filterData: ['LOWER(name)' => array_map(static fn(string $tag) => mb_strtolower($tag), $tags)]);
+    ], conditions: [new LogicalExpression('name', array_map(static fn(string $tag) => mb_strtolower($tag), $tags), 'LOWER(name) IN (%s)')]);
 
     $existingTagsMap = array_column($existingTags, 'column_name', 'column_id');
     $existingTagsMap = array_map(static fn(string $tag) => mb_strtolower($tag), $existingTagsMap);
@@ -258,21 +263,31 @@ $adminConfig
                 $existingLinks = $event->dataProvider->getEntityList('posts_tags', [
                     'post_id' => FieldConfig::DATA_TYPE_INT,
                     'tag_id'  => FieldConfig::DATA_TYPE_INT,
-                ], filterData: ['post_id' => $event->primaryKey->toArray()['id']]);
+                ], conditions: [new LogicalExpression('post_id', $event->primaryKey->getIntId())]);
 
                 $existingTagIds = array_column($existingLinks, 'column_tag_id');
                 if (implode(',', $existingTagIds) !== implode(',', $newTagIds)) {
-                    $event->dataProvider->deleteEntity('posts_tags', ['post_id' => FieldConfig::DATA_TYPE_INT], new Key(['post_id' => $event->primaryKey->toArray()['id']]));
+                    $event->dataProvider->deleteEntity(
+                        'posts_tags',
+                        ['post_id' => FieldConfig::DATA_TYPE_INT],
+                        new Key(['post_id' => $event->primaryKey->getIntId()]),
+                        [],
+                    );
                     foreach ($newTagIds as $tagId) {
                         $event->dataProvider->createEntity('posts_tags', [
                             'post_id' => FieldConfig::DATA_TYPE_INT,
                             'tag_id'  => FieldConfig::DATA_TYPE_INT,
-                        ], ['post_id' => $event->primaryKey->toArray()['id'], 'tag_id' => $tagId]);
+                        ], ['post_id' => $event->primaryKey->getIntId(), 'tag_id' => $tagId]);
                     }
                 }
             })
             ->addListener(EntityConfig::EVENT_BEFORE_DELETE, function (BeforeDeleteEvent $event) {
-                $event->dataProvider->deleteEntity('posts_tags', ['post_id' => FieldConfig::DATA_TYPE_INT], new Key(['post_id' => $event->primaryKey->toArray()['id']]));
+                $event->dataProvider->deleteEntity(
+                    'posts_tags',
+                    ['post_id' => FieldConfig::DATA_TYPE_INT],
+                    new Key(['post_id' => $event->primaryKey->getIntId()]),
+                    [],
+                );
             })
             ->addFilter(
                 new Filter(

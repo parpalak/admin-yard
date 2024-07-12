@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace S2\AdminYard\Config;
 
 use S2\AdminYard\Controller\EntityController;
+use S2\AdminYard\Database\LogicalExpression;
 
 class EntityConfig
 {
@@ -64,6 +65,9 @@ class EntityConfig
     private ?string $controllerClass = null;
 
     private array $extraActions = [];
+
+    private ?LogicalExpression $readAccessControl = null;
+    private ?LogicalExpression $writeAccessControl = null;
 
     public function __construct(
         private readonly string $name,
@@ -133,6 +137,24 @@ class EntityConfig
     public function getEnabledActions(): array
     {
         return $this->enabledActions;
+    }
+
+    public function setAccessControlConstraints(LogicalExpression $readAccessControlCondition, ?LogicalExpression $writeAccessControlCondition): static
+    {
+        $this->readAccessControl  = $readAccessControlCondition;
+        $this->writeAccessControl = $writeAccessControlCondition ?? $readAccessControlCondition;
+
+        return $this;
+    }
+
+    public function getReadAccessControl(): ?LogicalExpression
+    {
+        return $this->readAccessControl;
+    }
+
+    public function getWriteAccessControl(): ?LogicalExpression
+    {
+        return $this->writeAccessControl;
     }
 
     /**

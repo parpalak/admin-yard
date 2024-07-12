@@ -36,4 +36,47 @@ class DatabaseHelper
 
         return $result;
     }
+
+    /**
+     * @return LogicalExpression[]
+     */
+    public static function getReadAccessControlConditions(EntityConfig $entityConfig): array
+    {
+        $result = [];
+
+        $ownAccessControlExpression = $entityConfig->getReadAccessControl();
+        if ($ownAccessControlExpression !== null && !$ownAccessControlExpression->isTrivialCondition()) {
+            $result[] = $ownAccessControlExpression;
+        }
+
+        foreach ($entityConfig->getManyToOneFields() as $field) {
+            if ($field->linkToEntity !== null) {
+                $foreignTable           = $field->linkToEntity->foreignEntity->getTableName();
+                $foreignId              = $field->linkToEntity->foreignEntity->getFieldNamesOfPrimaryKey()[0];
+                $fieldAccessControlExpr = $field->linkToEntity->foreignEntity->getReadAccessControl();
+                if ($fieldAccessControlExpr !== null && !$fieldAccessControlExpr->isTrivialCondition()) {
+                    $sql = "(SELECT COUNT(*) FROM {$foreignTable} WHERE (%s) AND {$foreignId} = entity.{$field->name}) > 0";
+
+                    $result[] = $fieldAccessControlExpr->wrap($field->name . '_access_control', $sql);
+                }
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * @return LogicalExpression[]
+     */
+    public static function getReadAndWriteAccessControlConditions(EntityConfig $entityConfig): array
+    {
+        $result = self::getReadAccessControlConditions($entityConfig);
+
+        $writeAccessControl = $entityConfig->getWriteAccessControl();
+        if ($writeAccessControl !== null && !$writeAccessControl->isTrivialCondition()) {
+            $result[] = $writeAccessControl;
+        }
+
+        return $result;
+    }
 }
