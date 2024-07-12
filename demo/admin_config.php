@@ -26,6 +26,23 @@ use S2\AdminYard\Validator\Regex;
 // Example of admin config for demo and tests
 
 $adminConfig = new AdminConfig();
+$adminConfig->setServicePage('About', function () {
+    $environment = new \League\CommonMark\Environment\Environment([]);
+    $environment->addExtension(new \League\CommonMark\Extension\CommonMark\CommonMarkCoreExtension());
+    $environment->addExtension(new \League\CommonMark\Extension\Table\TableExtension());
+    $converter = $converter = new \League\CommonMark\MarkdownConverter($environment);
+
+    $html = <<<'EOF'
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/styles/default.min.css">
+EOF;
+    $html .= '<section class="text-content">' . $converter->convert(file_get_contents(__DIR__ . '/../README.md')) . '</section>';
+    $html .= <<<'EOF'
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/highlight.min.js" integrity="sha512-6yoqbrcLAHDWAdQmiRlHG4+m0g/CT/V9AGyxabG8j7Jk8j3r3K6due7oqpiRMZqcYe9WM2gPcaNNxnl2ux+3tA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script>hljs.highlightAll();</script>
+EOF;
+
+    return $html;
+});
 
 $userEntity = (new EntityConfig('User', 'users'))
     ->addField(new FieldConfig(

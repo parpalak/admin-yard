@@ -20,6 +20,7 @@
         }
     },
     "require-dev": {
+        "league/commonmark": "^2.4",
         "codeception/codeception": "^5.1",
         "symfony/error-handler": "^5.1",
         "codeception/module-asserts": "^3.0",

@@ -87,6 +87,10 @@ article {
     padding: 0 1em;
 }
 
+section.text-content p {
+    max-width: 70ch;
+}
+
 article.error {
     color: var(--color-error);
 }
