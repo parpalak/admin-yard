@@ -19,9 +19,9 @@ readonly class DbColumnFieldType extends AbstractFieldType
      *                                      in the database has no default value.
      */
     public function __construct(
-        public string          $dataType = FieldConfig::DATA_TYPE_STRING,
-        public bool            $primaryKey = false,
-        public string|int|null $defaultValue = null,
+        public string $dataType = FieldConfig::DATA_TYPE_STRING,
+        public bool   $primaryKey = false,
+        public mixed  $defaultValue = null,
     ) {
         if (!\in_array($this->dataType, FieldConfig::ALLOWED_DATA_TYPES)) {
             throw new \InvalidArgumentException(sprintf(
