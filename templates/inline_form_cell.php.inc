@@ -16,7 +16,7 @@ $formId   = 'id-' . md5(serialize($primaryKey) . $fieldName);
 $holderId = $formId . '-' . $fieldName;
 
 ?>
-<span class="inline-form-holder" id="<?= $holderId ?>"><?= $value ?></span>
+<span class="inline-form-holder" id="<?= $holderId ?>"><?= htmlspecialchars($value, ENT_QUOTES, 'UTF-8') ?></span>
 <form class="inline-form" id="<?= $formId ?>" method="POST" action="?<?= $formQueryParams ?>">
     <?php foreach ($form->getHiddenControls() as $control): ?>
         <?= $control->getHtml() ?>

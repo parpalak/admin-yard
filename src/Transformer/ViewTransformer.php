@@ -30,7 +30,7 @@ class ViewTransformer
             FieldConfig::DATA_TYPE_PASSWORD => $value,
             FieldConfig::DATA_TYPE_INT => $value !== null ? number_format((int)$value, 0, '.', ' ') : null,
             FieldConfig::DATA_TYPE_FLOAT => (string)$value,
-            FieldConfig::DATA_TYPE_BOOL => $value ? 'TRUE' : 'FALSE',
+            FieldConfig::DATA_TYPE_BOOL => $value ? '✓' : '✗',
             FieldConfig::DATA_TYPE_TIMESTAMP,
             FieldConfig::DATA_TYPE_UNIXTIME => $value?->format('Y-m-d H:i:s'),
             default => throw new InvalidArgumentException(sprintf('Unknown data type "%s".', $dataType)),
