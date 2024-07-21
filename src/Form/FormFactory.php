@@ -58,7 +58,7 @@ readonly class FormFactory
                         $foreignEntity->getTableName(),
                         $foreignEntity->getFieldNamesOfPrimaryKey()[0],
                         $field->linkToEntity->titleSqlExpression,
-                        DatabaseHelper::getReadAccessControlConditions($foreignEntity),
+                        array_merge(DatabaseHelper::getReadAccessControlConditions($foreignEntity), $field->linkToEntity->getConditions()),
                     );
                     if ($field->canBeEmpty()) {
                         $options[''] = self::EMPTY_SELECT_LABEL;
@@ -68,12 +68,12 @@ readonly class FormFactory
                 } elseif ($control instanceof Autocomplete) {
                     $control->setAutocompleteParams(
                         $foreignEntity->getName(),
-                        md5($field->linkToEntity->titleSqlExpression),
+                        $field->linkToEntity->getHash(),
                         fn(string $value, int $limit = 20) => $this->dataProvider->getAutocompleteResults(
                             $foreignEntity->getTableName(),
                             $foreignEntity->getFieldNamesOfPrimaryKey()[0],
                             $field->linkToEntity->titleSqlExpression,
-                            DatabaseHelper::getReadAccessControlConditions($foreignEntity),
+                            array_merge(DatabaseHelper::getReadAccessControlConditions($foreignEntity), $field->linkToEntity->getConditions()),
                             '',
                             $limit,
                             (int)$value,
@@ -144,7 +144,7 @@ readonly class FormFactory
                         $fieldForeignEntity->getTableName(),
                         $fieldForeignEntity->getFieldNamesOfPrimaryKey()[0],
                         $field->linkToEntity->titleSqlExpression,
-                        DatabaseHelper::getReadAccessControlConditions($fieldForeignEntity),
+                        array_merge(DatabaseHelper::getReadAccessControlConditions($fieldForeignEntity), $field->linkToEntity->getConditions()),
                     );
 
                     $options[''] = self::EMPTY_SELECT_LABEL;
@@ -153,12 +153,12 @@ readonly class FormFactory
                 } elseif ($control instanceof Autocomplete) {
                     $control->setAutocompleteParams(
                         $fieldForeignEntity->getName(),
-                        md5($field->linkToEntity->titleSqlExpression),
+                        $field->linkToEntity->getHash(),
                         fn(string $value, int $limit = 20) => $this->dataProvider->getAutocompleteResults(
                             $field->linkToEntity->foreignEntity->getTableName(),
                             $field->linkToEntity->foreignEntity->getFieldNamesOfPrimaryKey()[0],
                             $field->linkToEntity->titleSqlExpression,
-                            DatabaseHelper::getReadAccessControlConditions($fieldForeignEntity),
+                            array_merge(DatabaseHelper::getReadAccessControlConditions($fieldForeignEntity), $field->linkToEntity->getConditions()),
                             '',
                             $limit,
                             (int)$value

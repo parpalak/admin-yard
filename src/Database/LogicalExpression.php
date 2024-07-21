@@ -88,6 +88,11 @@ class LogicalExpression
         }
     }
 
+    public function withNamePrefix(string $prefix): static
+    {
+        return new static($prefix . $this->name, $this->value, $this->sqlExpressionPattern);
+    }
+
     public function wrap(string $newName, string $newSqlExpressionPattern): static
     {
         return new static($newName, $this->value, sprintf($newSqlExpressionPattern, $this->sqlExpressionPattern));

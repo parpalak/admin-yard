@@ -107,6 +107,11 @@ class FieldConfig
             throw new \InvalidArgumentException('Only one of linkToEntity, actionOnClick, inlineEdit or type other than DbColumnFieldType can be set.');
         }
         if ($useOnActions !== null) {
+            foreach ($useOnActions as $action) {
+                if (!\is_string($action)) {
+                    throw new \InvalidArgumentException(sprintf('Action must be a string, "%s" given.', var_export($action, true)));
+                }
+            }
             if (\count(array_diff($useOnActions, self::ALLOWED_ACTIONS)) > 0) {
                 throw new \InvalidArgumentException(sprintf(
                     'Unknown actions encountered: [%s]. Actions must be set of [%s].',

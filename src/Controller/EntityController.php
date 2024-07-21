@@ -545,12 +545,16 @@ readonly class EntityController
             ));
         }
 
-        $query   = $request->query->getString('query');
+        $query      = $request->query->getString('query');
+        $conditions = DatabaseHelper::getReadAccessControlConditions($this->entityConfig);
+        if (($autocompleteFilter = $this->entityConfig->getAutocompleteFilter($hash)) !== null) {
+            $conditions[] = $autocompleteFilter;
+        }
         $results = $this->dataProvider->getAutocompleteResults(
             $this->entityConfig->getTableName(),
             $this->entityConfig->getFieldNamesOfPrimaryKey()[0],
             $autocompleteSqlExpression,
-            DatabaseHelper::getReadAccessControlConditions($this->entityConfig),
+            $conditions,
             $query,
             20,
             (int)$request->query->get('additional'),
@@ -624,7 +628,7 @@ readonly class EntityController
                 default => null,
             };
 
-            if ($field->inlineEdit) {
+            if ($field->inlineEdit && $row['virtual_write_access_control']) {
                 $form = $this->formFactory->createEntityForm(new FormParams(
                     $this->entityConfig->getName(),
                     [$fieldName => $field],
@@ -671,6 +675,12 @@ readonly class EntityController
     {
         $columnName = $currentField->name;
         if ($currentField->actionOnClick !== null) {
+            if (!$this->entityConfig->isAllowedAction($currentField->actionOnClick)) {
+                return null;
+            }
+            if ($currentField->actionOnClick === FieldConfig::ACTION_EDIT && !$row['virtual_write_access_control']) {
+                return null;
+            }
             return [
                 'action' => $currentField->actionOnClick,
                 'entity' => $this->entityConfig->getName(),
@@ -718,12 +728,25 @@ readonly class EntityController
                 throw new \LogicException(sprintf('Entity "%s" has no primary key configured and it cannot be used in a many-to-one relationship.', $foreignEntity->getName()));
             }
 
+            $allowedAction = match (true) {
+                $foreignEntity->isAllowedAction(FieldConfig::ACTION_SHOW) => FieldConfig::ACTION_SHOW,
+                $foreignEntity->isAllowedAction(FieldConfig::ACTION_EDIT) => FieldConfig::ACTION_EDIT,
+                $foreignEntity->isAllowedAction(FieldConfig::ACTION_LIST) => FieldConfig::ACTION_LIST,
+                default => null,
+            };
+
+            if ($allowedAction === null) {
+                return null;
+            }
+
             return [
-                'entity'                   => $foreignEntity->getName(),
-                'action'                   => $foreignEntity->isAllowedAction(FieldConfig::ACTION_SHOW) ? FieldConfig::ACTION_SHOW : FieldConfig::ACTION_EDIT,
-                // NOTE: think about how to handle primary keys with more than one field.
-                //       For now, we just take the first field. It's ok for usual ID fields.
-                $fieldNamesOfPrimaryKey[0] => $row['column_' . $currentField->name],
+                'entity' => $foreignEntity->getName(),
+                'action' => $allowedAction,
+                $allowedAction !== FieldConfig::ACTION_LIST ? [
+                    // NOTE: think about how to handle primary keys with more than one field.
+                    //       For now, we just take the first field. It's ok for usual ID fields.
+                    $fieldNamesOfPrimaryKey[0] => $row['column_' . $currentField->name],
+                ] : [],
             ];
         }
 

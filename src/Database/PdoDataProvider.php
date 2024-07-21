@@ -169,6 +169,8 @@ readonly class PdoDataProvider
                 continue;
             }
 
+            $condition = $condition->withNamePrefix('cond_');
+
             $paramsSet[] = $condition->getParams();
             $criteria[]  = $condition->getSqlExpression();
         }
@@ -248,7 +250,7 @@ readonly class PdoDataProvider
     public function deleteEntity(string $tableName, array $dataTypes, Key $keyCondition, array $conditions): int
     {
         $deleteParams = $this->getTransformedKeyParams($keyCondition, $dataTypes);
-        $paramsSet = [$deleteParams];
+        $paramsSet    = [$deleteParams];
 
         $selectCriteria = $deleteCriteria = array_map(
             fn($key) => sprintf('%1$s %2$s :%1$s', $key, $this->eqOp()), $keyCondition->getColumnNames()

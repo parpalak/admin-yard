@@ -149,6 +149,7 @@ $commentConfig
         validators: [new NotBlank()], // Ensure post_id is not blank
         // Special config for one-to-many association. Will be displayed on the list and show screens
         // as a link to the post. "CONCAT('#', id, ' ', title)" is used as a link text.
+        sortable: true, // Allow sorting by title
         linkToEntity: new LinkTo($postEntity, "CONCAT('#', id, ' ', title)"),
         // Disallow on edit screen, post may be chosen on comment creation only.
         useOnActions: [FieldConfig::ACTION_LIST, FieldConfig::ACTION_SHOW, FieldConfig::ACTION_NEW]
@@ -156,16 +157,18 @@ $commentConfig
     ->addField(new FieldConfig(
         name: 'name',
         control: 'input', // Input field for commenter's name
-        validators: [new NotBlank(), new Length(max: 50)]
+        validators: [new NotBlank(), new Length(max: 50)],
+        inlineEdit: true,
     ))
     ->addField(new FieldConfig(
         name: 'email',
         control: 'email_input',
-        validators: [new Length(max: 80)] // Max length validator
+        validators: [new Length(max: 80)], // Max length validator
+        inlineEdit: true,
     ))
     ->addField(new FieldConfig(
         name: 'comment_text',
-        control: 'textarea'
+        control: 'textarea',
     ))
     ->addField(new FieldConfig(
         name: 'created_at',
@@ -179,6 +182,7 @@ $commentConfig
         control: 'radio', // Radio buttons for status selection
         options: ['new' => 'Pending', 'approved' => 'Approved', 'rejected' => 'Rejected'], // Status options
         // Disallow on new screen
+        inlineEdit: true,
         useOnActions: [FieldConfig::ACTION_LIST, FieldConfig::ACTION_SHOW, FieldConfig::ACTION_EDIT]
     ))
     ->addFilter(new Filter(
@@ -190,22 +194,22 @@ $commentConfig
     ))
     ->addFilter(new FilterLinkTo(
         $postIdField, // Filter comments by a post on the list screen
-        'Post'
+        'Post',
     ))
     ->addFilter(new Filter(
         'created_from',
         'Created after',
         'date',
-        'created_at >= %1$s' // Filter comments created after a certain date
+        'created_at >= %1$s', // Filter comments created after a certain date
     ))
     ->addFilter(new Filter(
         'created_to',
         'Created before',
         'date',
-        'created_at < %1$s' // Filter comments created before a certain date
+        'created_at < %1$s', // Filter comments created before a certain date
     ))
     ->addFilter(new Filter(
-        'statuses', 
+        'statuses',
         'Status',
         'checkbox_array', // Several statuses can be chosen at once
         'status_code IN (%1$s)', // Filter comments by status
@@ -272,6 +276,71 @@ $postConfig
 
 In this example, the virtual field `used_in_posts` is declared as read-only.
 We cannot edit the relationships in the `posts_tags` table through it.
+
+### Access control
+
+AdminYard does not have knowledge of the system users, their roles, or permissions. However, due to its dynamic and flexible configuration, you can program the differences in roles and permissions within the configuration itself. Let's look at some examples.
+
+Controlling access to actions based on role for all entities at once:
+
+```php
+$postEntity->setEnabledActions([
+    FieldConfig::ACTION_LIST,
+    ...isGranted('author') ? [FieldConfig::ACTION_EDIT, FieldConfig::ACTION_DELETE] : [],
+]);
+```
+
+To control access not for all entities but at the row level, one can specify additional conditions in a LogicalExpression, which are included in the WHERE clause of queries and restrict access at the row level for reading (actions `list` and `show`) and writing (actions `edit` and `delete`):
+
+```php
+// If the power_user role is not granted, show only approved comments 
+if (!isGranted('power_user')) {
+    $commentEntity->setReadAccessControl(new LogicalExpression('status_code', 'approved'));
+}
+```
+
+The conditions can be more complex. They can include external parameters like `$currentUserId`, as well as values from columns in the table:
+
+```php
+if (!isGranted('editor')) {
+    // If the editor role is not granted, the user can only see their own posts
+    // or those that are already published.
+    $postEntity->setReadAccessControl(
+        new LogicalExpression('read_access_control_user_id', $currentUserId, "status_code = 'published' OR user_id = %s")
+    );
+    
+    // If the editor role is not granted, the user can only edit or delete their own posts. 
+    $postEntity->setWriteAccessControl(new LogicalExpression('user_id', $currentUserId));
+} 
+```
+
+Besides restricting access to entire rows, one can control access to individual fields.
+
+```php
+$commentEntity->addField(new FieldConfig(
+    name: 'email',
+    control: 'email_input',
+    validators: [new Length(max: 80)],
+    // Hide the field value from users without sufficient access level
+    useOnActions: isGranted(power_user) ? [FieldConfig::ACTION_EDIT, FieldConfig::ACTION_LIST] : [],
+));
+
+```
+
+```php
+$commentEntity->addField(new FieldConfig(
+    name: 'status_code',
+    type: new DbColumnFieldType(FieldConfig::DATA_TYPE_STRING, defaultValue: 'new'), // For default value
+    control: 'radio', // Radio buttons for status selection
+    options: ['new' => 'Pending', 'approved' => 'Approved', 'rejected' => 'Rejected'], // Status options
+    // Allow inline editing of this field on the list screen for users with the moderator role.
+    // Inline editing does not take into account the condition specified in setWriteAccessControl,
+    // to allow partial editing of the entity for users without full editing rights.
+    inlineEdit: isGranted('moderator'),
+    // Disallow on new screen
+    useOnActions: [FieldConfig::ACTION_LIST, FieldConfig::ACTION_SHOW, FieldConfig::ACTION_EDIT]
+));
+```
 
 ## Architecture
 

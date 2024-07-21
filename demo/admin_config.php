@@ -75,8 +75,10 @@ $userEntity = (new EntityConfig('User', 'users'))
 ;
 
 $postEntity = new EntityConfig('Post', 'posts');
-$postEntity->setAccessControlConstraints(
-    new LogicalExpression('read_access_control', 40, 'id != %1$s AND id != 1 + %1$s'),
+$postEntity->setReadAccessControl(
+    new LogicalExpression('read_access_control', 40, 'id != %1$s AND id != 1 + %1$s')
+);
+$postEntity->setWriteAccessControl(
     new LogicalExpression('write_access_control', [31, 32, 33, 34, 35], 'id NOT IN (%s)'),
 );
 

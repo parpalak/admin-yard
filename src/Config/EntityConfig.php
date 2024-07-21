@@ -58,9 +58,9 @@ class EntityConfig
     private array $listeners = [];
 
     /**
-     * @var string[]
+     * @var array<string, array{sqExpression: string, filter: ?LogicalExpression}>
      */
-    private array $autocompleteSqlExpression = [];
+    private array $autocompleteParams = [];
 
     private ?string $controllerClass = null;
 
@@ -119,6 +119,11 @@ class EntityConfig
 
     public function setEnabledActions(array $enabledActions): static
     {
+        foreach ($enabledActions as $action) {
+            if (!\is_string($action)) {
+                throw new \InvalidArgumentException(sprintf('Action must be a string, "%s" given.', var_export($action, true)));
+            }
+        }
         $allowedActions = array_merge(self::ALLOWED_ACTIONS, $this->extraActions);
         if (\count(array_diff($enabledActions, $allowedActions)) > 0) {
             throw new \InvalidArgumentException(sprintf(
@@ -139,10 +144,16 @@ class EntityConfig
         return $this->enabledActions;
     }
 
-    public function setAccessControlConstraints(LogicalExpression $readAccessControlCondition, ?LogicalExpression $writeAccessControlCondition): static
+    public function setReadAccessControl(?LogicalExpression $readAccessControlCondition): static
     {
-        $this->readAccessControl  = $readAccessControlCondition;
-        $this->writeAccessControl = $writeAccessControlCondition ?? $readAccessControlCondition;
+        $this->readAccessControl = $readAccessControlCondition;
+
+        return $this;
+    }
+
+    public function setWriteAccessControl(?LogicalExpression $writeAccessControlCondition): static
+    {
+        $this->writeAccessControl = $writeAccessControlCondition;
 
         return $this;
     }
@@ -369,7 +380,7 @@ class EntityConfig
             return true;
         }
 
-        if ($action === 'autocomplete' && $this->autocompleteSqlExpression !== []) {
+        if ($action === 'autocomplete' && $this->autocompleteParams !== []) {
             return true;
         }
 
@@ -416,19 +427,20 @@ class EntityConfig
         return $this->listeners;
     }
 
-    public function addAutocompleteSqExpression(string $sqExpression): static
+    public function addAutocompleteParams(string $hash, string $sqExpression, ?LogicalExpression $contentFilter): static
     {
-        $this->autocompleteSqlExpression[] = $sqExpression;
+        $this->autocompleteParams[$hash] = ['sqExpression' => $sqExpression, 'filter' => $contentFilter];
+
         return $this;
     }
 
     public function getAutocompleteSqlExpression(string $hash): ?string
     {
-        foreach ($this->autocompleteSqlExpression as $sqlExpression) {
-            if (md5($sqlExpression) === $hash) {
-                return $sqlExpression;
-            }
-        }
-        return null;
+        return $this->autocompleteParams[$hash]['sqExpression'] ?? null;
+    }
+
+    public function getAutocompleteFilter(string $hash): ?LogicalExpression
+    {
+        return $this->autocompleteParams[$hash]['filter'] ?? null;
     }
 }
