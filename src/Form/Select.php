@@ -9,6 +9,8 @@ declare(strict_types=1);
 
 namespace S2\AdminYard\Form;
 
+use S2\AdminYard\Validator\Choice;
+
 class Select implements FormControlInterface, OptionsInterface
 {
     use ValidatableTrait;
@@ -81,5 +83,12 @@ class Select implements FormControlInterface, OptionsInterface
     protected function isCurrentOption(int|string $key): bool
     {
         return (string)$key === $this->value;
+    }
+
+    protected function getInternalValidators(): array
+    {
+        return [
+            new Choice(array_keys($this->options)),
+        ];
     }
 }

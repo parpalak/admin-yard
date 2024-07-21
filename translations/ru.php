@@ -37,7 +37,7 @@ return [
     'Something went wrong and the value was not saved.'          => 'Что-то пошло не так и значение не было сохранено.',
 
     'This value should not be blank.'                                                                                                                => 'Поле не может быть пустым.',
-    'The value you selected is not a valid choice.'                                                                                                  => 'Выбранное значение неверно.',
+    'The value you selected is not a valid choice.'                                                                                                  => 'Выбранное значение недопустимо.',
     'This value is not a valid date.'                                                                                                                => 'Значение не является корректной датой.',
     'This value is too long. It should have {{ limit }} character or less.|This value is too long. It should have {{ limit }} characters or less.'   => 'Значение слишком длинное. Его длина должна быть не более {{ limit }} символа.|Значение слишком длинное. Его длина должна быть не более {{ limit }} символов.|Значение слишком длинное. Его длина должна быть не более {{ limit }} символов.',
     'This value is too short. It should have {{ limit }} character or more.|This value is too short. It should have {{ limit }} characters or more.' => 'Значение слишком короткое. Его длина должна быть не менее {{ limit }} символа.|Значение слишком короткое. Его длина должна быть не менее {{ limit }} символов.|Значение слишком короткое. Его длина должна быть не менее {{ limit }} символов.',
