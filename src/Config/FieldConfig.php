@@ -54,6 +54,7 @@ class FieldConfig
      * @param string               $name          Column name in the database.
      * @param string|null          $label         Field label in the interface. If not set, column name will be used as
      *                                            a label.
+     * @param string|null          $hint          More information about this field in the title of the label.
      * @param AbstractFieldType    $type          Behavior of this field. Either DbColumnFieldType for usual columns or
      *                                            VirtualFieldType for fields that are not present in the database.
      * @param string|null          $control       What control should be used for this field in the new and edit forms.
@@ -72,6 +73,7 @@ class FieldConfig
     public function __construct(
         public readonly string            $name,
         private readonly ?string          $label = null,
+        public readonly ?string           $hint = null,
         public readonly AbstractFieldType $type = new DbColumnFieldType(),
         public readonly ?string           $control = null,
         public readonly ?array            $options = null,

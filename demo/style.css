@@ -353,6 +353,10 @@ td.type-int {
         display: block;
     }
 }
+.form-wrapper label[title]:not([title=""]) {
+    cursor: help;
+    text-decoration: underline dotted 1px;
+}
 .form-wrapper .form-control-textarea {
     align-self: center;
 }

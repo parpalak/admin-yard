@@ -317,6 +317,14 @@ class EntityConfig
     }
 
     /**
+     * @return array|string[]
+     */
+    public function getHints(string $action): array
+    {
+        return array_map(static fn(FieldConfig $field) => $field->hint, $this->getFields($action));
+    }
+
+    /**
      * @return array<string,FieldConfig>
      */
     public function getManyToOneFields(): array

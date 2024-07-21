@@ -6,6 +6,7 @@ declare(strict_types=1);
 /** @var string $title */
 /** @var string $entityName */
 /** @var array $header */
+/** @var array $hint */
 /** @var array $errorMessages */
 /** @var \S2\AdminYard\Form\Form $form */
 /** @var array $primaryKey */
@@ -38,6 +39,7 @@ $errorMessages = array_merge($errorMessages, $form->getGlobalFormErrors());
         <div class="form-wrapper">
             <?php foreach ($form->getVisibleControls() as $fieldName => $control): ?>
                 <label class="field-name"
+                       title="<?= htmlspecialchars($hint[$fieldName] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                        for="id-<?= $fieldName ?>"><?= htmlspecialchars($header[$fieldName], ENT_QUOTES, 'UTF-8') ?></label>
                 <div
                     class="form-control-<?= strtolower(basename(strtr(get_class($control), ['\\' => '/']))) ?> field-<?= $entityName ?>-<?= $fieldName ?>">

@@ -89,6 +89,7 @@ readonly class EntityController
             'sortDirection'  => $sortDirection,
 
             'header'        => $this->entityConfig->getLabels(FieldConfig::ACTION_LIST),
+            'hint'          => $this->entityConfig->getHints(FieldConfig::ACTION_LIST),
             'rows'          => $renderedRows,
             'entityActions' => array_map(static fn(string $action) => [
                 'name' => $action,
@@ -258,6 +259,7 @@ readonly class EntityController
             'primaryKey'    => $primaryKey->toArray(),
             'csrfToken'     => $this->getDeleteCsrfToken($primaryKey->toArray(), $request),
             'header'        => $this->entityConfig->getLabels(FieldConfig::ACTION_EDIT),
+            'hint'          => $this->entityConfig->getHints(FieldConfig::ACTION_EDIT),
             'form'          => $form,
             'actions'       => array_map(static fn(string $action) => [
                 'name' => $action,
@@ -346,6 +348,7 @@ readonly class EntityController
                 'entityName'    => $this->entityConfig->getName(),
                 'errorMessages' => $errorMessages,
                 'header'        => $this->entityConfig->getLabels(FieldConfig::ACTION_NEW),
+                'hint'          => $this->entityConfig->getHints(FieldConfig::ACTION_NEW),
                 'form'          => $form,
                 'actions'       => array_map(static fn(string $action) => [
                     'name' => $action,
