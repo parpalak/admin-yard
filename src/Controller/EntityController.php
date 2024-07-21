@@ -298,14 +298,17 @@ readonly class EntityController
                 );
                 $data = $event->data;
 
-                try {
-                    $this->dataProvider->createEntity(
-                        $this->entityConfig->getTableName(),
-                        $this->entityConfig->getFieldDataTypes(FieldConfig::ACTION_NEW, includeDefault: true),
-                        array_merge($this->entityConfig->getFieldDefaultValues(), $data)
-                    );
-                } catch (SafeDataProviderException $e) {
-                    $errorMessages[] = $this->translator->trans($e->getMessage());
+                $errorMessages = $event->errorMessages;
+                if ($errorMessages === []) {
+                    try {
+                        $this->dataProvider->createEntity(
+                            $this->entityConfig->getTableName(),
+                            $this->entityConfig->getFieldDataTypes(FieldConfig::ACTION_NEW, includeDefault: true),
+                            array_merge($this->entityConfig->getFieldDefaultValues(), $data)
+                        );
+                    } catch (SafeDataProviderException $e) {
+                        $errorMessages[] = $this->translator->trans($e->getMessage());
+                    }
                 }
 
                 if ($errorMessages === []) {
@@ -384,9 +387,22 @@ readonly class EntityController
         }
 
         $this->eventDispatcher->dispatch(
-            new BeforeDeleteEvent($this->dataProvider, $primaryKey),
+            $event = new BeforeDeleteEvent($this->dataProvider, $primaryKey),
             'adminyard.' . $this->entityConfig->getName() . '.' . EntityConfig::EVENT_BEFORE_DELETE
         );
+
+        if ($event->errorMessages !== []) {
+            if ($request->isXmlHttpRequest()) {
+                return new JsonResponse([
+                    'success' => false,
+                    'errors'  => $event->errorMessages
+                ], Response::HTTP_UNPROCESSABLE_ENTITY);
+            }
+
+            array_map(fn(string $message) => $this->addFlashMessage($request, 'error', $message), $event->errorMessages);
+            return new Response('CSRF token mismatch', Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
         try {
             $deletedRows = $this->dataProvider->deleteEntity(
                 $this->entityConfig->getTableName(),
@@ -474,6 +490,10 @@ readonly class EntityController
             $event = new BeforeSaveEvent($this->dataProvider, $data, $context, $primaryKey),
             'adminyard.' . $this->entityConfig->getName() . '.' . EntityConfig::EVENT_BEFORE_PATCH
         );
+
+        if ($event->errorMessages !== []) {
+            return new JsonResponse(['success' => false, 'errors' => $event->errorMessages], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
         $data = $event->data;
 
         try {
