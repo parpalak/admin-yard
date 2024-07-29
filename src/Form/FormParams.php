@@ -9,8 +9,8 @@ declare(strict_types=1);
 
 namespace S2\AdminYard\Form;
 
-use Random\RandomException;
 use S2\AdminYard\Config\FieldConfig;
+use S2\AdminYard\Helper\RandomHelper;
 use Symfony\Component\HttpFoundation\Request;
 
 readonly class FormParams
@@ -36,11 +36,7 @@ readonly class FormParams
     {
         $session = $request->getSession();
         if (!$session->has('main_csrf_token')) {
-            try {
-                $mainToken = bin2hex(random_bytes(16));
-            } catch (RandomException $e) {
-                $mainToken = md5(uniqid((string)mt_rand(), true) . microtime(true));
-            }
+            $mainToken = RandomHelper::getRandomHexString32();
             $session->set('main_csrf_token', $mainToken);
         } else {
             $mainToken = $session->get('main_csrf_token');

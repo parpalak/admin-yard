@@ -32,6 +32,7 @@ use S2\AdminYard\TemplateRenderer;
 use S2\AdminYard\Transformer\ViewTransformer;
 use S2\AdminYard\Translator;
 use Symfony\Component\EventDispatcher\EventDispatcher;
+use Symfony\Component\HttpFoundation\Cookie;
 use Symfony\Component\HttpFoundation\Exception\BadRequestException;
 use Symfony\Component\HttpFoundation\Exception\SuspiciousOperationException;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -160,7 +161,7 @@ readonly class EntityController
 
         $errorMessages = [];
 
-        $form = $this->formFactory->createEntityForm(new FormParams(
+        $form = $this->formFactory->createEntityForm($formParams = new FormParams(
             $this->entityConfig->getName(),
             $this->entityConfig->getFields(FieldConfig::ACTION_EDIT),
             $request,
@@ -222,11 +223,21 @@ readonly class EntityController
                 }
             } else {
                 if ($request->isXmlHttpRequest()) {
-                    return new JsonResponse([
+                    $response = new JsonResponse([
                         'success'      => false,
                         'errors'       => $form->getGlobalFormErrors(),
                         'field_errors' => $form->getFieldErrors(),
+                        ... $form->isCsrfCheckPassed() ? [] : ['invalid_csrf_token' => true]
                     ], Response::HTTP_UNPROCESSABLE_ENTITY);
+                    if (!$form->isCsrfCheckPassed()) {
+                        $response->headers->setCookie(Cookie::create(
+                            name: 'adminyard_temp_csrf_token',
+                            value: Form::generateTempCsrfToken($formParams->getCsrfToken()),
+                            httpOnly: false,
+                            sameSite: Cookie::SAMESITE_STRICT
+                        ));
+                    }
+                    return $response;
                 }
             }
         } else {

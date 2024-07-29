@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace S2\AdminYard\Form;
 
+use S2\AdminYard\Helper\RandomHelper;
 use Symfony\Component\HttpFoundation\Exception\BadRequestException;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -17,6 +18,7 @@ class Form
 {
     private const CSRF_FIELD_NAME = '__csrf_token';
     private ?string $csrfToken = null;
+    private bool $csrfCheckPassed = false;
 
     /**
      * @var string[]
@@ -86,10 +88,10 @@ class Form
             throw new \LogicException(sprintf('Method "%s" is not implemented.', $method));
         }
 
-        $csrfCheckPassed = false;
+        $this->csrfCheckPassed = false;
         foreach ($this->controls as $columnName => $control) {
             if ($columnName === self::CSRF_FIELD_NAME) {
-                $csrfCheckPassed = $inputBag->get($columnName) === $this->csrfToken;
+                $this->csrfCheckPassed = $inputBag->get($columnName) === $this->csrfToken || $this->checkTempCsrfToken($request, $this->csrfToken);
                 continue;
             }
 
@@ -128,7 +130,7 @@ class Form
             $control->validate($this->translator);
         }
 
-        if (!$csrfCheckPassed && $this->csrfToken !== null) {
+        if (!$this->csrfCheckPassed && $this->csrfToken !== null) {
             $this->formErrors[] = $this->translator->trans('Unable to confirm security token. A likely cause for this is that some time passed between when you first entered the page and when you submitted the form. If that is the case and you would like to continue, submit the form again.');
         }
     }
@@ -163,6 +165,11 @@ class Form
         return true;
     }
 
+    public function isCsrfCheckPassed(): bool
+    {
+        return $this->csrfCheckPassed;
+    }
+
     public function getGlobalFormErrors(): array
     {
         return $this->formErrors;
@@ -191,5 +198,52 @@ class Form
     public function getMergedErrors(): array
     {
         return array_merge($this->formErrors, array_merge(...array_values($this->getFieldErrors())));
+    }
+
+    /**
+     * Generating a temporary CSRF token using Signed Double-Submit Cookie.
+     * It is checked when Synchronizer Token Pattern fails for ajax requests.
+     *
+     * A typical scenario for this check is as follows. The page with the AJAX form was loaded by the user
+     * and left for some time. During this time, the session expired, and the main token disappeared with it.
+     * To avoid making the user refresh the page and lose data, we issue a temporary token through cookies,
+     * and the client script that sends the data via AJAX must send this token in the X-AdminYard-CSRF-Token header.
+     *
+     * @see https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html#signed-double-submit-cookie-recommended
+     */
+    public static function generateTempCsrfToken(string $realCsrfToken): string
+    {
+        $message = RandomHelper::getRandomHexString32() . '-' . time();
+
+        return sha1($realCsrfToken . '-' . $message) . '-' . $message;
+    }
+
+    private function checkTempCsrfToken(Request $request, string $realCsrfToken): bool
+    {
+        $tempCsrfToken = $request->headers->get('X-AdminYard-CSRF-Token');
+        if ($tempCsrfToken === null) {
+            return false;
+        }
+
+        $parts = explode('-', $tempCsrfToken);
+        if (\count($parts) !== 3) {
+            return false;
+        }
+
+        [$hash, $randomStr, $time] = $parts;
+        if (\strlen($randomStr) !== 32) {
+            return false;
+        }
+
+        $now = time();
+        if ($time <= $now - 60 || $time > $now) {
+            return false;
+        }
+
+        if (sha1($realCsrfToken . '-' . $randomStr . '-' . $time) !== $hash) {
+            return false;
+        }
+
+        return true;
     }
 }
