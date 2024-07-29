@@ -17,7 +17,7 @@ class TemplateRenderer
     {
     }
 
-    public function render(string $_template_path, array $data): string
+    public function render(string $_template_path, array $data = []): string
     {
         $trans = $this->translator->trans(...);
 

@@ -170,9 +170,9 @@ abstract class AbstractBrowserModule extends Module
         $this->doRequest($request);
     }
 
-    public function sendPost(string $url, array $data): void
+    public function sendPost(string $url, array $data = [], array $files = []): void
     {
-        $request = Request::create($url, 'POST', $data);
+        $request = Request::create($url, 'POST', $data, [], $files);
         $this->doRequest($request);
     }
 
