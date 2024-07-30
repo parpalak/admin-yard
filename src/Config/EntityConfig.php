@@ -28,6 +28,10 @@ class EntityConfig
     private const ALLOWED_ACTIONS = FieldConfig::ALLOWED_ACTIONS;
 
     private readonly string $tableName;
+    private ?string $singularName = null;
+    private ?string $pluralName = null;
+    private ?string $newTitle = null;
+    private ?string $editTitle = null;
 
     /**
      * @var array<string,FieldConfig>
@@ -69,6 +73,10 @@ class EntityConfig
     private ?LogicalExpression $readAccessControl = null;
     private ?LogicalExpression $writeAccessControl = null;
 
+    /**
+     * @param string  $name      Entity name, used in URLs
+     * @param ?string $tableName Database table name
+     */
     public function __construct(
         private readonly string $name,
         string                  $tableName = null
@@ -84,6 +92,54 @@ class EntityConfig
     public function getTableName(): string
     {
         return $this->tableName;
+    }
+
+    public function setSingularName(string $singularName): self
+    {
+        $this->singularName = $singularName;
+
+        return $this;
+    }
+
+    public function getSingularName(): string
+    {
+        return $this->singularName ?? $this->name;
+    }
+
+    public function setPluralName(string $pluralName): self
+    {
+        $this->pluralName = $pluralName;
+
+        return $this;
+    }
+
+    public function getPluralName(): string
+    {
+        return $this->pluralName ?? $this->name;
+    }
+
+    public function setNewTitle(string $newTitle): self
+    {
+        $this->newTitle = $newTitle;
+
+        return $this;
+    }
+
+    public function getNewTitle(): string
+    {
+        return $this->newTitle ?? $this->name;
+    }
+
+    public function setEditTitle(string $editTitle): self
+    {
+        $this->editTitle = $editTitle;
+
+        return $this;
+    }
+
+    public function getEditTitle(): string
+    {
+        return $this->editTitle ?? $this->name;
     }
 
     public function addField(FieldConfig $fieldConfig, ?string $after = null): self

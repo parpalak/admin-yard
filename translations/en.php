@@ -3,7 +3,7 @@
 return [
     // Interface
     'Actions'                                           => 'Actions',
-    'list'                                              => 'List',
+    'list'                                              => 'Return to List',
     'show'                                              => 'Show',
     'edit'                                              => 'Edit',
     'delete'                                            => 'Delete',

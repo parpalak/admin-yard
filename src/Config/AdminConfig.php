@@ -22,6 +22,7 @@ class AdminConfig
      */
     private array $pages = [];
     private array $priorities = [];
+    private array $readableNames = [];
 
     public function addEntity(EntityConfig $entity, int $priority = 0): static
     {
@@ -90,20 +91,27 @@ class AdminConfig
         return $this->menuTemplate;
     }
 
-    public function setServicePage(string $pageName, callable $page, int $priority = 0): self
+    public function setServicePage(string $pageName, callable $page, int $priority = 0, ?string $readableName = null): self
     {
         if (isset($this->priorities[$pageName])) {
             throw new \InvalidArgumentException('Page "' . $pageName . '" already exists');
         }
         $this->priorities[$pageName] = $priority;
 
-        $this->pages[$pageName] = $page;
+        $this->pages[$pageName]         = $page;
+        $this->readableNames[$pageName] = $readableName;
+
         return $this;
     }
 
     public function getServicePage(string $pageName): ?callable
     {
         return $this->pages[$pageName] ?? null;
+    }
+
+    public function getReadableName(string $pageName): string
+    {
+        return $this->readableNames[$pageName] ?? $pageName;
     }
 
     public function getServicePageNames(): array

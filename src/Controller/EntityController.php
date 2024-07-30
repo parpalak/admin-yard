@@ -78,7 +78,7 @@ readonly class EntityController
         );
 
         $beforeRenderEvent = new BeforeRenderEvent([
-            'title'      => $this->entityConfig->getName(),
+            'title'      => $this->entityConfig->getPluralName(),
             'entityName' => $this->entityConfig->getName(),
 
             'filterControls' => $filterForm->getVisibleControls(), // Hidden controls on the list page are only for processing extra query parameters, they should not be in the form data since it's impossible to clear them.
@@ -136,7 +136,7 @@ readonly class EntityController
         return $this->templateRenderer->render(
             $this->entityConfig->getShowTemplate(),
             [
-                'title'      => $this->entityConfig->getName(),
+                'title'      => $this->entityConfig->getSingularName(),
                 'entityName' => $this->entityConfig->getName(),
                 'header'     => $this->entityConfig->getLabels(FieldConfig::ACTION_SHOW),
                 'row'        => $renderedRow,
@@ -264,7 +264,7 @@ readonly class EntityController
         }
 
         $beforeRenderEvent = new BeforeRenderEvent([
-            'title'         => $this->entityConfig->getName(),
+            'title'         => $this->entityConfig->getEditTitle(),
             'entityName'    => $this->entityConfig->getName(),
             'errorMessages' => $errorMessages,
             'primaryKey'    => $primaryKey->toArray(),
@@ -358,7 +358,7 @@ readonly class EntityController
         return $this->templateRenderer->render(
             $this->entityConfig->getNewTemplate(),
             [
-                'title'         => $this->entityConfig->getName(),
+                'title'         => $this->entityConfig->getNewTitle(),
                 'entityName'    => $this->entityConfig->getName(),
                 'errorMessages' => $errorMessages,
                 'header'        => $this->entityConfig->getLabels(FieldConfig::ACTION_NEW),
