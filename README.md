@@ -96,11 +96,13 @@ $postEntity = (new EntityConfig('Post', 'posts'))
     ->addField(new FieldConfig(
         name: 'id',
         type: new DbColumnFieldType(FieldConfig::DATA_TYPE_INT, true), // Primary key
-        useOnActions: [FieldConfig::ACTION_LIST, FieldConfig::ACTION_SHOW] // Show ID only on list and show screens
+        // Show ID only on list and show screens
+        useOnActions: [FieldConfig::ACTION_LIST, FieldConfig::ACTION_SHOW] 
     ))
     ->addField(new FieldConfig(
         name: 'title',
-        // type: new DbColumnFieldType(FieldConfig::DATA_TYPE_STRING), // May be omitted as it is default
+        // DATA_TYPE_STRING may be omitted as it is default:
+        // type: new DbColumnFieldType(FieldConfig::DATA_TYPE_STRING),
         // Form control must be defined since new and edit screens are not excluded in useOnActions 
         control: 'input', // Input field for title
         validators: [new Length(max: 80)], // Form validators may be supplied
@@ -122,8 +124,12 @@ $postEntity = (new EntityConfig('Post', 'posts'))
     ->addField(new FieldConfig(
         name: 'comments',
         // Special config for one-to-many association. Will be displayed on the list and show screens
-        // as a link to the comments list screen with a filter on posts applied. COUNT(*) is used as a link text.
-        type: new LinkedByFieldType($commentConfig, 'CASE WHEN COUNT(*) > 0 THEN COUNT(*) ELSE NULL END', 'post_id'),
+        // as a link to the comments list screen with a filter on posts applied.
+        type: new LinkedByFieldType(
+            $commentConfig, 
+            'CASE WHEN COUNT(*) > 0 THEN COUNT(*) ELSE NULL END', // used as text in link 
+            'post_id'
+        ),
         sortable: true
     ))
     ->addFilter(new Filter(
@@ -147,9 +153,9 @@ $commentConfig
         type: new DbColumnFieldType(FieldConfig::DATA_TYPE_INT), // Foreign key to post
         control: 'autocomplete', // Autocomplete control for selecting post
         validators: [new NotBlank()], // Ensure post_id is not blank
+        sortable: true, // Allow sorting by title
         // Special config for one-to-many association. Will be displayed on the list and show screens
         // as a link to the post. "CONCAT('#', id, ' ', title)" is used as a link text.
-        sortable: true, // Allow sorting by title
         linkToEntity: new LinkTo($postEntity, "CONCAT('#', id, ' ', title)"),
         // Disallow on edit screen, post may be chosen on comment creation only.
         useOnActions: [FieldConfig::ACTION_LIST, FieldConfig::ACTION_SHOW, FieldConfig::ACTION_NEW]
@@ -158,7 +164,7 @@ $commentConfig
         name: 'name',
         control: 'input', // Input field for commenter's name
         validators: [new NotBlank(), new Length(max: 50)],
-        inlineEdit: true,
+        inlineEdit: true, // Allow to edit commentator's name on the list screen
     ))
     ->addField(new FieldConfig(
         name: 'email',
@@ -174,15 +180,16 @@ $commentConfig
         name: 'created_at',
         type: new DbColumnFieldType(FieldConfig::DATA_TYPE_TIMESTAMP), // Timestamp field
         control: 'datetime', // Date and time picker
-        sortable: true // Allow sorting by creation date
+        sortable: true // Allow sorting by creation date on the list screen
     ))
     ->addField(new FieldConfig(
         name: 'status_code',
-        type: new DbColumnFieldType(FieldConfig::DATA_TYPE_STRING, defaultValue: 'new'), // For default value
+        // defaultValue is used for new entities when the creating form has no corresponding field
+        type: new DbColumnFieldType(FieldConfig::DATA_TYPE_STRING, defaultValue: 'new'),
         control: 'radio', // Radio buttons for status selection
-        options: ['new' => 'Pending', 'approved' => 'Approved', 'rejected' => 'Rejected'], // Status options
-        // Disallow on new screen
+        options: ['new' => 'Pending', 'approved' => 'Approved', 'rejected' => 'Rejected'],
         inlineEdit: true,
+        // Disallow on new screen
         useOnActions: [FieldConfig::ACTION_LIST, FieldConfig::ACTION_SHOW, FieldConfig::ACTION_EDIT]
     ))
     ->addFilter(new Filter(
@@ -330,14 +337,13 @@ $commentEntity->addField(new FieldConfig(
 ```php
 $commentEntity->addField(new FieldConfig(
     name: 'status_code',
-    type: new DbColumnFieldType(FieldConfig::DATA_TYPE_STRING, defaultValue: 'new'), // For default value
-    control: 'radio', // Radio buttons for status selection
-    options: ['new' => 'Pending', 'approved' => 'Approved', 'rejected' => 'Rejected'], // Status options
+    type: new DbColumnFieldType(FieldConfig::DATA_TYPE_STRING, defaultValue: 'new'),
+    control: 'radio',
+    options: ['new' => 'Pending', 'approved' => 'Approved', 'rejected' => 'Rejected'],
     // Allow inline editing of this field on the list screen for users with the moderator role.
     // Inline editing does not take into account the condition specified in setWriteAccessControl,
     // to allow partial editing of the entity for users without full editing rights.
     inlineEdit: isGranted('moderator'),
-    // Disallow on new screen
     useOnActions: [FieldConfig::ACTION_LIST, FieldConfig::ACTION_SHOW, FieldConfig::ACTION_EDIT]
 ));
 ```
