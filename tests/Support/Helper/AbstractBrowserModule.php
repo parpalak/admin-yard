@@ -17,6 +17,7 @@ use Symfony\Component\DomCrawler\Crawler as SymfonyCrawler;
 use Symfony\Component\DomCrawler\Field\ChoiceFormField;
 use Symfony\Component\DomCrawler\Field\InputFormField;
 use Symfony\Component\DomCrawler\Field\TextareaFormField;
+use Symfony\Component\DomCrawler\UriResolver;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -126,6 +127,11 @@ abstract class AbstractBrowserModule extends Module
         $this->doRequest(Request::create($url));
     }
 
+    public function grabLocation(): string
+    {
+        return $this->response->headers->get('Location');
+    }
+
     public function seeLocationIs(string $location): void
     {
         $this->assertEquals($location, $this->response->headers->get('Location'));
@@ -138,7 +144,9 @@ abstract class AbstractBrowserModule extends Module
 
     public function followRedirect(): void
     {
-        $this->doRequest(Request::create($this->response->headers->get('Location')));
+        $location = $this->response->headers->get('Location');
+        $uri = UriResolver::resolve($location, $this->crawler->getUri());
+        $this->doRequest(Request::create($uri));
     }
 
     public function click(string $selector): void
@@ -176,6 +184,17 @@ abstract class AbstractBrowserModule extends Module
         $this->doRequest($request);
     }
 
+    public function sendAjaxPostRequest(string $uri, array $params = []): void
+    {
+        $this->sendAjaxRequest('POST', $uri, $params);
+    }
+
+    public function sendAjaxRequest(string $method, string $uri, array $params = []): void
+    {
+        $request = Request::create($uri, $method, $params, [], [], ['HTTP_X_REQUESTED_WITH' => 'XMLHttpRequest']);
+        $this->doRequest($request);
+    }
+
     public function grabFormValues(string $selector): array
     {
         return $this->crawler->filter($selector)->form()->getValues();
@@ -198,9 +217,9 @@ abstract class AbstractBrowserModule extends Module
         }
 
         if ($nodes->filter('select')->count() !== 0) {
-            $field = new ChoiceFormField($nodes->filter('select')->getNode(0));
+            $field   = new ChoiceFormField($nodes->filter('select')->getNode(0));
             $options = $nodes->filter('option[selected]');
-            $values = [];
+            $values  = [];
 
             foreach ($options as $option) {
                 $values[] = $option->getAttribute('value');
@@ -232,14 +251,6 @@ abstract class AbstractBrowserModule extends Module
         return (new InputFormField($input->getNode(0)))->getValue();
     }
 
-//    public function grabValueFrom(string $selector): array
-//    {
-//        $input = $this->crawler->filter($selector);
-//        $form  = $input->form();
-//        $values = $form->getValues();
-//        return $values[$input->attr('name')];
-//    }
-
     public function grabAndMatch(string $selector, string $regex): ?array
     {
         $html = $this->crawler->filter($selector)->outerHtml();
@@ -251,18 +262,19 @@ abstract class AbstractBrowserModule extends Module
 
     protected function doRequest(Request $request): void
     {
-        $request->cookies->replace($this->cookieJar->allValues($request->getUri()));
-        $this->debug(sprintf("%s %s", $request->getMethod(), $request->getUri()));
+        $uri = $request->getUri();
+        $request->cookies->replace($this->cookieJar->allValues($uri));
+        $this->debug(sprintf("%s %s", $request->getMethod(), $uri));
         $this->response = $this->doRealRequest($request);
-        $this->cookieJar->updateFromSetCookie($this->response->headers->all('Set-Cookie'), $request->getUri());
-        $content        = $this->response->getContent();
+        $this->cookieJar->updateFromSetCookie($this->response->headers->all('Set-Cookie'), $uri);
+        $content = $this->response->getContent();
         $this->debug(sprintf(
             "Get %s response:\n%s\n\n%s",
             $this->response->getStatusCode(),
             $this->response->headers,
             mb_substr($content, 0, 100)
         ));
-        $this->crawler = new Crawler($content, 'http://localhost');
+        $this->crawler = new Crawler($content, $uri);
     }
 
     abstract protected function doRealRequest(Request $request): Response;
