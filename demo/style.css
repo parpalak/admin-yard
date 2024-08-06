@@ -120,14 +120,23 @@ section {
 nav {
     backdrop-filter: saturate(3);
     background: linear-gradient(180deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.15));
-    padding: 0 0.5em;
+    padding: 0;
 }
 nav ul.main-menu-list {
     list-style: none;
     margin: 0;
-    padding: 0;
+    padding: 0 0.5em;
     display: flex;
-    flex-wrap: wrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    mask-image: linear-gradient(
+        90deg,
+        transparent 0, rgba(0, 0, 0, .25) 9px,
+        #000 18px,
+        #000 calc(100% - 18px),
+        rgba(0, 0, 0, .25) calc(100% - 9px),
+        transparent
+    );
 }
 nav a.main-menu-link {
     color: var(--color-text);
@@ -136,6 +145,7 @@ nav a.main-menu-link {
     padding: 0.25em 0.5em;
     outline: none;
     position: relative;
+    white-space: nowrap;
 }
 
 nav a.main-menu-link:focus-visible:after {
