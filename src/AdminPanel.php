@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace S2\AdminYard;
 
+use Psr\Log\LoggerAwareTrait;
 use S2\AdminYard\Config\AdminConfig;
 use S2\AdminYard\Config\FieldConfig;
 use S2\AdminYard\Controller\EntityController;
@@ -23,17 +24,19 @@ use Symfony\Component\HttpFoundation\Exception\SessionNotFoundException;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
-readonly class AdminPanel
+class AdminPanel
 {
+    use LoggerAwareTrait;
+
     public function __construct(
-        private AdminConfig      $config,
-        private EventDispatcher  $eventDispatcher,
-        private PdoDataProvider  $dataProvider,
-        private ViewTransformer  $dataTransformer,
-        private MenuGenerator    $menuGenerator,
-        private Translator       $translator,
-        private TemplateRenderer $templateRenderer,
-        private FormFactory      $formFactory,
+        private readonly AdminConfig      $config,
+        private readonly EventDispatcher  $eventDispatcher,
+        private readonly PdoDataProvider  $dataProvider,
+        private readonly ViewTransformer  $dataTransformer,
+        private readonly MenuGenerator    $menuGenerator,
+        private readonly Translator       $translator,
+        private readonly TemplateRenderer $templateRenderer,
+        private readonly FormFactory      $formFactory,
     ) {
     }
 
@@ -89,6 +92,10 @@ readonly class AdminPanel
             $this->templateRenderer,
             $this->formFactory,
         );
+
+        if ($this->logger !== null) {
+            $controller->setLogger($this->logger);
+        }
 
         $methodName = $action . 'Action';
         if (!method_exists($controller, $methodName)) {

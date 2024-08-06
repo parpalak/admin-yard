@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace S2\AdminYard\Controller;
 
+use Psr\Log\LoggerAwareTrait;
 use S2\AdminYard\Config\DbColumnFieldType;
 use S2\AdminYard\Config\EntityConfig;
 use S2\AdminYard\Config\FieldConfig;
@@ -40,16 +41,18 @@ use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
-readonly class EntityController
+class EntityController
 {
+    use LoggerAwareTrait;
+
     final public function __construct(
-        protected EntityConfig     $entityConfig,
-        protected EventDispatcher  $eventDispatcher,
-        protected PdoDataProvider  $dataProvider,
-        protected ViewTransformer  $viewTransformer,
-        protected Translator       $translator,
-        protected TemplateRenderer $templateRenderer,
-        protected FormFactory      $formFactory,
+        readonly protected EntityConfig     $entityConfig,
+        readonly protected EventDispatcher  $eventDispatcher,
+        readonly protected PdoDataProvider  $dataProvider,
+        readonly protected ViewTransformer  $viewTransformer,
+        readonly protected Translator       $translator,
+        readonly protected TemplateRenderer $templateRenderer,
+        readonly protected FormFactory      $formFactory,
     ) {
     }
 
@@ -191,6 +194,7 @@ readonly class EntityController
                             $data
                         );
                     } catch (SafeDataProviderException $e) {
+                        $this->logger?->critical($e->getMessage(), ['exception' => $e]);
                         $errorMessages[] = $this->translator->trans($e->getMessage());
                         if ($request->isXmlHttpRequest()) {
                             return new JsonResponse(['success' => false, 'errors' => $errorMessages], $e->getCode());
@@ -318,6 +322,7 @@ readonly class EntityController
                             array_merge($this->entityConfig->getFieldDefaultValues(), $data)
                         );
                     } catch (SafeDataProviderException $e) {
+                        $this->logger?->critical($e->getMessage(), ['exception' => $e]);
                         $errorMessages[] = $this->translator->trans($e->getMessage());
                     }
                 }
@@ -422,6 +427,7 @@ readonly class EntityController
                 DatabaseHelper::getReadAndWriteAccessControlConditions($this->entityConfig),
             );
         } catch (SafeDataProviderException $e) {
+            $this->logger?->critical($e->getMessage(), ['exception' => $e]);
             if ($request->isXmlHttpRequest()) {
                 return new JsonResponse([
                     'success' => false,
@@ -516,8 +522,10 @@ readonly class EntityController
                 $data
             );
         } catch (SafeDataProviderException $e) {
+            $this->logger?->critical($e->getMessage(), ['exception' => $e]);
             return new JsonResponse(['errors' => [$this->translator->trans($e->getMessage())]], $e->getCode() ?: Response::HTTP_INTERNAL_SERVER_ERROR);
         } catch (\Exception $e) {
+            $this->logger?->critical($e->getMessage(), ['exception' => $e]);
             return new JsonResponse(['errors' => ['Unable to update entity']], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
 
