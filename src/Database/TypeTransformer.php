@@ -24,7 +24,7 @@ class TypeTransformer implements TypeTransformerInterface
             FieldConfig::DATA_TYPE_DATE => $value !== null ? (string)$value : null,
             FieldConfig::DATA_TYPE_BOOL => $value === 1 || $value === '1' || $value === true,
             FieldConfig::DATA_TYPE_TIMESTAMP => $value !== null ? new DateTimeImmutable($value) : null,
-            FieldConfig::DATA_TYPE_UNIXTIME => $value === 0 ? null : new DateTimeImmutable('@' . $value),
+            FieldConfig::DATA_TYPE_UNIXTIME => $value === 0 ? null : (new DateTimeImmutable())->setTimestamp($value),
             FieldConfig::DATA_TYPE_PASSWORD => '***',
             default => throw new InvalidArgumentException(sprintf('Unknown data type "%s".', $dataType)),
         };
