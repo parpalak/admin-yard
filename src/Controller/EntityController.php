@@ -29,6 +29,7 @@ use S2\AdminYard\Event\BeforeSaveEvent;
 use S2\AdminYard\Form\Form;
 use S2\AdminYard\Form\FormFactory;
 use S2\AdminYard\Form\FormParams;
+use S2\AdminYard\SettingStorage\SettingStorageInterface;
 use S2\AdminYard\TemplateRenderer;
 use S2\AdminYard\Transformer\ViewTransformer;
 use S2\AdminYard\Translator;
@@ -46,13 +47,14 @@ class EntityController
     use LoggerAwareTrait;
 
     final public function __construct(
-        readonly protected EntityConfig     $entityConfig,
-        readonly protected EventDispatcher  $eventDispatcher,
-        readonly protected PdoDataProvider  $dataProvider,
-        readonly protected ViewTransformer  $viewTransformer,
-        readonly protected Translator       $translator,
-        readonly protected TemplateRenderer $templateRenderer,
-        readonly protected FormFactory      $formFactory,
+        readonly protected EntityConfig            $entityConfig,
+        readonly protected EventDispatcher         $eventDispatcher,
+        readonly protected PdoDataProvider         $dataProvider,
+        readonly protected ViewTransformer         $viewTransformer,
+        readonly protected Translator              $translator,
+        readonly protected TemplateRenderer        $templateRenderer,
+        readonly protected FormFactory             $formFactory,
+        readonly protected SettingStorageInterface $settingStorage,
     ) {
     }
 
@@ -144,7 +146,7 @@ class EntityController
                 'header'     => $this->entityConfig->getLabels(FieldConfig::ACTION_SHOW),
                 'row'        => $renderedRow,
                 'primaryKey' => $primaryKey->toArray(),
-                'csrfToken'  => $this->getDeleteCsrfToken($primaryKey->toArray(), $request),
+                'csrfToken'  => $this->getDeleteCsrfToken($primaryKey->toArray()),
                 'actions'    => array_map(static fn(string $action) => [
                     'name' => $action,
                 ], array_diff($this->entityConfig->getEnabledActions(), [FieldConfig::ACTION_SHOW, FieldConfig::ACTION_NEW])),
@@ -167,7 +169,7 @@ class EntityController
         $form = $this->formFactory->createEntityForm($formParams = new FormParams(
             $this->entityConfig->getName(),
             $this->entityConfig->getFields(FieldConfig::ACTION_EDIT),
-            $request,
+            $this->settingStorage,
             FieldConfig::ACTION_EDIT,
             $primaryKey->toArray()
         ));
@@ -272,7 +274,7 @@ class EntityController
             'entityName'    => $this->entityConfig->getName(),
             'errorMessages' => $errorMessages,
             'primaryKey'    => $primaryKey->toArray(),
-            'csrfToken'     => $this->getDeleteCsrfToken($primaryKey->toArray(), $request),
+            'csrfToken'     => $this->getDeleteCsrfToken($primaryKey->toArray()),
             'header'        => $this->entityConfig->getLabels(FieldConfig::ACTION_EDIT),
             'hint'          => $this->entityConfig->getHints(FieldConfig::ACTION_EDIT),
             'form'          => $form,
@@ -294,7 +296,7 @@ class EntityController
         $form = $this->formFactory->createEntityForm(new FormParams(
             $this->entityConfig->getName(),
             $this->entityConfig->getFields(FieldConfig::ACTION_NEW),
-            $request,
+            $this->settingStorage,
             FieldConfig::ACTION_NEW
         ));
 
@@ -389,7 +391,7 @@ class EntityController
         }
         $primaryKey = $this->getEntityPrimaryKeyFromRequest($request);
         $csrfToken  = $request->request->get('csrf_token');
-        if ($this->getDeleteCsrfToken($primaryKey->toArray(), $request) !== $csrfToken) {
+        if ($this->getDeleteCsrfToken($primaryKey->toArray()) !== $csrfToken) {
             $errorMessage = $this->translator->trans('Unable to confirm security token. A likely cause for this is that some time passed between when you first entered the page and when you submitted the form. If that is the case and you would like to continue, submit the form again.');
             if ($request->isXmlHttpRequest()) {
                 return new JsonResponse([
@@ -491,7 +493,7 @@ class EntityController
         $form = $this->formFactory->createEntityForm(new FormParams(
             $this->entityConfig->getName(),
             [$fieldName => $field],
-            $request,
+            $this->settingStorage,
             'patch',
             $primaryKey->toArray(),
         ));
@@ -630,11 +632,11 @@ class EntityController
                     'row'        => $row,
                     'entityName' => $this->entityConfig->getName(),
                     'primaryKey' => $primaryKey,
-                    'csrfToken'  => $this->getDeleteCsrfToken($primaryKey, $request),
+                    'csrfToken'  => $this->getDeleteCsrfToken($primaryKey),
                 ])
                 : null,
             ... $this->entityConfig->isAllowedAction(FieldConfig::ACTION_DELETE) ? [
-                'csrf_token' => $this->getDeleteCsrfToken($primaryKey, $request),
+                'csrf_token' => $this->getDeleteCsrfToken($primaryKey),
             ] : [],
         ];
 
@@ -651,7 +653,7 @@ class EntityController
                 $form = $this->formFactory->createEntityForm(new FormParams(
                     $this->entityConfig->getName(),
                     [$fieldName => $field],
-                    $request,
+                    $this->settingStorage,
                     'patch',
                     $primaryKey,
                 ));
@@ -726,7 +728,7 @@ class EntityController
             return [
                 'entity'       => $externalEntityName,
                 'action'       => 'list',
-                'apply_filter' => '0', /** Skip filters saved in session, @see self::getListFilterForm() */
+                'apply_filter' => '0', /** Skip filters saved in setting storage, @see self::getListFilterForm() */
                 ... array_combine($externalFilterColumnNames, array_map(static fn(string $columnName) => $row['column_' . $columnName], $valueColumns)),
             ];
         }
@@ -780,13 +782,12 @@ class EntityController
     protected function getListFilterForm(Request $request): Form
     {
         $filterForm = $this->formFactory->createFilterForm($this->entityConfig);
-        $session    = $request->getSession();
 
         $applyFilter = $request->get('apply_filter');
 
         // First we fill the filter form with the previous filter values
         if ($applyFilter !== '0') {
-            $storedFilterData = $session->get('filter_' . $this->entityConfig->getName());
+            $storedFilterData = $this->settingStorage->get('filter_' . $this->entityConfig->getName());
             if (\is_array($storedFilterData)) {
                 $filterForm->fillFromArray($storedFilterData);
             }
@@ -799,11 +800,11 @@ class EntityController
         if ($filterFormWasSubmitted) {
             // Skip data in hidden input fields since they cannot be updated via the filter form, only via the URL
             $visibleFilterData = $filterForm->getData(includeHidden: false);
-            // Update filter state in the session to current state for the next request
+            // Update filter state in the setting storage to current state for the next request
             if ($visibleFilterData !== []) {
-                $session->set('filter_' . $this->entityConfig->getName(), array_filter($visibleFilterData, static fn($value) => $value !== null));
+                $this->settingStorage->set('filter_' . $this->entityConfig->getName(), array_filter($visibleFilterData, static fn($value) => $value !== null));
             } else {
-                $session->remove('filter_' . $this->entityConfig->getName());
+                $this->settingStorage->remove('filter_' . $this->entityConfig->getName());
             }
         }
 
@@ -813,25 +814,30 @@ class EntityController
     protected function getListSorting(Request $request): array
     {
         $entityName = $this->entityConfig->getName();
-        $session    = $request->getSession();
 
         $sortField     = $request->get('sort_field');
         $sortDirection = $request->get('sort_direction');
 
         if ($sortField !== null && $sortDirection !== null) {
-            $session->set('sort_field_' . $entityName, $sortField);
-            $session->set('sort_direction_' . $entityName, $sortDirection);
+            $this->settingStorage->set('sort_field_' . $entityName, $sortField);
+            $this->settingStorage->set('sort_direction_' . $entityName, $sortDirection);
         } else {
-            $sortField     = $session->get('sort_field_' . $entityName);
-            $sortDirection = $session->get('sort_direction_' . $entityName);
+            $sortField     = $this->settingStorage->get('sort_field_' . $entityName);
+            $sortDirection = $this->settingStorage->get('sort_direction_' . $entityName);
         }
 
         return [$sortField, $sortDirection];
     }
 
-    protected function getDeleteCsrfToken(array $primaryKey, Request $request): string
+    protected function getDeleteCsrfToken(array $primaryKey): string
     {
-        $formParams = new FormParams($this->entityConfig->getName(), [], $request, FieldConfig::ACTION_DELETE, $primaryKey);
+        $formParams = new FormParams(
+            $this->entityConfig->getName(),
+            [],
+            $this->settingStorage,
+            FieldConfig::ACTION_DELETE,
+            $primaryKey
+        );
         return $formParams->getCsrfToken();
     }
 

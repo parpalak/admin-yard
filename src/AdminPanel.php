@@ -18,6 +18,8 @@ use S2\AdminYard\Controller\InvalidRequestException;
 use S2\AdminYard\Controller\NotFoundException;
 use S2\AdminYard\Database\PdoDataProvider;
 use S2\AdminYard\Form\FormFactory;
+use S2\AdminYard\SettingStorage\SessionSettingStorage;
+use S2\AdminYard\SettingStorage\SettingStorageInterface;
 use S2\AdminYard\Transformer\ViewTransformer;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\HttpFoundation\Exception\SessionNotFoundException;
@@ -29,14 +31,15 @@ class AdminPanel
     use LoggerAwareTrait;
 
     public function __construct(
-        private readonly AdminConfig      $config,
-        private readonly EventDispatcher  $eventDispatcher,
-        private readonly PdoDataProvider  $dataProvider,
-        private readonly ViewTransformer  $dataTransformer,
-        private readonly MenuGenerator    $menuGenerator,
-        private readonly Translator       $translator,
-        private readonly TemplateRenderer $templateRenderer,
-        private readonly FormFactory      $formFactory,
+        private readonly AdminConfig              $config,
+        private readonly EventDispatcher          $eventDispatcher,
+        private readonly PdoDataProvider          $dataProvider,
+        private readonly ViewTransformer          $dataTransformer,
+        private readonly MenuGenerator            $menuGenerator,
+        private readonly Translator               $translator,
+        private readonly TemplateRenderer         $templateRenderer,
+        private readonly FormFactory              $formFactory,
+        private readonly ?SettingStorageInterface $settingStorage = null,
     ) {
     }
 
@@ -81,17 +84,26 @@ class AdminPanel
             return $this->errorResponse($request, $this->translator->trans('No action was requested.'));
         }
 
+        // NOTE: Now the constructor arguments cannot be changed
         // TODO: Implement a controller resolver instead of $entityConfig->getControllerClass()?
         $controllerClass = $entityConfig->getControllerClass() ?? EntityController::class;
-        $controller      = new $controllerClass(
-            $entityConfig,
-            $this->eventDispatcher,
-            $this->dataProvider,
-            $this->dataTransformer,
-            $this->translator,
-            $this->templateRenderer,
-            $this->formFactory,
-        );
+        try {
+            $controller = new $controllerClass(
+                $entityConfig,
+                $this->eventDispatcher,
+                $this->dataProvider,
+                $this->dataTransformer,
+                $this->translator,
+                $this->templateRenderer,
+                $this->formFactory,
+                $this->settingStorage ?? new SessionSettingStorage($request->getSession()),
+            );
+        } catch (SessionNotFoundException $e) {
+            return $this->errorResponse($request, sprintf(
+                'No session has been provided. One must set session via Request::setSession() before calling %s().',
+                __METHOD__
+            ), Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
 
         if ($this->logger !== null) {
             $controller->setLogger($this->logger);

@@ -56,7 +56,7 @@ $pdo = new PDO('mysql:host=localhost;dbname=adminyard', 'username', 'passwd');
 $adminPanel = DefaultAdminFactory::createAdminPanel($adminConfig, $pdo, require 'translations/en.php', 'en');
 
 // AdminYard uses Symfony HTTP Foundation component.
-// Sessions are required to store filters and CSRF tokens.
+// Sessions are required to store flash messages.
 // new Session() stands for native PHP sessions. You can provide an alternative session storage.
 $request = Request::createFromGlobals();
 $request->setSession(new Session());
