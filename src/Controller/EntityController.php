@@ -763,7 +763,7 @@ class EntityController
             return [
                 'entity' => $foreignEntity->getName(),
                 'action' => $allowedAction,
-                $allowedAction !== FieldConfig::ACTION_LIST ? [
+                ... $allowedAction !== FieldConfig::ACTION_LIST ? [
                     // NOTE: think about how to handle primary keys with more than one field.
                     //       For now, we just take the first field. It's ok for usual ID fields.
                     $fieldNamesOfPrimaryKey[0] => $row['column_' . $currentField->name],

@@ -104,6 +104,15 @@ class ListCest
         $I->assertCount(0, $I->grabMultiple(self::ENTITY_ROW_SELECTOR));
     }
 
+    public function linkToEntityTest(IntegrationTester $I): void
+    {
+        $I->amOnPage('?entity=Comment&action=list');
+        $I->seeResponseCodeIs(200);
+
+        $attr = $I->grabAttributeFrom(self::ENTITY_ROW_SELECTOR . ' .field-Comment-post_id a', 'href');
+        $I->assertEquals('?entity=Post&action=show&id=1', $attr);
+    }
+
     /**
      * @dataProvider filterCheckboxArrayDataProvider
      */
