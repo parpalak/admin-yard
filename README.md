@@ -246,7 +246,10 @@ we can use the following construction:
 <?php
 
 use S2\AdminYard\Config\EntityConfig;
+use S2\AdminYard\Config\FieldConfig;
+use S2\AdminYard\Config\LinkToEntityParams;
 use S2\AdminYard\Config\Filter;
+use S2\AdminYard\Config\VirtualFieldType;
 
 $tagConfig = new EntityConfig('Tag', 'tags');
 $tagConfig
@@ -374,7 +377,7 @@ produced by the TypeTransformer when reading from the database based on `dataTyp
 
 Here are some recommendations for choosing dataTypes based on the database column types and desired form control:
 
-| DataType  | Control                                                                  | Normalized type in PHP | Database column types |
+| DataType  | Compatible controls                                                      | Normalized type in PHP | Database column types |
 |-----------|--------------------------------------------------------------------------|------------------------|-----------------------|
 | string    | input<br/>textarea<br/>search_input<br/>email_input<br/>select<br/>radio | string                 | TEXT (incl. VARCHAR)  |
 | int       | int_input<br/>select<br/>radio                                           | string ('' -> NULL)    | INT, TEXT             |
