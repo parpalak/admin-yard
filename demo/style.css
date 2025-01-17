@@ -537,6 +537,11 @@ form.inline-form label:has(input[type="checkbox"]:checked):before {
     background: linear-gradient(to bottom, color-mix(in srgb, var(--btn-color) 20%, var(--page-background) 100%), color-mix(in srgb, var(--btn-color) 10%, var(--page-background) 90%));
     box-shadow: none;
 }
+.link-as-button[disabled="disabled"], button[type=submit][disabled="disabled"], button.primary[disabled="disabled"] {
+    --btn-color: var(--color-muted);
+    box-shadow: none;
+    opacity: 0.6;
+}
 
 .link-as-button.primary, button:not(.secondary) {
     --btn-color: var(--color-btn-primary);
