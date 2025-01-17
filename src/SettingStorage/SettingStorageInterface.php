@@ -11,7 +11,7 @@ namespace S2\AdminYard\SettingStorage;
 
 interface SettingStorageInterface
 {
-    public function has(string $string): bool;
+    public function has(string $key): bool;
 
     public function get(string $key): array|string|int|float|bool|null;
 

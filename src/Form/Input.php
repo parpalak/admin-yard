@@ -30,6 +30,10 @@ class Input implements FormControlInterface
 
     public function setPostValue($value): static
     {
+        if ($value === null) {
+            // Laravel converts empty strings in _GET to null
+            $value = '';
+        }
         return $this->setValue($value);
     }
 

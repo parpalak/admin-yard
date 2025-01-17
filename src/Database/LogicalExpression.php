@@ -1,6 +1,6 @@
 <?php
 /**
- * @copyright 2024 Roman Parpalak
+ * @copyright 2024-2025 Roman Parpalak
  * @license   http://opensource.org/licenses/MIT MIT
  * @package   AdminYard
  */
@@ -75,17 +75,23 @@ class LogicalExpression
                 $arrayParamNames[]        = ':' . $paramName;
                 $this->params[$paramName] = $value;
             }
+            // NOTE If pattern contains several '%1$s' entries this will fail when PDO is not in statement emulation mode.
             $this->sqlExpression = sprintf($this->sqlExpressionPattern, implode(', ', $arrayParamNames));
             return;
         }
 
-        $this->sqlExpression = sprintf($this->sqlExpressionPattern, ":{$this->name}");
-        if ($this->sqlExpression === $this->sqlExpressionPattern) {
-            // No substitution was done
-            $this->params = [];
-        } else {
-            $this->params[$this->name] = $this->value;
-        }
+        /**
+         * Using custom string replace code instead of sprintf() since param names must be unique
+         * if PDO is not in statement emulation mode.
+         */
+        $this->params               = [];
+        $counter                    = 0;
+        $this->sqlExpression = preg_replace_callback('#%(\\d+\\$)?s#', function ($matches) use (&$counter) {
+            $counter++;
+            $paramName                = $this->name . '_' . $counter;
+            $this->params[$paramName] = $this->value;
+            return ':' . $paramName;
+        }, $this->sqlExpressionPattern);
     }
 
     public function withNamePrefix(string $prefix): static

@@ -20,9 +20,9 @@ readonly class SessionSettingStorage implements SettingStorageInterface
     {
     }
 
-    public function has(string $string): bool
+    public function has(string $key): bool
     {
-        return $this->session->has($string);
+        return $this->session->has($key);
     }
 
     public function get(string $key): array|string|int|float|bool|null
