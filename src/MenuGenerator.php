@@ -15,12 +15,21 @@ use S2\AdminYard\Config\FieldConfig;
 readonly class MenuGenerator
 {
     public function __construct(
-        private AdminConfig      $config,
-        private TemplateRenderer $templateRenderer
+        protected AdminConfig      $config,
+        protected TemplateRenderer $templateRenderer
     ) {
     }
 
     public function generateMainMenu(string $baseUrl, ?string $currentEntity = null): string
+    {
+        $links = $this->getLinkArray($baseUrl, $currentEntity);
+
+        return $this->templateRenderer->render($this->config->getMenuTemplate(), [
+            'links' => $links
+        ]);
+    }
+
+    protected function getLinkArray(string $baseUrl, ?string $currentEntity): array
     {
         $links = $this->config->getPriorities();
         asort($links);
@@ -45,9 +54,6 @@ readonly class MenuGenerator
                 'active' => $currentEntity === $page,
             ];
         }
-
-        return $this->templateRenderer->render($this->config->getMenuTemplate(), [
-            'links' => $links
-        ]);
+        return $links;
     }
 }
