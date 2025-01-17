@@ -1,6 +1,6 @@
 <?php
 /**
- * @copyright 2024 Roman Parpalak
+ * @copyright 2024-2025 Roman Parpalak
  * @license   http://opensource.org/licenses/MIT MIT
  * @package   AdminYard
  */
@@ -12,6 +12,8 @@ namespace S2\AdminYard;
 use Psr\Log\LoggerAwareTrait;
 use S2\AdminYard\Config\AdminConfig;
 use S2\AdminYard\Config\FieldConfig;
+use S2\AdminYard\Controller\ControllerFactoryInterface;
+use S2\AdminYard\Controller\DefaultControllerFactory;
 use S2\AdminYard\Controller\EntityController;
 use S2\AdminYard\Controller\InvalidConfigException;
 use S2\AdminYard\Controller\InvalidRequestException;
@@ -84,26 +86,30 @@ class AdminPanel
             return $this->errorResponse($request, $this->translator->trans('No action was requested.'));
         }
 
-        // NOTE: Now the constructor arguments cannot be changed
-        // TODO: Implement a controller resolver instead of $entityConfig->getControllerClass()?
-        $controllerClass = $entityConfig->getControllerClass() ?? EntityController::class;
+        $controllerClass   = $entityConfig->getControllerClassOrFactory() ?? EntityController::class;
+        $controllerFactory = $controllerClass instanceof ControllerFactoryInterface
+            ? $controllerClass
+            : new DefaultControllerFactory($controllerClass);
+
         try {
-            $controller = new $controllerClass(
-                $entityConfig,
-                $this->eventDispatcher,
-                $this->dataProvider,
-                $this->dataTransformer,
-                $this->translator,
-                $this->templateRenderer,
-                $this->formFactory,
-                $this->settingStorage ?? new SessionSettingStorage($request->getSession()),
-            );
+            $settingStorage = $this->settingStorage ?? new SessionSettingStorage($request->getSession());
         } catch (SessionNotFoundException $e) {
             return $this->errorResponse($request, sprintf(
                 'No session has been provided. One must set session via Request::setSession() before calling %s().',
                 __METHOD__
             ), Response::HTTP_INTERNAL_SERVER_ERROR);
         }
+
+        $controller = $controllerFactory->create(
+            $entityConfig,
+            $this->eventDispatcher,
+            $this->dataProvider,
+            $this->dataTransformer,
+            $this->translator,
+            $this->templateRenderer,
+            $this->formFactory,
+            $settingStorage,
+        );
 
         if ($this->logger !== null) {
             $controller->setLogger($this->logger);

@@ -1,6 +1,6 @@
 <?php
 /**
- * @copyright 2024 Roman Parpalak
+ * @copyright 2024-2025 Roman Parpalak
  * @license   http://opensource.org/licenses/MIT MIT
  * @package   AdminYard
  */
@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace S2\AdminYard\Config;
 
+use S2\AdminYard\Controller\ControllerFactoryInterface;
 use S2\AdminYard\Controller\EntityController;
 use S2\AdminYard\Database\LogicalExpression;
 
@@ -66,7 +67,7 @@ class EntityConfig
      */
     private array $autocompleteParams = [];
 
-    private ?string $controllerClass = null;
+    private string|ControllerFactoryInterface|null $controllerClass = null;
 
     private array $extraActions = [];
 
@@ -299,9 +300,9 @@ class EntityConfig
         return $this;
     }
 
-    public function setControllerClass(string $controller, array $extraActions = []): static
+    public function setControllerClassOrFactory(string|ControllerFactoryInterface $controller, array $extraActions = []): static
     {
-        if (!is_a($controller, EntityController::class, true)) {
+        if (\is_string($controller) && !is_a($controller, EntityController::class, true)) {
             throw new \InvalidArgumentException(sprintf('Controller class "%s" must extend "%s".', $controller, EntityController::class));
         }
         $this->controllerClass = $controller;
@@ -309,7 +310,7 @@ class EntityConfig
         return $this;
     }
 
-    public function getControllerClass(): ?string
+    public function getControllerClassOrFactory(): string|ControllerFactoryInterface|null
     {
         return $this->controllerClass;
     }

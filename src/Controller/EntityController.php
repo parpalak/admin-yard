@@ -46,7 +46,7 @@ class EntityController
 {
     use LoggerAwareTrait;
 
-    final public function __construct(
+    public function __construct(
         readonly protected EntityConfig            $entityConfig,
         readonly protected EventDispatcher         $eventDispatcher,
         readonly protected PdoDataProvider         $dataProvider,
