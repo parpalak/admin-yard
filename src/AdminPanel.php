@@ -62,22 +62,28 @@ class AdminPanel
             // No entity was requested, consider as a "main" page and display a list of default entities
             $entityConfig = $this->config->findDefaultEntity();
             if ($entityConfig === null) {
-                return $this->errorResponse(
-                    $request,
-                    $this->translator->trans('No entity was requested.'),
-                    Response::HTTP_INTERNAL_SERVER_ERROR
-                );
+                if ($this->config->hasEntities()) {
+                    return $this->errorResponse(
+                        $request,
+                        $this->translator->trans('No entity was requested.'),
+                        Response::HTTP_INTERNAL_SERVER_ERROR
+                    );
+                }
+                return $this->emptyResponse($request);
             }
             $action = $request->query->get('action', FieldConfig::ACTION_LIST);
 
         } else {
             $entityConfig = $this->config->findEntityByName($entityName);
             if ($entityConfig === null) {
-                return $this->errorResponse(
-                    $request,
-                    sprintf($this->translator->trans('Unknown entity "%s" was requested.'), $entityName),
-                    Response::HTTP_NOT_FOUND
-                );
+                if ($this->config->hasEntities()) {
+                    return $this->errorResponse(
+                        $request,
+                        sprintf($this->translator->trans('Unknown entity "%s" was requested.'), $entityName),
+                        Response::HTTP_NOT_FOUND
+                    );
+                }
+                return $this->emptyResponse($request);
             }
             $action = $request->query->get('action');
         }
@@ -162,6 +168,17 @@ class AdminPanel
         ]);
 
         return new Response($html, $responseCode);
+    }
+
+    private function emptyResponse(Request $request): Response
+    {
+        $html = $this->templateRenderer->render($this->config->getLayoutTemplate(), [
+            'menu'          => $this->menuGenerator->generateMainMenu(''),
+            'content'       => $this->templateRenderer->render($this->config->getEmptyTemplate()),
+            'flashMessages' => $this->getFlashMessages($request),
+        ]);
+
+        return new Response($html);
     }
 
     private function getFlashMessages(Request $request): array

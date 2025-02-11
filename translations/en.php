@@ -20,6 +20,8 @@ return [
     'No action was requested.'                          => 'No action was requested.',
     'Action "%s" is unsupported.'                       => 'Action "%s" is unsupported.',
     'Action "%s" is not allowed for entity "%s".'       => 'Action "%s" is not allowed for entity "%s".',
+    'There is nothing here'                             => 'There is nothing here',
+    'Go back.'                                          => 'Go back.',
 
     // Controller errors
     'Parameter "%s" must be provided.'                  => 'Parameter "%s" must be provided.',

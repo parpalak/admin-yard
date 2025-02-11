@@ -17,6 +17,7 @@ class AdminConfig
     private array $entities = [];
     private string $menuTemplate = __DIR__ . '/../../templates/menu.php.inc';
     private string $layoutTemplate = __DIR__ . '/../../templates/layout.php.inc';
+    private string $emptyTemplate = __DIR__ . '/../../templates/empty.php.inc';
     /**
      * @var array<string, callable>
      */
@@ -91,6 +92,17 @@ class AdminConfig
         return $this->menuTemplate;
     }
 
+    public function setEmptyTemplate(string $emptyTemplate): self
+    {
+        $this->emptyTemplate = $emptyTemplate;
+        return $this;
+    }
+
+    public function getEmptyTemplate(): string
+    {
+        return $this->emptyTemplate;
+    }
+
     public function setServicePage(string $pageName, callable $page, int $priority = 0, ?string $readableName = null): self
     {
         if (isset($this->priorities[$pageName])) {
@@ -122,5 +134,10 @@ class AdminConfig
     public function getPriorities(): array
     {
         return $this->priorities;
+    }
+
+    public function hasEntities(): bool
+    {
+        return \count($this->entities) > 0;
     }
 }

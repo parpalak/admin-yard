@@ -20,6 +20,8 @@ return [
     'No action was requested.'                          => 'Никакое действие не было запрошено.',
     'Action "%s" is unsupported.'                       => 'Действие "%s" не поддерживается.',
     'Action "%s" is not allowed for entity "%s".'       => 'Действие "%s" запрещено для записей "%s".',
+    'There is nothing here'                             => 'Здесь ничего нет',
+    'Go back.'                                          => 'Возвращайтесь назад',
 
     // Controller errors
     'Parameter "%s" must be provided.'                  => 'Параметр "%s" должен быть предоставлен.',

@@ -21,9 +21,17 @@ use Tests\Support\IntegrationTester;
  */
 class ConfigCest
 {
-    public function noDefaultEntityCest(IntegrationTester $I): void
+    public function noEntityCest(IntegrationTester $I): void
     {
         $adminPanel = $I->createAdminPanel(new AdminConfig());
+        $response   = $adminPanel->handleRequest(Request::create('?'));
+        $I->assertStringContainsString('There is nothing here', $response->getContent());
+        $I->assertEquals(200, $response->getStatusCode());
+    }
+
+    public function noDefaultEntityCest(IntegrationTester $I): void
+    {
+        $adminPanel = $I->createAdminPanel((new AdminConfig())->addEntity(new EntityConfig('TestEntity')));
         $response   = $adminPanel->handleRequest(Request::create('?'));
         $I->assertStringContainsString('No entity was requested.', $response->getContent());
         $I->assertEquals(500, $response->getStatusCode());
