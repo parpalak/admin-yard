@@ -32,7 +32,8 @@ class Datetime implements FormControlInterface
 
     public function setPostValue($value): static
     {
-        if (!\is_string($value)) {
+        if (!\is_string($value) && $value !== null) {
+            // Check for null for Laravel, it converts empty strings in _GET to null
             throw new \InvalidArgumentException(sprintf('Value must be a string, "%s" given.', \gettype($value)));
         }
         $this->value = $value === '' ? null : $value;
