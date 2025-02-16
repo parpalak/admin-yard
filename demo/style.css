@@ -13,7 +13,7 @@
 
     --color-danger: red;
     --color-btn-primary: #00b648;
-    --color-btn-secondary: #ccc;
+    --color-btn-secondary: #ddd;
 
     --table-border: #eee;
     --table-background: #fff;
@@ -519,14 +519,19 @@ form.inline-form label:has(input[type="checkbox"]:checked):before {
     --btn-color: var(--color-btn-secondary);
     display: inline-block;
     text-decoration: none;
-    border: 1px solid color-mix(in srgb, var(--btn-color) 75%, var(--color-text) 25%);
+    border: 1px solid color-mix(in srgb, var(--btn-color) 60%, var(--color-text) 40%);
     padding: 0.125em 1em;
     margin: 0;
     line-height: 1.5;
     border-radius: 0.25em;
-    background: linear-gradient(to bottom, color-mix(in srgb, var(--btn-color) 10%, var(--page-background) 100%), color-mix(in srgb, var(--btn-color) 20%, var(--page-background) 90%));
+    background: linear-gradient(to bottom,
+        color-mix(in srgb, var(--btn-color) 10%, var(--page-background) 100%),
+        color-mix(in srgb, var(--btn-color) 25%, var(--page-background) 90%)
+    );
     color: color-mix(in srgb, var(--btn-color) 50%, var(--color-text) 100%);
-    box-shadow: 0 2px 3px -1px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 3px -1px rgba(0, 0, 0, 0.1),
+        0 0 0px 1px rgba(255, 255, 255, 0.2) inset,
+        0 0 3px -2px rgba(0, 0, 0, 0.2) inset;
 }
 .link-as-button:hover, button[type=submit]:hover, button.primary:hover {
     background: linear-gradient(to bottom, color-mix(in srgb, var(--btn-color) 10%, var(--page-background) 100%), color-mix(in srgb, var(--btn-color) 10%, var(--page-background) 90%));
