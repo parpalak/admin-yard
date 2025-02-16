@@ -33,15 +33,15 @@ class AdminPanel
     use LoggerAwareTrait;
 
     public function __construct(
-        private readonly AdminConfig              $config,
-        private readonly EventDispatcher          $eventDispatcher,
-        private readonly PdoDataProvider          $dataProvider,
-        private readonly ViewTransformer          $dataTransformer,
-        private readonly MenuGenerator            $menuGenerator,
-        private readonly Translator               $translator,
-        private readonly TemplateRenderer         $templateRenderer,
-        private readonly FormFactory              $formFactory,
-        private readonly ?SettingStorageInterface $settingStorage = null,
+        protected readonly AdminConfig              $config,
+        protected readonly EventDispatcher          $eventDispatcher,
+        protected readonly PdoDataProvider          $dataProvider,
+        protected readonly ViewTransformer          $dataTransformer,
+        protected readonly MenuGenerator            $menuGenerator,
+        protected readonly Translator               $translator,
+        protected readonly TemplateRenderer         $templateRenderer,
+        protected readonly FormFactory              $formFactory,
+        protected readonly ?SettingStorageInterface $settingStorage = null,
     ) {
     }
 
@@ -158,7 +158,7 @@ class AdminPanel
         return new Response($html);
     }
 
-    private function errorResponse(Request $request, string $errorMessage, int $responseCode = Response::HTTP_BAD_REQUEST): Response
+    protected function errorResponse(Request $request, string $errorMessage, int $responseCode = Response::HTTP_BAD_REQUEST): Response
     {
         $html = $this->templateRenderer->render($this->config->getLayoutTemplate(), [
             'menu'          => $this->menuGenerator->generateMainMenu(''),
@@ -170,7 +170,7 @@ class AdminPanel
         return new Response($html, $responseCode);
     }
 
-    private function emptyResponse(Request $request): Response
+    protected function emptyResponse(Request $request): Response
     {
         $html = $this->templateRenderer->render($this->config->getLayoutTemplate(), [
             'menu'          => $this->menuGenerator->generateMainMenu(''),
@@ -181,7 +181,7 @@ class AdminPanel
         return new Response($html);
     }
 
-    private function getFlashMessages(Request $request): array
+    protected function getFlashMessages(Request $request): array
     {
         try {
             return $request->getSession()->getFlashBag()->all();
