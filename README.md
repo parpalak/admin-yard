@@ -386,6 +386,7 @@ Here are some recommendations for choosing dataTypes based on the database colum
 | date      | date                                                                     | ?string                | DATE, TEXT            |
 | timestamp | datetime                                                                 | ?DateTimeImmutable     | TIMESTAMP, DATETIME   |
 | unixtime  | datetime                                                                 | ?DateTimeImmutable     | INT                   |
+| json_rows | - (TODO: implement a json editor)                                        | ?array                 | JSON, TEXT            |
 
 ### Note on Normalized Types in PHP
 

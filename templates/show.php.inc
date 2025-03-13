@@ -13,7 +13,7 @@ declare(strict_types=1);
 ?>
 <h1><?= htmlspecialchars($title, ENT_QUOTES, 'UTF-8') ?></h1>
 <section class="show-content">
-    <table>
+    <table class="show-table">
         <tbody>
         <?php foreach ($row['cells'] as $fieldName => $cell): ?>
             <tr>

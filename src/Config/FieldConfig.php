@@ -22,6 +22,7 @@ class FieldConfig
     public const  DATA_TYPE_TIMESTAMP = 'timestamp';
     public const  DATA_TYPE_UNIXTIME  = 'unixtime';
     public const  DATA_TYPE_PASSWORD  = 'password';
+    public const  DATA_TYPE_JSON_ROWS = 'json_rows';
 
     public const ALLOWED_DATA_TYPES = [
         self::DATA_TYPE_STRING,
@@ -32,6 +33,7 @@ class FieldConfig
         self::DATA_TYPE_TIMESTAMP,
         self::DATA_TYPE_UNIXTIME,
         self::DATA_TYPE_PASSWORD,
+        self::DATA_TYPE_JSON_ROWS,
     ];
 
     public const ACTION_LIST   = 'list';
@@ -61,6 +63,7 @@ class FieldConfig
      * @param array|null           $options       Selection options for select and radio controls. Also used to convert
      *                                            the values from the normalized internal representation for
      *                                            displaying. Example: ['active' => 'Enabled', 'inactive' => 'Disabled']
+     * @param array                $columnLabels  Labels for attributes in JSON_ROWS data type to be displayed.
      * @param ValidatorInterface[] $validators    Validators for new and edit forms.
      * @param bool                 $sortable      True if the column in the list table must be sortable.
      * @param string|null          $actionOnClick Action for link target if the value on view screens must be clickable.
@@ -77,6 +80,7 @@ class FieldConfig
         public readonly AbstractFieldType $type = new DbColumnFieldType(),
         public readonly ?string           $control = null,
         public readonly ?array            $options = null,
+        public readonly array             $columnLabels = [],
         public readonly array             $validators = [],
         public readonly bool              $sortable = false,
         public readonly ?string           $actionOnClick = null,

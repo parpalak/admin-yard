@@ -17,13 +17,15 @@ CREATE TABLE IF NOT EXISTS users (
     name TEXT DEFAULT NULL,
     password TEXT NOT NULL,
     birthdate DATE DEFAULT NULL,
+    experience JSON DEFAULT NULL,
     UNIQUE (login)
 );
 
-INSERT INTO users (login, name, password) VALUES
-    ('admin', NULL, 'admin-password'),
-    ('user', 'John Smith', 'user-password')
+INSERT INTO users (login, name, password, experience)
+VALUES ('admin', NULL, 'admin-password', NULL),
+       ('user', 'John Smith', 'user-password', '[{"start_year": 2010, "duration": 2, "place": "Google", "position": "Software Engineer"}, {"start_year": 2012, "duration": 3, "place": "Microsoft", "position": "Senior Software Engineer"}]')
 ;
+
 
 CREATE TABLE IF NOT EXISTS posts (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

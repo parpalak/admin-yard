@@ -206,7 +206,7 @@ section.list-header h1 {
     text-align: left;
     vertical-align: top;
 }
-.admin-content thead tr {
+.admin-content table.list-table > thead > tr {
     backdrop-filter: saturate(3) contrast(0.85);
 }
 .admin-content tbody tr {
@@ -295,6 +295,22 @@ td.type-int {
     color: var(--color-muted);
     font-variant-caps: all-small-caps;
     font-size: 0.75em;
+}
+
+/* Rows table */
+.admin-content table.rows-table td {
+    color: var(--color-secondary-text);
+    /*font-weight: bold;*/
+}
+.admin-content table.rows-table td,
+.admin-content table.rows-table th {
+    font-size: 0.75em;
+    line-height: 1.5;
+    padding: 0 0.5rem 0 0;
+}
+.admin-content table.rows-table thead tr,
+.admin-content table.rows-table tbody tr {
+    background: transparent;
 }
 
 /* Filters on list screen */

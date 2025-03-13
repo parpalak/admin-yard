@@ -69,7 +69,7 @@ foreach ($rows as $row) {
 <?php endif; ?>
 <section class="list-content">
     <div class="table-wrapper">
-        <table>
+        <table class="list-table">
             <thead>
             <tr>
                 <?php foreach ($header as $fieldName => $cell): ?>

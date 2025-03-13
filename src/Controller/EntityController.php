@@ -645,7 +645,7 @@ class EntityController
             $fieldName = $field->name;
             $dataType  = $field->type instanceof DbColumnFieldType ? $field->type->dataType : 'virtual';
             $cellValue = match (\get_class($field->type)) {
-                DbColumnFieldType::class => $this->viewTransformer->viewFromNormalized($row['column_' . $fieldName], $dataType, $field->options),
+                DbColumnFieldType::class => $this->viewTransformer->viewFromNormalized($row['column_' . $fieldName], $dataType, $field->options, $field->columnLabels),
                 VirtualFieldType::class => $row['virtual_' . $fieldName],
                 default => null,
             };

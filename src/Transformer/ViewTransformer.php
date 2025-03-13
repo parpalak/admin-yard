@@ -18,9 +18,9 @@ class ViewTransformer
      * One-directional transform, as its result is used for displaying,
      * not for editing.
      */
-    public function viewFromNormalized(mixed $value, string $dataType, ?array $options): ?string
+    public function viewFromNormalized(mixed $value, string $dataType, ?array $options, array $attributeNames): string|\Stringable|null
     {
-        if ($options !== null && is_scalar($value) && isset($options[$value])) {
+        if ($options !== null && \is_scalar($value) && isset($options[$value])) {
             return $options[$value];
         }
 
@@ -33,7 +33,8 @@ class ViewTransformer
             FieldConfig::DATA_TYPE_BOOL => $value ? '✓' : '✗',
             FieldConfig::DATA_TYPE_TIMESTAMP,
             FieldConfig::DATA_TYPE_UNIXTIME => $value?->format('Y-m-d H:i:s'),
-            default => throw new InvalidArgumentException(sprintf('Unknown data type "%s".', $dataType)),
+            FieldConfig::DATA_TYPE_JSON_ROWS => new RowsDto($value, $attributeNames),
+            default => throw new InvalidArgumentException(\sprintf('Unknown data type "%s".', $dataType)),
         };
     }
 }

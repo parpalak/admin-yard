@@ -15,6 +15,10 @@ use S2\AdminYard\Config\FieldConfig;
 
 class TypeTransformer implements TypeTransformerInterface
 {
+    /**
+     * @throws \DateMalformedStringException
+     * @throws \JsonException
+     */
     public function normalizedFromDb(mixed $value, string $dataType): mixed
     {
         return match ($dataType) {
@@ -26,10 +30,15 @@ class TypeTransformer implements TypeTransformerInterface
             FieldConfig::DATA_TYPE_TIMESTAMP => $value !== null ? new DateTimeImmutable($value) : null,
             FieldConfig::DATA_TYPE_UNIXTIME => $value === 0 ? null : (new DateTimeImmutable())->setTimestamp($value),
             FieldConfig::DATA_TYPE_PASSWORD => '***',
-            default => throw new InvalidArgumentException(sprintf('Unknown data type "%s".', $dataType)),
+            FieldConfig::DATA_TYPE_JSON_ROWS => $value !== null ? json_decode($value, true, 512, JSON_THROW_ON_ERROR) : null,
+            default => throw new InvalidArgumentException(\sprintf('Unknown data type "%s".', $dataType)),
         };
     }
 
+    /**
+     * @throws \JsonException
+     * @noinspection PhpDuplicateMatchArmBodyInspection
+     */
     public function dbFromNormalized(mixed $value, string $dataType): mixed
     {
         return match ($dataType) {
@@ -41,7 +50,8 @@ class TypeTransformer implements TypeTransformerInterface
             FieldConfig::DATA_TYPE_TIMESTAMP => $value?->format('Y-m-d H:i:s'),
             FieldConfig::DATA_TYPE_UNIXTIME => $value?->getTimestamp() ?? 0, // TODO how to configure default value?
             FieldConfig::DATA_TYPE_PASSWORD => (string)$value,
-            default => throw new InvalidArgumentException(sprintf('Unknown data type "%s".', $dataType)),
+            FieldConfig::DATA_TYPE_JSON_ROWS => json_encode($value, JSON_THROW_ON_ERROR),
+            default => throw new InvalidArgumentException(\sprintf('Unknown data type "%s".', $dataType)),
         };
     }
 }

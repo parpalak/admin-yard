@@ -72,6 +72,18 @@ $userEntity = (new EntityConfig('User', 'users'))
         type: new DbColumnFieldType(FieldConfig::DATA_TYPE_DATE),
         control: 'date',
     ))
+    ->addField(new FieldConfig(
+        name: 'experience',
+        type: new DbColumnFieldType(FieldConfig::DATA_TYPE_JSON_ROWS),
+        control: 'textarea',
+        columnLabels: [
+            "start_year" => 'Started at',
+            "duration"   => 'Duration',
+            "place"      => "Work place",
+            "position"   => "Position",
+        ],
+        useOnActions: [FieldConfig::ACTION_SHOW, FieldConfig::ACTION_LIST],
+    ))
 ;
 
 $postEntity = new EntityConfig('Post', 'posts');
