@@ -24,7 +24,7 @@ readonly class DbColumnFieldType extends AbstractFieldType
         public mixed  $defaultValue = null,
     ) {
         if (!\in_array($this->dataType, FieldConfig::ALLOWED_DATA_TYPES)) {
-            throw new \InvalidArgumentException(sprintf(
+            throw new \InvalidArgumentException(\sprintf(
                 'Unknown data type "%s". Data type must be one of %s.',
                 $this->dataType,
                 implode(', ', FieldConfig::ALLOWED_DATA_TYPES)

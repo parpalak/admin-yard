@@ -16,7 +16,7 @@ class CheckboxArray extends MultiSelect
         $options = '';
         foreach ($this->options as $key => $value) {
             /** @noinspection HtmlUnknownAttribute */
-            $options .= sprintf(
+            $options .= \sprintf(
                 '<label><input type="checkbox" name="%s" value="%s" %s>%s</label>',
                 htmlspecialchars($this->fieldName . '[]', ENT_QUOTES, 'UTF-8'),
                 htmlspecialchars((string)$key, ENT_QUOTES, 'UTF-8'),

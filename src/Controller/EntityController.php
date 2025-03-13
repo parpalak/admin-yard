@@ -133,7 +133,7 @@ class EntityController
         );
 
         if ($data === null) {
-            throw new NotFoundException(sprintf($this->translator->trans('%s with %s not found.'), $this->entityConfig->getName(), $primaryKey->toString()));
+            throw new NotFoundException(\sprintf($this->translator->trans('%s with %s not found.'), $this->entityConfig->getName(), $primaryKey->toString()));
         }
 
         $renderedRow = $this->renderCellsForNormalizedRow($request, $data, FieldConfig::ACTION_SHOW);
@@ -222,7 +222,7 @@ class EntityController
                             'action' => 'edit',
                             ...$primaryKey->toArray()
                         ]));
-                } else {
+                } /** @noinspection RedundantElseClauseInspection */ else {
                     if ($request->isXmlHttpRequest()) {
                         return new JsonResponse(['success' => false, 'errors' => $errorMessages], Response::HTTP_UNPROCESSABLE_ENTITY);
                     }
@@ -260,7 +260,7 @@ class EntityController
             );
             $data = $event->data;
             if ($data === null) {
-                throw new NotFoundException(sprintf(
+                throw new NotFoundException(\sprintf(
                     $this->translator->trans('%s with %s not found.'),
                     $this->entityConfig->getName(),
                     $primaryKey->toString()
@@ -338,7 +338,7 @@ class EntityController
                     );
 
                     if ($newPrimaryKey === null) {
-                        $this->addFlashMessage($request, 'success', sprintf(
+                        $this->addFlashMessage($request, 'success', \sprintf(
                             $this->translator->trans('%s created successfully.'),
                             $this->entityConfig->getName()
                         ));
@@ -349,6 +349,7 @@ class EntityController
                             ]));
                     }
 
+                    /** @noinspection NestedTernaryOperatorInspection */
                     $allowedAction = $this->entityConfig->isAllowedAction('edit')
                         ? 'edit'
                         : ($this->entityConfig->isAllowedAction('show') ? 'show' : 'list');
@@ -442,7 +443,7 @@ class EntityController
         }
 
         if ($deletedRows === 0) {
-            $message = sprintf(
+            $message = \sprintf(
                 $this->translator->trans('%s was not deleted.'),
                 $this->entityConfig->getName()
             );
@@ -461,7 +462,7 @@ class EntityController
             return new JsonResponse(['success' => true]);
         }
 
-        $this->addFlashMessage($request, 'success', sprintf(
+        $this->addFlashMessage($request, 'success', \sprintf(
             $this->translator->trans('%s deleted successfully.'),
             $this->entityConfig->getName()
         ));
@@ -483,10 +484,10 @@ class EntityController
         }
         $field = $this->entityConfig->findFieldByName($fieldName);
         if ($field === null) {
-            throw new InvalidRequestException(sprintf('Field "%s" not found in entity "%s".', $fieldName, $this->entityConfig->getName()));
+            throw new InvalidRequestException(\sprintf('Field "%s" not found in entity "%s".', $fieldName, $this->entityConfig->getName()));
         }
         if (!$field->inlineEdit) {
-            throw new InvalidRequestException(sprintf('Field "%s" is not declared as inline editable.', $fieldName));
+            throw new InvalidRequestException(\sprintf('Field "%s" is not declared as inline editable.', $fieldName));
         }
         $primaryKey = $this->getEntityPrimaryKeyFromRequest($request);
 
@@ -553,14 +554,14 @@ class EntityController
 
         $autocompleteSqlExpression = $this->entityConfig->getAutocompleteSqlExpression($hash);
         if ($autocompleteSqlExpression === null) {
-            throw new InvalidRequestException(sprintf(
+            throw new InvalidRequestException(\sprintf(
                 'Entity "%s" must have an autocompleteSqlExpression configured compatible with the hash provided.',
                 $this->entityConfig->getName()
             ));
         }
 
         if (!$this->entityConfig->primaryKeyIsInt()) {
-            throw new \DomainException(sprintf(
+            throw new \DomainException(\sprintf(
                 'Entity "%s" must have an int primary key for autocomplete.',
                 $this->entityConfig->getName()
             ));
@@ -684,7 +685,7 @@ class EntityController
             ];
 
             $result['cells'][$fieldName] = [
-                'type'    => $linkCellParams === null && $field->linkToEntity === null ? $dataType : FieldConfig::DATA_TYPE_STRING, // string for int IDs converted to links
+                'type'    => $linkCellParams === null && $field->linkToEntity === null ? $dataType : FieldConfig::DATA_TYPE_STRING, // set string for int IDs that are converted to links
                 'content' => $this->templateRenderer->render($field->viewTemplate, $cellParams),
             ];
         }
@@ -718,7 +719,7 @@ class EntityController
             $valueColumns              = $currentField->type->linkToEntityParams->valueColumnNamesOfFilters;
 
             if (!\array_key_exists('virtual_' . $columnName, $row)) {
-                throw new \LogicException(sprintf('Row data array for entity "%s" must have a "virtual_%s" key.', $this->entityConfig->getName(), $columnName));
+                throw new \LogicException(\sprintf('Row data array for entity "%s" must have a "virtual_%s" key.', $this->entityConfig->getName(), $columnName));
             }
             if ($row['virtual_' . $columnName] === null) {
                 // Label is NULL so there will be no link to associated entities
@@ -735,7 +736,7 @@ class EntityController
 
         if ($currentField->linkToEntity !== null) {
             if (!\array_key_exists('virtual_' . $columnName, $row)) {
-                throw new \LogicException(sprintf('Row data array for entity "%s" must have a "virtual_%s" key.', $this->entityConfig->getName(), $columnName));
+                throw new \LogicException(\sprintf('Row data array for entity "%s" must have a "virtual_%s" key.', $this->entityConfig->getName(), $columnName));
             }
             if ($row['virtual_' . $columnName] === null) {
                 // Label is NULL so there will be no link to associated entity
@@ -746,7 +747,7 @@ class EntityController
             $foreignEntity          = $currentField->linkToEntity->foreignEntity;
             $fieldNamesOfPrimaryKey = $foreignEntity->getFieldNamesOfPrimaryKey();
             if (\count($fieldNamesOfPrimaryKey) === 0) {
-                throw new \LogicException(sprintf('Entity "%s" has no primary key configured and it cannot be used in a many-to-one relationship.', $foreignEntity->getName()));
+                throw new \LogicException(\sprintf('Entity "%s" has no primary key configured and it cannot be used in a many-to-one relationship.', $foreignEntity->getName()));
             }
 
             $allowedAction = match (true) {
@@ -849,13 +850,13 @@ class EntityController
     {
         $fieldNamesOfPrimaryKey = $this->entityConfig->getFieldNamesOfPrimaryKey();
         if ($fieldNamesOfPrimaryKey === []) {
-            throw new InvalidConfigException(sprintf('Entity "%s" without primary key columns cannot be accessed.', $this->entityConfig->getName()));
+            throw new InvalidConfigException(\sprintf('Entity "%s" without primary key columns cannot be accessed.', $this->entityConfig->getName()));
         }
 
         $values = [];
         foreach ($fieldNamesOfPrimaryKey as $fieldName) {
             if (!$request->query->has($fieldName)) {
-                throw new InvalidRequestException(sprintf($this->translator->trans('Parameter "%s" must be provided.'), $fieldName));
+                throw new InvalidRequestException(\sprintf($this->translator->trans('Parameter "%s" must be provided.'), $fieldName));
             }
             $values[$fieldName] = $request->query->get($fieldName);
         }

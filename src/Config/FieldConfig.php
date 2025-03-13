@@ -87,7 +87,7 @@ class FieldConfig
         public readonly string            $inlineFormTemplate = __DIR__ . '/../../templates/inline_form_cell.php.inc',
     ) {
         if ($this->actionOnClick !== null && !\in_array($this->actionOnClick, self::ACTIONS_ALLOWED_FOR_ENTITY_LINK, true)) {
-            throw new \InvalidArgumentException(sprintf(
+            throw new \InvalidArgumentException(\sprintf(
                 'Invalid linkToAction "%s". Must be one of [%s].',
                 $this->actionOnClick,
                 implode(', ', self::ACTIONS_ALLOWED_FOR_ENTITY_LINK)
@@ -95,7 +95,7 @@ class FieldConfig
         }
         foreach ($this->validators as $validator) {
             if (!$validator instanceof ValidatorInterface) {
-                throw new \InvalidArgumentException(sprintf('Validator must implement "%s".', ValidatorInterface::class));
+                throw new \InvalidArgumentException(\sprintf('Validator must implement "%s".', ValidatorInterface::class));
             }
         }
         if (\count(array_filter([
@@ -109,11 +109,11 @@ class FieldConfig
         if ($useOnActions !== null) {
             foreach ($useOnActions as $action) {
                 if (!\is_string($action)) {
-                    throw new \InvalidArgumentException(sprintf('Action must be a string, "%s" given.', var_export($action, true)));
+                    throw new \InvalidArgumentException(\sprintf('Action must be a string, "%s" given.', var_export($action, true)));
                 }
             }
             if (\count(array_diff($useOnActions, self::ALLOWED_ACTIONS)) > 0) {
-                throw new \InvalidArgumentException(sprintf(
+                throw new \InvalidArgumentException(\sprintf(
                     'Unknown actions encountered: [%s]. Actions must be set of [%s].',
                     implode(', ', array_diff($useOnActions, self::ALLOWED_ACTIONS)),
                     implode(', ', self::ALLOWED_ACTIONS)

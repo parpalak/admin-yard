@@ -32,12 +32,12 @@ readonly class LinkedByFieldType extends VirtualFieldType
     ) {
         $fieldNamesOfPrimaryKey = $foreignEntity->getFieldNamesOfPrimaryKey();
         if (\count($fieldNamesOfPrimaryKey) !== 1) {
-            throw new \InvalidArgumentException(sprintf(
+            throw new \InvalidArgumentException(\sprintf(
                 'Entity "%s" must have exactly one primary key column to be used in the LinkedByFieldType.',
                 $foreignEntity->getName()
             ));
         }
-        parent::__construct(sprintf(
+        parent::__construct(\sprintf(
             'SELECT %s FROM %s WHERE %s = entity.id',
             $titleSqlExpression,
             $foreignEntity->getTableName(),

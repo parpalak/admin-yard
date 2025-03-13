@@ -12,6 +12,7 @@ namespace S2\AdminYard\Form;
 use S2\AdminYard\Config\EntityConfig;
 use S2\AdminYard\Config\FilterLinkTo;
 use S2\AdminYard\Database\DatabaseHelper;
+use S2\AdminYard\Database\DataProviderException;
 use S2\AdminYard\Database\PdoDataProvider;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
@@ -29,6 +30,7 @@ readonly class FormFactory
     /**
      * @throws \DomainException if entities are not configured correctly, may appear during AdminYard integration.
      * @throws \LogicException if a violation of invariants is detected, may appear in case of AdminYard bugs.
+     * @throws DataProviderException
      */
     public function createEntityForm(FormParams $formParams): Form
     {
@@ -41,7 +43,7 @@ readonly class FormFactory
             $columnName  = $field->name;
             $controlName = $field->control;
             if ($controlName === null) {
-                throw new \DomainException(sprintf(
+                throw new \DomainException(\sprintf(
                     'Field "%s" for entity "%s" must have a control configured.',
                     $columnName,
                     $entityName
@@ -82,7 +84,7 @@ readonly class FormFactory
                     );
 
                 } else {
-                    throw new \DomainException(sprintf(
+                    throw new \DomainException(\sprintf(
                         'Field "%s" for entity "%s" must have a control configured as OptionsInterface or Autocomplete.',
                         $columnName,
                         $entityName
@@ -91,7 +93,7 @@ readonly class FormFactory
             } elseif ($control instanceof OptionsInterface) {
                 $options = $field->options;
                 if ($options === null) {
-                    throw new \DomainException(sprintf(
+                    throw new \DomainException(\sprintf(
                         'Field "%s" for entity "%s" must have options configured since its control is "%s".',
                         $columnName,
                         $entityName,
@@ -111,6 +113,9 @@ readonly class FormFactory
         return $form;
     }
 
+    /**
+     * @throws DataProviderException
+     */
     public function createFilterForm(EntityConfig $entityConfig): Form
     {
         $form = new Form($this->translator);
@@ -123,7 +128,7 @@ readonly class FormFactory
             $control    = $this->formControlFactory->create($filter->control, $filterName);
             if ($filter instanceof FilterLinkTo) {
                 if (!isset($linkToFields[$filterName])) {
-                    throw new \DomainException(sprintf(
+                    throw new \DomainException(\sprintf(
                         'Filter "%s" for entity "%s" of type "LinkTo" cannot be applied since there is no such field.',
                         $filterName,
                         $entityConfig->getName()
@@ -132,7 +137,7 @@ readonly class FormFactory
                 $field              = $linkToFields[$filter->name];
                 $fieldForeignEntity = $field->linkToEntity->foreignEntity;
                 if ($fieldForeignEntity !== $filter->foreignEntity) {
-                    throw new \DomainException(sprintf(
+                    throw new \DomainException(\sprintf(
                         'Filter "%s" for entity "%s" of type "LinkTo" cannot be applied since it is not pointing to the same entity as corresponding field.',
                         $filterName,
                         $entityConfig->getName()
@@ -167,7 +172,7 @@ readonly class FormFactory
                     );
 
                 } else {
-                    throw new \LogicException(sprintf(
+                    throw new \LogicException(\sprintf(
                         'Filter "%s" for entity "%s" of type "LinkTo" must have a control configured as OptionsInterface or Autocomplete, "%s" given.',
                         $filterName,
                         $entityConfig->getName(),
@@ -180,7 +185,7 @@ readonly class FormFactory
             } elseif ($control instanceof OptionsInterface) {
                 $options = $filter->options;
                 if ($options === null) {
-                    throw new \DomainException(sprintf(
+                    throw new \DomainException(\sprintf(
                         'Filter "%s" for entity "%s" must have options configured since its control is "%s".',
                         $filterName,
                         $entityConfig->getName(),

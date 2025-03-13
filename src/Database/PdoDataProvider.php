@@ -246,6 +246,7 @@ readonly class PdoDataProvider
      * @param LogicalExpression[] $conditions
      *
      * @return int
+     * @throws DataProviderException
      */
     public function deleteEntity(string $tableName, array $dataTypes, Key $keyCondition, array $conditions): int
     {
@@ -253,7 +254,7 @@ readonly class PdoDataProvider
         $paramsSet    = [$deleteParams];
 
         $selectCriteria = $deleteCriteria = array_map(
-            fn($key) => sprintf('%1$s %2$s :%1$s', $key, $this->eqOp()), $keyCondition->getColumnNames()
+            fn($key) => \sprintf('%1$s %2$s :%1$s', $key, $this->eqOp()), $keyCondition->getColumnNames()
         );
 
         foreach ($conditions as $condition) {
@@ -322,6 +323,7 @@ readonly class PdoDataProvider
      * @param array<string,LogicalExpression> $conditions
      *
      * @return array<string,string>
+     * @throws DataProviderException
      */
     public function getLabelsFromTable(
         string $tableName,
@@ -345,11 +347,10 @@ readonly class PdoDataProvider
         $stmt = $this->pdo->prepare($sql);
         try {
             $stmt->execute(array_merge(...$paramsSet));
+            return $stmt->fetchAll(\PDO::FETCH_KEY_PAIR);
         } catch (\PDOException $e) {
             throw new DataProviderException($e->getMessage(), 0, $e);
         }
-
-        return $stmt->fetchAll(\PDO::FETCH_KEY_PAIR);
     }
 
     /**

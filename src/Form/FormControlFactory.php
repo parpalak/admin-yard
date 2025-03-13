@@ -33,7 +33,7 @@ class FormControlFactory implements FormControlFactoryInterface
             'datetime' => new Datetime($fieldName),
             'date' => new Date($fieldName),
             'autocomplete' => new Autocomplete($fieldName),
-            default => throw new InvalidArgumentException(sprintf('Unknown control type "%s".', $control)),
+            default => throw new InvalidArgumentException(\sprintf('Unknown control type "%s".', $control)),
         };
     }
 }
