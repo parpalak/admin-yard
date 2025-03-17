@@ -54,7 +54,7 @@ readonly class PdoDataProvider
         $criteria = [];
         foreach ($conditions as $condition) {
             if (!$condition instanceof LogicalExpression) {
-                throw new \InvalidArgumentException(sprintf('Condition must be instance of %s', LogicalExpression::class));
+                throw new \InvalidArgumentException(\sprintf('Condition must be instance of %s', LogicalExpression::class));
             }
             if ($condition->isTrivialCondition()) {
                 continue;
@@ -74,7 +74,7 @@ readonly class PdoDataProvider
                 $sortDirection = match (strtolower($sortDirection)) {
                     'asc' => 'ASC NULLS FIRST',
                     'desc' => 'DESC NULLS LAST',
-                    default => throw new \InvalidArgumentException(sprintf('Invalid sort direction "%s".', $sortDirection)),
+                    default => throw new \InvalidArgumentException(\sprintf('Invalid sort direction "%s".', $sortDirection)),
                 };
             }
             $sql .= " ORDER BY $sortField $sortDirection";
@@ -86,10 +86,10 @@ readonly class PdoDataProvider
         $stmt = $this->pdo->prepare($sql);
         try {
             $stmt->execute($params);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
         } catch (\PDOException $e) {
             throw new DataProviderException($e->getMessage(), 0, $e);
         }
-        $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
         foreach ($rows as &$row) {
             foreach ($dataTypes as $columnName => $type) {
@@ -100,6 +100,49 @@ readonly class PdoDataProvider
         unset($row);
 
         return $rows;
+    }
+
+    /**
+     * @param string              $tableName
+     * @param LogicalExpression[] $conditions Conditions for WHERE clause.
+     *
+     * @return int
+     * @throws DataProviderException
+     */
+    public function getEntityCount(string $tableName, array $conditions): int
+    {
+        $sql = "SELECT COUNT(*) FROM $tableName AS entity";
+
+        $criteria  = [];
+        $paramsSet = [];
+        foreach ($conditions as $condition) {
+            if (!$condition instanceof LogicalExpression) {
+                throw new \InvalidArgumentException(\sprintf('Condition must be instance of %s', LogicalExpression::class));
+            }
+            if ($condition->isTrivialCondition()) {
+                continue;
+            }
+            $criteria[]  = $condition->getSqlExpression();
+            $paramsSet[] = $condition->getParams();
+        }
+
+        $params = array_merge(...$paramsSet);
+        if (\count($criteria) > 0) {
+            $sql .= ' WHERE (' . implode(') AND (', $criteria) . ')';
+        }
+
+        $stmt = $this->pdo->prepare($sql);
+        try {
+            $stmt->execute($params);
+        } catch (\PDOException $e) {
+            throw new DataProviderException($e->getMessage(), 0, $e);
+        }
+        $row = $stmt->fetch(\PDO::FETCH_NUM);
+        if ($row === false) {
+            return 0;
+        }
+
+        return (int)$row[0];
     }
 
     /**

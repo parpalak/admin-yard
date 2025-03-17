@@ -12,6 +12,7 @@ return [
     'Filter'                                            => 'Filter',
     'Confirm deletion'                                  => 'Confirm deletion',
     'Cancel'                                            => 'Cancel',
+    'No results'                                        => 'No results',
 
     // Core errors
     'An error encountered'                              => 'An error encountered',

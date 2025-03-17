@@ -291,6 +291,19 @@ td.type-int {
     font-size: 0.875em;
 }
 
+.admin-content .list-content .pagination {
+    margin: 1em 0;
+}
+.admin-content .list-content .pagination-link,
+.admin-content .list-content .pagination-ellipsis,
+.admin-content .list-content .pagination-current {
+    padding: 0.25em 0.5em;
+    display: inline-block;
+}
+.admin-content .list-content .pagination-current {
+    backdrop-filter: saturate(3) contrast(0.85);
+}
+
 .null {
     color: var(--color-muted);
     font-variant-caps: all-small-caps;

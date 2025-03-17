@@ -429,6 +429,7 @@ $adminConfig
                 type: new DbColumnFieldType(FieldConfig::DATA_TYPE_DATE, true),
                 control: 'date',
             ))
+            ->setLimit(10)
     )
     ->addEntity(
         (new EntityConfig('Config', 'config'))

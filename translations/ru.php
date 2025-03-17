@@ -12,6 +12,7 @@ return [
     'Filter'                                            => 'Фильтровать',
     'Confirm deletion'                                  => 'Подтвердить удаление',
     'Cancel'                                            => 'Отменить',
+    'No results'                                        => 'Ничего не найдено',
 
     // Core errors
     'An error encountered'                              => 'Произошла ошибка',

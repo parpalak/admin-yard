@@ -101,7 +101,7 @@ class ListCest
 
         $I->seeResponseCodeIs(200);
         $I->see('Post', 'h1');
-        $I->assertCount(0, $I->grabMultiple(self::ENTITY_ROW_SELECTOR));
+        $I->assertEquals(['No results'], $I->grabMultiple(self::ENTITY_ROW_SELECTOR));
     }
 
     public function linkToEntityTest(IntegrationTester $I): void
@@ -145,7 +145,7 @@ class ListCest
             'search'  => 'post 2',
         ]);
         $I->seeResponseCodeIs(200);
-        $I->assertCount(0, $I->grabMultiple(self::ENTITY_ROW_SELECTOR));
+        $I->assertEquals(['No results'], $I->grabMultiple(self::ENTITY_ROW_SELECTOR));
 
         $I->submitForm(self::FILTER_FORM_SELECTOR, [
             'post_id' => '10',
@@ -292,5 +292,13 @@ class ListCest
             '#9 Post 9',
 
         ], $I->grabMultiple(self::ENTITY_ROW_SELECTOR . ' .field-Comment-post_id'));
+    }
+
+    public function paginationTest(IntegrationTester $I): void
+    {
+        $I->amOnPage('?entity=CompositeKey&action=list');
+        $I->seeResponseCodeIs(200);
+        $I->assertEquals(['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'], $I->grabMultiple(self::ENTITY_ROW_SELECTOR . ' .field-CompositeKey-column1'));
+        $I->see('123...5', '.pagination');
     }
 }

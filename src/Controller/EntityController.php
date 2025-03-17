@@ -75,7 +75,7 @@ class EntityController
             $filter       = $filters[$filterName] ?? null;
             $conditions[] = $filter?->getCondition($filterValue) ?? new LogicalExpression($filterName, $filterValue);
         }
-        $data = $this->getEntityList($conditions, $sortField, $sortDirection);
+        $data = $this->getEntityList($conditions, $request->query->getInt('page', 1), $sortField, $sortDirection);
 
         $renderedRows = array_map(
             fn(array $row) => $this->renderCellsForNormalizedRow($request, $row, FieldConfig::ACTION_LIST),
@@ -100,6 +100,10 @@ class EntityController
             'entityActions' => array_map(static fn(string $action) => [
                 'name' => $action,
             ], array_intersect($this->entityConfig->getEnabledActions(), [FieldConfig::ACTION_NEW])),
+
+            'page'       => $request->query->getInt('page', 1),
+            'limit'      => $this->entityConfig->getLimit(),
+            'totalCount' => $this->entityConfig->usePaginatorCount() ? $this->getEntityCount($conditions) : null,
         ]);
 
         $this->eventDispatcher->dispatch(
@@ -590,7 +594,7 @@ class EntityController
      *
      * @throws DataProviderException
      */
-    protected function getEntityList(array $filterConditions, ?string $sortField, ?string $sortDirection): array
+    protected function getEntityList(array $filterConditions, int $page, ?string $sortField, ?string $sortDirection): array
     {
         $sortField = $this->entityConfig->modifySortableField($sortField);
 
@@ -611,7 +615,19 @@ class EntityController
             $sortField,
             $sortDirection,
             $this->entityConfig->getLimit(),
-            0// $request->query->getInt('offset', 0)
+            self::getOffsetFromPage($page, $this->entityConfig->getLimit()),
+        );
+    }
+
+    /**
+     * @throws DataProviderException
+     */
+    protected function getEntityCount(array $filterConditions): int
+    {
+        $accessControlConditions = DatabaseHelper::getReadAccessControlConditions($this->entityConfig);
+        return $this->dataProvider->getEntityCount(
+            $this->entityConfig->getTableName(),
+            array_merge($accessControlConditions, $filterConditions)
         );
     }
 
@@ -897,5 +913,18 @@ class EntityController
         }
 
         return $postPrimaryKey !== [] ? new Key($postPrimaryKey) : null;
+    }
+
+    private static function getOffsetFromPage(int $page, ?int $limit): int
+    {
+        if ($limit === null) {
+            return 0;
+        }
+
+        if ($page < 1) {
+            return 0;
+        }
+
+        return ($page - 1) * $limit;
     }
 }

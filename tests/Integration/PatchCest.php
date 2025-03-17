@@ -43,7 +43,7 @@ class PatchCest
                 'search' => 'Tom Adams',
             ]));
         $I->seeResponseCodeIs(Response::HTTP_OK);
-        $I->assertCount(0, $I->grabMultiple(self::ENTITY_ROW_SELECTOR));
+        $I->assertEquals(['No results'], $I->grabMultiple(self::ENTITY_ROW_SELECTOR));
 
         // Inline update
         $I->amOnPage('?' . http_build_query([

@@ -62,6 +62,9 @@ class EntityConfig
      */
     private array $listeners = [];
 
+    private ?int $limit = 200;
+    private bool $usePaginatorCount = true;
+
     /**
      * @var array<string, array{sqExpression: string, filter: ?LogicalExpression}>
      */
@@ -315,10 +318,30 @@ class EntityConfig
         return $this->controllerClass;
     }
 
+    public function setLimit(?int $limit): static
+    {
+        $this->limit = $limit;
+        return $this;
+    }
+
     public function getLimit(): ?int
     {
-        // TODO
-        return 200;
+        return $this->limit;
+    }
+
+    public function setUsePaginatorCount(bool $usePaginatorCount): static
+    {
+        $this->usePaginatorCount = $usePaginatorCount;
+        return $this;
+    }
+
+    public function usePaginatorCount(): bool
+    {
+        if ($this->limit === null) {
+            return false;
+        }
+
+        return $this->usePaginatorCount;
     }
 
     public function setListTemplate(string $listTemplate): static
