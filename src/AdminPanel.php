@@ -150,7 +150,7 @@ class AdminPanel
         }
 
         $html = $this->templateRenderer->render($this->config->getLayoutTemplate(), [
-            'menu'          => $this->menuGenerator->generateMainMenu('', $entityName),
+            'menu'          => $this->menuGenerator->generateMainMenu('', $entityConfig->getName()),
             'content'       => $content,
             'flashMessages' => $this->getFlashMessages($request),
         ]);
