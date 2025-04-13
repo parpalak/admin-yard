@@ -404,7 +404,22 @@ class EntityConfig
      */
     public function getLabels(string $action): array
     {
-        return array_map(static fn(FieldConfig $field) => $field->getLabel(), $this->getFields($action));
+        $labels = [];
+        $isView = \in_array($action, [FieldConfig::ACTION_SHOW, FieldConfig::ACTION_LIST], true);
+        foreach ($this->getFields($action) as $fieldName => $field) {
+            if ($isView && $field->viewTemplate === null) {
+                /**
+                 * Exclude columns without a view.
+                 * These columns can be defined in config to be used in other custom templates.
+                 *
+                 * @see \S2\AdminYard\Controller\EntityController::renderCellsForNormalizedRow
+                 */
+                continue;
+            }
+            $labels[$fieldName] = $field->getLabel();
+        }
+
+        return $labels;
     }
 
     /**
@@ -412,7 +427,22 @@ class EntityConfig
      */
     public function getHints(string $action): array
     {
-        return array_map(static fn(FieldConfig $field) => $field->hint, $this->getFields($action));
+        $hints  = [];
+        $isView = \in_array($action, [FieldConfig::ACTION_SHOW, FieldConfig::ACTION_LIST], true);
+        foreach ($this->getFields($action) as $fieldName => $field) {
+            if ($isView && $field->viewTemplate === null) {
+                /**
+                 * Exclude columns without a view.
+                 * These columns can be defined in config to be used in other custom templates.
+                 *
+                 * @see \S2\AdminYard\Controller\EntityController::renderCellsForNormalizedRow
+                 */
+                continue;
+            }
+            $hints[$fieldName] = $field->hint;
+        }
+
+        return $hints;
     }
 
     /**

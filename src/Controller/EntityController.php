@@ -658,6 +658,15 @@ class EntityController
         ];
 
         foreach ($this->entityConfig->getFields($actionForFieldRestriction) as $field) {
+            if ($field->viewTemplate === null) {
+                /**
+                 * Exclude columns without a view.
+                 * These columns can be defined in config to be used in other custom templates.
+                 * @see EntityConfig::getLabels()
+                 * @see EntityConfig::getHints()
+                 */
+                continue;
+            }
             $fieldName = $field->name;
             $dataType  = $field->type instanceof DbColumnFieldType ? $field->type->dataType : 'virtual';
             $cellValue = match (\get_class($field->type)) {

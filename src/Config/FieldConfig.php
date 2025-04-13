@@ -71,7 +71,9 @@ class FieldConfig
      *                                            (many-to-one).
      * @param bool                 $inlineEdit    True if the cell on the list screen may be editable inline.
      * @param array|null           $useOnActions  Describes on which action screens this field will be used.
-     * @param string               $viewTemplate  View template for rendering cell content on the list and show screens.
+     * @param string|null          $viewTemplate  View template for rendering cell content on the list and show screens.
+     *                                            Set to NULL to hide the column (its value can still be used in other
+     *                                            templates).
      */
     public function __construct(
         public readonly string            $name,
@@ -87,7 +89,7 @@ class FieldConfig
         public readonly ?LinkTo           $linkToEntity = null,
         public readonly bool              $inlineEdit = false,
         public readonly ?array            $useOnActions = null,
-        public readonly string            $viewTemplate = __DIR__ . '/../../templates/view_cell.php.inc',
+        public readonly ?string           $viewTemplate = __DIR__ . '/../../templates/view_cell.php.inc',
         public readonly string            $inlineFormTemplate = __DIR__ . '/../../templates/inline_form_cell.php.inc',
     ) {
         if ($this->actionOnClick !== null && !\in_array($this->actionOnClick, self::ACTIONS_ALLOWED_FOR_ENTITY_LINK, true)) {
@@ -141,12 +143,18 @@ class FieldConfig
     public function allowedOnAction(string $action): bool
     {
         $allowedInConfig = $this->useOnActions === null || \in_array($action, $this->useOnActions, true);
+        if (!$allowedInConfig) {
+            return false;
+        }
 
         // NOTE: It would be better to restrict actions in constructor, but it's impossible
         // to overwrite null in the readonly property and to distinguish provided value from the default one.
         $oneToManyOnForms = $this->type instanceof LinkedByFieldType && \in_array($action, [self::ACTION_NEW, self::ACTION_EDIT], true);
+        if ($oneToManyOnForms) {
+            return false;
+        }
 
-        return $allowedInConfig && !$oneToManyOnForms;
+        return true;
     }
 
     public function canBeEmpty(): bool
