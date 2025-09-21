@@ -12,6 +12,7 @@ use S2\AdminYard\Config\LinkedByFieldType;
 use S2\AdminYard\Config\LinkTo;
 use S2\AdminYard\Config\LinkToEntityParams;
 use S2\AdminYard\Config\VirtualFieldType;
+use S2\AdminYard\Database\AndWrapper;
 use S2\AdminYard\Database\Key;
 use S2\AdminYard\Database\LogicalExpression;
 use S2\AdminYard\Database\PdoDataProvider;
@@ -333,7 +334,12 @@ $adminConfig
                     'Fulltext Search',
                     'search_input',
                     'title LIKE %1$s OR text LIKE %1$s',
-                    fn(string $value) => $value !== '' ? '%' . $value . '%' : null
+                    fn(string $value) => $value !== '' ? new AndWrapper(
+                        ...array_map(
+                            static fn(string $s) => '%' . $s . '%',
+                            array_filter(explode(' ', $value), static fn(string $s) => $s !== '')
+                        )
+                    ) : null
                 )
             )
             ->addFilter(

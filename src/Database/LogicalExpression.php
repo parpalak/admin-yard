@@ -20,9 +20,9 @@ class LogicalExpression
     private ?string $sqlExpression = null;
 
     public function __construct(
-        private readonly string                      $name,
-        private readonly array|string|int|float|null $value,
-        private ?string                              $sqlExpressionPattern = null
+        private readonly string                                 $name,
+        private readonly AndWrapper|array|string|int|float|null $value,
+        private ?string                                         $sqlExpressionPattern = null
     ) {
         if ($this->sqlExpressionPattern === null) {
             if (\is_array($this->value)) {
@@ -80,18 +80,24 @@ class LogicalExpression
             return;
         }
 
+        $value = $this->value instanceof AndWrapper ? $this->value : new AndWrapper($this->value);
+
         /**
          * Using custom string replace code instead of sprintf() since param names must be unique
          * if PDO is not in statement emulation mode.
          */
-        $this->params               = [];
-        $counter                    = 0;
-        $this->sqlExpression = preg_replace_callback('#%(\\d+\\$)?s#', function ($matches) use (&$counter) {
-            $counter++;
-            $paramName                = $this->name . '_' . $counter;
-            $this->params[$paramName] = $this->value;
-            return ':' . $paramName;
-        }, $this->sqlExpressionPattern);
+        $this->params = [];
+        $counter      = 0;
+        $expressions  = [];
+        foreach ($value->getPartialValue() as $partialValue) {
+            $expressions[] = preg_replace_callback('#%(\\d+\\$)?s#', function ($matches) use ($partialValue, &$counter) {
+                $counter++;
+                $paramName                = $this->name . '_' . $counter;
+                $this->params[$paramName] = $partialValue;
+                return ':' . $paramName;
+            }, $this->sqlExpressionPattern);
+        }
+        $this->sqlExpression = '(' . implode(') AND (', $expressions) . ')';
     }
 
     public function withNamePrefix(string $prefix): static

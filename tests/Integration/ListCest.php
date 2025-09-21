@@ -55,15 +55,17 @@ class ListCest
         $I->seeElement(self::FILTER_FORM_SELECTOR . ' button[type="submit"]');
 
         $I->submitForm(self::FILTER_FORM_SELECTOR, [
-            'search'        => 'post 10',
+            'search'        => '10 post',
             'is_active'     => '',
             'modified_from' => '',
             'modified_to'   => '',
         ]);
 
+        $a = $I->grabResponse();
         $I->seeResponseCodeIs(200);
         $I->see('Post', 'h1');
         $I->assertCount(1, $I->grabMultiple(self::ENTITY_ROW_SELECTOR));
+        $I->dontSee('No results');
 
         $I->submitForm(self::FILTER_FORM_SELECTOR, [
             'search'        => 'post 1',
@@ -74,7 +76,7 @@ class ListCest
 
         $I->seeResponseCodeIs(200);
         $I->see('Post', 'h1');
-        $I->assertCount(11, $I->grabMultiple(self::ENTITY_ROW_SELECTOR));
+        $I->assertCount(13, $I->grabMultiple(self::ENTITY_ROW_SELECTOR));
 
         $I->submitForm(self::FILTER_FORM_SELECTOR, [
             'search'        => 'post 1',
@@ -236,16 +238,16 @@ class ListCest
             'modified_to'   => '',
         ]);
 
-        $I->assertEquals([19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 1], $I->grabMultiple(self::ENTITY_ROW_SELECTOR . ' .field-Post-id'));
+        $I->assertEquals([31, 21, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 1], $I->grabMultiple(self::ENTITY_ROW_SELECTOR . ' .field-Post-id'));
         $I->click('section.list-content th.field-Post-id a');
-        $I->assertEquals([1, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], $I->grabMultiple(self::ENTITY_ROW_SELECTOR . ' .field-Post-id'));
+        $I->assertEquals([1, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 21, 31], $I->grabMultiple(self::ENTITY_ROW_SELECTOR . ' .field-Post-id'));
 
         // Sort one-to-many
         $I->click('section.list-content th.field-Post-comments a');
-        $I->assertEquals(['null', 'null', 'null', 'null', 'null', 'null', 'null', 'null', 'null', '3', '11'], $I->grabMultiple(self::ENTITY_ROW_SELECTOR . ' .field-Post-comments'));
+        $I->assertEquals(['null', 'null', 'null', 'null', 'null', 'null', 'null', 'null', 'null', 'null', 'null', '3', '11'], $I->grabMultiple(self::ENTITY_ROW_SELECTOR . ' .field-Post-comments'));
 
         $I->click('section.list-content th.field-Post-comments a');
-        $I->assertEquals(['11', '3', 'null', 'null', 'null', 'null', 'null', 'null', 'null', 'null', 'null'], $I->grabMultiple(self::ENTITY_ROW_SELECTOR . ' .field-Post-comments'));
+        $I->assertEquals(['11', '3', 'null', 'null', 'null', 'null', 'null', 'null', 'null', 'null', 'null', 'null', 'null'], $I->grabMultiple(self::ENTITY_ROW_SELECTOR . ' .field-Post-comments'));
 
         // Sort many-to-one
         $I->amOnPage('?entity=Comment&action=list');

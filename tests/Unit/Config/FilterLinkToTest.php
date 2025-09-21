@@ -39,7 +39,7 @@ class FilterLinkToTest extends Unit
         );
 
         $this->assertEquals('autocomplete', $filter->control);
-        $this->assertEquals('test_field = :test_field_1', $filter->getCondition('test')->getSqlExpression());
+        $this->assertEquals('(test_field = :test_field_1)', $filter->getCondition('test')->getSqlExpression());
         $this->assertEquals('test label', $filter->label);
     }
 }
