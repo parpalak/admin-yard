@@ -253,7 +253,14 @@ function makeInlineForm(formId, unknownErrorMessage) {
     }
 
     function handleFailure(errors) {
-        form.querySelector('.validation-errors').innerHTML = errors.map(error => '<span class="validation-error">' + error + '</span>').join('');
+        const validationHolder = form.querySelector('.validation-errors');
+        validationHolder.textContent = '';
+        errors.forEach(error => {
+            const span = document.createElement('span');
+            span.className = 'validation-error';
+            span.textContent = error;
+            validationHolder.appendChild(span);
+        });
         form.classList.toggle('has-errors', true);
 
         restoreFormChecks();

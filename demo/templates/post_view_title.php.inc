@@ -1,7 +1,7 @@
 <?php
 
 if ($row['column_is_active']) {
-    echo $value;
+    echo htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
 } else {
-    echo '<del>' . $value . '</del>';
+    echo '<del>' . htmlspecialchars($value, ENT_QUOTES, 'UTF-8') . '</del>';
 }
