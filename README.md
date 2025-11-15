@@ -386,6 +386,7 @@ Here are some recommendations for choosing dataTypes based on the database colum
 | date      | date                                                                     | ?string                | DATE, TEXT            |
 | timestamp | datetime                                                                 | ?DateTimeImmutable     | TIMESTAMP, DATETIME   |
 | unixtime  | datetime                                                                 | ?DateTimeImmutable     | INT                   |
+| password  | password                                                                 | string                 | TEXT (store hashed)   |
 | json_rows | - (TODO: implement a json editor)                                        | ?array                 | JSON, TEXT            |
 
 ### Note on Normalized Types in PHP
@@ -529,6 +530,33 @@ function tagIdsFromTags(PdoDataProvider $dataProvider, array $tags): array
     return $tagIds;
 }
 ```
+
+### Handling password fields
+
+`DATA_TYPE_PASSWORD` together with the `password` control only affects how AdminYard renders the field (values are hidden on list/show pages).
+The library does **not** hash or encrypt the submitted value automatically because that logic is project-specific.
+To keep your database secure you must attach your own listener that hashes a password before it reaches the database.
+A simplified example using native `password_hash()` looks like this:
+
+```php
+use S2\AdminYard\Config\EntityConfig;
+use S2\AdminYard\Event\BeforeSaveEvent;
+
+$userEntity->addListener(
+    [EntityConfig::EVENT_BEFORE_CREATE, EntityConfig::EVENT_BEFORE_UPDATE, EntityConfig::EVENT_BEFORE_PATCH],
+    function (BeforeSaveEvent $event) {
+        if (($event->data['password'] ?? '') === '') {
+            unset($event->data['password']); // keep existing hash when the field is left empty
+            return;
+        }
+
+        $event->data['password'] = password_hash($event->data['password'], PASSWORD_DEFAULT);
+    }
+);
+```
+
+Feel free to integrate any hashing service that your project already uses (Symfony password hasher, legacy hashing utils, etc.). The key point is: without such a listener passwords will be persisted exactly as the user submitted them.
+
 
 ## Contributing
 
