@@ -50,4 +50,32 @@ class DeleteCest
         $I->see('Unable to delete entity');
         $I->seeFlashMessage('Cannot delete entity because it is used in other entities.');
     }
+
+    public function displayNameBuilderUsesShowFields(IntegrationTester $I): void
+    {
+        $I->amOnPage('?entity=Post&action=show&id=12');
+        $tokenMatch = $I->grabAndMatch('a.show-action-link-delete', '#csrf_token=([0-9a-z]+)#');
+        $urlMatch   = $I->grabAndMatch('a.show-action-link-delete', '#href="([^"]+)"#');
+
+        $I->sendPost($urlMatch[1], [
+            'csrf_token' => $tokenMatch[1],
+        ]);
+
+        $I->seeResponseCodeIs(Response::HTTP_OK);
+        $I->seeFlashMessage('Text for post 12');
+    }
+
+    public function customSuccessMessageFromListener(IntegrationTester $I): void
+    {
+        $I->amOnPage('?entity=Post&action=show&id=13');
+        $tokenMatch = $I->grabAndMatch('a.show-action-link-delete', '#csrf_token=([0-9a-z]+)#');
+        $urlMatch   = $I->grabAndMatch('a.show-action-link-delete', '#href="([^"]+)"#');
+
+        $I->sendPost($urlMatch[1], [
+            'csrf_token' => $tokenMatch[1],
+        ]);
+
+        $I->seeResponseCodeIs(Response::HTTP_OK);
+        $I->seeFlashMessage('Custom delete message for "Post 13".');
+    }
 }

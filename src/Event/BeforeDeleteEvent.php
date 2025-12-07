@@ -1,7 +1,7 @@
 <?php
 /**
- * @copyright 2024 Roman Parpalak
- * @license   http://opensource.org/licenses/MIT MIT
+ * @copyright 2024-2025 Roman Parpalak
+ * @license   https://opensource.org/license/mit MIT
  * @package   AdminYard
  */
 
@@ -22,6 +22,19 @@ class BeforeDeleteEvent
      * @var string[]
      */
     public array $errorMessages = [];
+
+    /**
+     * Custom message that will be shown after successful deletion.
+     * If not set, the default message is used.
+     */
+    public ?string $successMessage = null;
+
+    /**
+     * Entity row fetched before deletion.
+     *
+     * @var array<string,mixed>|null
+     */
+    public ?array $entityRow = null;
 
     /**
      * @param PdoDataProvider $dataProvider

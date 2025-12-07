@@ -94,6 +94,19 @@ $postEntity->setReadAccessControl(
 $postEntity->setWriteAccessControl(
     new LogicalExpression('write_access_control', [31, 32, 33, 34, 35], 'id NOT IN (%s)'),
 );
+$postEntity->setEntityDisplayNameBuilder(static function (array $row): string {
+    $text = $row['column_text'] ?? '';
+    if ($text !== '') {
+        return sprintf('Post text: %s', $text);
+    }
+
+    $title = $row['column_title'] ?? '';
+    if ($title !== '') {
+        return sprintf('Post title: %s', $title);
+    }
+
+    return 'Post';
+});
 
 $commentConfig = (new EntityConfig('Comment', 'comments'))
     ->addField(new FieldConfig(
@@ -327,6 +340,10 @@ $adminConfig
                     new Key(['post_id' => $event->primaryKey->getIntId()]),
                     [],
                 );
+                if ($event->primaryKey->getIntId() === 13) {
+                    $title = $event->entityRow['column_title'] ?? 'Post';
+                    $event->successMessage = sprintf('Custom delete message for "%s".', $title);
+                }
             })
             ->addFilter(
                 new Filter(

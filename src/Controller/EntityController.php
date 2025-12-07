@@ -409,8 +409,23 @@ class EntityController
             return new Response('CSRF token mismatch', Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
+        $row = null;
+        try {
+            $row = $this->dataProvider->getEntity(
+                $this->entityConfig->getTableName(),
+                $this->entityConfig->getFieldDataTypes(FieldConfig::ACTION_LIST, includePrimaryKey: true),
+                DatabaseHelper::getSqlExpressionsForAssociations($this->entityConfig, FieldConfig::ACTION_LIST),
+                DatabaseHelper::getReadAccessControlConditions($this->entityConfig),
+                $primaryKey
+            );
+        } catch (DataProviderException $e) {
+            $this->logger?->warning($e->getMessage(), ['exception' => $e]);
+        }
+
+        $event = new BeforeDeleteEvent($this->dataProvider, $primaryKey);
+        $event->entityRow = $row;
         $this->eventDispatcher->dispatch(
-            $event = new BeforeDeleteEvent($this->dataProvider, $primaryKey),
+            $event,
             'adminyard.' . $this->entityConfig->getName() . '.' . EntityConfig::EVENT_BEFORE_DELETE
         );
 
@@ -466,10 +481,14 @@ class EntityController
             return new JsonResponse(['success' => true]);
         }
 
-        $this->addFlashMessage($request, 'success', \sprintf(
-            $this->translator->trans('%s deleted successfully.'),
-            $this->entityConfig->getName()
-        ));
+        $successMessage = $event->successMessage
+            ?? \sprintf(
+                $this->translator->trans('%s deleted successfully.'),
+                $this->entityConfig->buildEntityDisplayName($event->entityRow)
+            );
+
+        $this->addFlashMessage($request, 'success', $successMessage);
+
         return new Response('Entity was deleted', Response::HTTP_OK);
     }
 

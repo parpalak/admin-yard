@@ -34,7 +34,7 @@ return [
     'Cannot save %s due to the following errors:'       => 'Cannot save %s due to the following errors:',
 
     'Are you sure you want to delete?'                           => 'Are you sure you want to delete?',
-    '%s was not deleted.'                                        => '%s was not deleted.',
+    '%s was not deleted.'                                        => 'Could not delete %s.',
     '%s deleted successfully.'                                   => '%s deleted successfully.',
     'Cannot delete entity because it is used in other entities.' => 'Cannot delete entity because it is used in other entities.',
     'Something went wrong and the value was not saved.'          => 'Something went wrong and the value was not saved.',

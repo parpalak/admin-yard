@@ -1,7 +1,7 @@
 <?php
 /**
  * @copyright 2024-2025 Roman Parpalak
- * @license   http://opensource.org/licenses/MIT MIT
+ * @license   https://opensource.org/license/mit MIT
  * @package   AdminYard
  */
 
@@ -33,6 +33,11 @@ class EntityConfig
     private ?string $pluralName = null;
     private ?string $newTitle = null;
     private ?string $editTitle = null;
+
+    /**
+     * @var callable|null
+     */
+    private $displayNameBuilder;
 
     /**
      * @var array<string,FieldConfig>
@@ -146,10 +151,30 @@ class EntityConfig
         return $this->editTitle ?? $this->name;
     }
 
+    /**
+     * Set a callback that builds a human-friendly name for the entity.
+     * The callback receives the DB row (normalized values) and must return a string.
+     */
+    public function setEntityDisplayNameBuilder(callable $displayNameBuilder): self
+    {
+        $this->displayNameBuilder = $displayNameBuilder;
+
+        return $this;
+    }
+
+    public function buildEntityDisplayName(?array $entityRow): string
+    {
+        if ($this->displayNameBuilder !== null && $entityRow !== null) {
+            return (string)($this->displayNameBuilder)($entityRow);
+        }
+
+        return $this->getSingularName();
+    }
+
     public function addField(FieldConfig $fieldConfig, ?string $after = null): self
     {
         if (isset($this->fields[$fieldConfig->name])) {
-            throw new \LogicException(sprintf('Field "%s" has already been defined.', $fieldConfig->name));
+            throw new \LogicException(\sprintf('Field "%s" has already been defined.', $fieldConfig->name));
         }
 
         if ($after !== null && ($keyNumber = array_search($after, array_keys($this->fields), true)) !== false) {
@@ -181,12 +206,12 @@ class EntityConfig
     {
         foreach ($enabledActions as $action) {
             if (!\is_string($action)) {
-                throw new \InvalidArgumentException(sprintf('Action must be a string, "%s" given.', var_export($action, true)));
+                throw new \InvalidArgumentException(\sprintf('Action must be a string, "%s" given.', var_export($action, true)));
             }
         }
         $allowedActions = array_merge(self::ALLOWED_ACTIONS, $this->extraActions);
         if (\count(array_diff($enabledActions, $allowedActions)) > 0) {
-            throw new \InvalidArgumentException(sprintf(
+            throw new \InvalidArgumentException(\sprintf(
                 'Unknown action encountered: "%s". Actions must be set of %s.',
                 implode(', ', $enabledActions),
                 implode(', ', $allowedActions)
@@ -306,7 +331,7 @@ class EntityConfig
     public function setControllerClassOrFactory(string|ControllerFactoryInterface $controller, array $extraActions = []): static
     {
         if (\is_string($controller) && !is_a($controller, EntityController::class, true)) {
-            throw new \InvalidArgumentException(sprintf('Controller class "%s" must extend "%s".', $controller, EntityController::class));
+            throw new \InvalidArgumentException(\sprintf('Controller class "%s" must extend "%s".', $controller, EntityController::class));
         }
         $this->controllerClass = $controller;
         $this->extraActions    = $extraActions;
@@ -412,7 +437,7 @@ class EntityConfig
                  * Exclude columns without a view.
                  * These columns can be defined in config to be used in other custom templates.
                  *
-                 * @see \S2\AdminYard\Controller\EntityController::renderCellsForNormalizedRow
+                 * @see EntityController::renderCellsForNormalizedRow
                  */
                 continue;
             }
@@ -435,7 +460,7 @@ class EntityConfig
                  * Exclude columns without a view.
                  * These columns can be defined in config to be used in other custom templates.
                  *
-                 * @see \S2\AdminYard\Controller\EntityController::renderCellsForNormalizedRow
+                 * @see EntityController::renderCellsForNormalizedRow
                  */
                 continue;
             }
@@ -470,7 +495,7 @@ class EntityConfig
     public function addFilter(Filter $filter): static
     {
         if (isset($this->filters[$filter->name])) {
-            throw new \InvalidArgumentException(sprintf('Filter "%s" already exists.', $filter->name));
+            throw new \InvalidArgumentException(\sprintf('Filter "%s" already exists.', $filter->name));
         }
         $this->filters[$filter->name] = $filter;
         return $this;
