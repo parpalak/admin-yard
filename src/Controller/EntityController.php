@@ -413,8 +413,8 @@ class EntityController
         try {
             $row = $this->dataProvider->getEntity(
                 $this->entityConfig->getTableName(),
-                $this->entityConfig->getFieldDataTypes(FieldConfig::ACTION_LIST, includePrimaryKey: true),
-                DatabaseHelper::getSqlExpressionsForAssociations($this->entityConfig, FieldConfig::ACTION_LIST),
+                $this->entityConfig->getFieldDataTypes(FieldConfig::ACTION_SHOW, includePrimaryKey: true),
+                DatabaseHelper::getSqlExpressionsForAssociations($this->entityConfig, FieldConfig::ACTION_SHOW),
                 DatabaseHelper::getReadAccessControlConditions($this->entityConfig),
                 $primaryKey
             );
@@ -828,7 +828,7 @@ class EntityController
     {
         $filterForm = $this->formFactory->createFilterForm($this->entityConfig);
 
-        $applyFilter = $request->get('apply_filter');
+        $applyFilter = $request->query->get('apply_filter');
 
         // First we fill the filter form with the previous filter values
         if ($applyFilter !== '0') {
@@ -860,8 +860,8 @@ class EntityController
     {
         $entityName = $this->entityConfig->getName();
 
-        $sortField     = $request->get('sort_field');
-        $sortDirection = $request->get('sort_direction');
+        $sortField     = $request->query->get('sort_field');
+        $sortDirection = $request->query->get('sort_direction');
 
         if ($sortField !== null && $sortDirection !== null) {
             $this->settingStorage->set('sort_field_' . $entityName, $sortField);
