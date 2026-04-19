@@ -1,6 +1,6 @@
 <?php
 /**
- * @copyright 2024-2025 Roman Parpalak
+ * @copyright 2024-2026 Roman Parpalak
  * @license   https://opensource.org/license/mit MIT
  * @package   AdminYard
  */
@@ -88,7 +88,7 @@ class EntityConfig
      */
     public function __construct(
         private readonly string $name,
-        string                  $tableName = null
+        ?string                 $tableName = null
     ) {
         $this->tableName = $tableName ?? $name;
     }
